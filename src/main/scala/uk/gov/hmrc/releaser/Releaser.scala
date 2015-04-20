@@ -184,7 +184,7 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
 
     result.status match {
       case s if s >= 200 && s < 300 => Success(Unit)
-      case _ @ e => Failure(new Exception(s"${result.status}: ${result.body}"))
+      case _ @ e => Failure(new Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
     }
   }
 

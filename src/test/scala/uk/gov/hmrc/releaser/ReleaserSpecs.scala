@@ -60,10 +60,10 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
         case _ =>
       }
 
-      val Some((v, file)) = fakeConnector.lastUploadedVersion
+      val Some((version, file)) = fakeConnector.lastUploadedVersion
       val manifest = manifestFromZipFile(file)
 
-      v shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
+      version shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
       manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
     }
   }

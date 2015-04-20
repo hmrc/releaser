@@ -24,6 +24,7 @@ import com.google.common.io.ByteStreams
 
 import scala.collection.JavaConversions._
 import scala.util.Try
+import resource._
 
 class Transformer(stagingDir:File){
 
@@ -43,27 +44,25 @@ class Transformer(stagingDir:File){
 
   def apply(localJarFile:File, targetVersion:String, targetJarName:String):Try[File] = Try {
 
-    val jarFile: ZipFile = new ZipFile(localJarFile)
-
     val targetFile = new File(stagingDir, targetJarName)
 
-    val zout = new ZipOutputStream(new FileOutputStream(targetFile))
+    for {
+      jarFile <- managed(new ZipFile(localJarFile))
+      zout <- managed(new ZipOutputStream(new FileOutputStream(targetFile)))
+    } {
 
-    jarFile.entries().foreach { ze =>
+      jarFile.entries().foreach { ze =>
 
-      if(ze.getName == "META-INF/MANIFEST.MF"){
-        zout.putNextEntry(new ZipEntry(ze.getName))
-        val newManifest:Manifest = manifestTransformer(new Manifest(jarFile.getInputStream(ze)), targetVersion)
-        newManifest.write(zout)
-      } else {
-        zout.putNextEntry(new ZipEntry(ze))
-        ByteStreams.copy(jarFile.getInputStream(ze), zout)
+        if (ze.getName == "META-INF/MANIFEST.MF") {
+          zout.putNextEntry(new ZipEntry(ze.getName))
+          val newManifest: Manifest = manifestTransformer(new Manifest(jarFile.getInputStream(ze)), targetVersion)
+          newManifest.write(zout)
+        } else {
+          zout.putNextEntry(new ZipEntry(ze))
+          ByteStreams.copy(jarFile.getInputStream(ze), zout)
+        }
       }
     }
-
-    zout.flush()
-    zout.close()
-    jarFile.close()
 
     targetFile
   }
