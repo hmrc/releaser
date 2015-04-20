@@ -24,6 +24,7 @@ object HmrcBuild extends Build {
   val appVersion = "0.1.0"
 
   val libraries = Seq(
+    "com.typesafe.play" %% "play-ws" % "2.3.8",
     "org.scalatest" %% "scalatest" % "2.2.2" % "test",
     "org.pegdown" % "pegdown" % "1.4.2" % "test"
   )

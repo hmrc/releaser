@@ -15,11 +15,19 @@
  */
 
 package uk.gov.hmrc.releaser
+import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 
-import java.io.File
+
+import java.io.{FileOutputStream, File}
 import java.net.URL
 import java.nio.file.Files
+import java.util.concurrent.TimeUnit
 
+import play.api.libs.ws._
+import play.api.libs.ws.ning.NingWSClient
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.sys.process._
 import scala.util.{Failure, Success, Try}
 
@@ -27,90 +35,157 @@ class Logger{
   def info(st:String) = println(st)
 }
 
+object ReleaserMain {
+  def main(args: Array[String]) {
+    val result = Releaser.main(args)
+    System.exit(result)
+  }
+}
+
 object Releaser {
 
-  val reposToTry = Seq("sbt-plugin-release-candidates")
+//  val releaseCandidateRepo = "sbt-plugin-release-candidates"
+  val releaseCandidateRepo = "release-candidates"
+//  val releaseRepo = "sbt-plugin-releases"
+  val releaseRepo = "releases"
   val workDir = Files.createTempDirectory("releaser").toFile
-  val downloader = new BintrayConnector(new BintrayIvyPaths("https://bintray.com/artifact/download/hmrc/"), workDir)
+  val downloader = new BintrayConnector(new BintrayMavenPaths(), workDir)
 
   val log = new Logger()
 
-  def main(args: Array[String]) {
-    new Releaser(downloader, reposToTry).start(args)
+  def main(args: Array[String]):Int= {
+    new Releaser(downloader, releaseCandidateRepo, releaseRepo).start(args)
   }
   
-  def calculateTarget(releaseType: String): String = "1.0.0"
+  def calculateTarget(releaseType: String): String = "0.9.9"
 }
 
-class Releaser(bintray:BintrayConnector, reposToTry:Seq[String]){
+case class VersionDescriptor(repo:String, artefactName:String, scalaVersion:String, version:String)
+
+
+class Releaser(bintray:Connector, releaseCandidateRepo:String, releaseRepo:String){
 
   import Releaser._
 
-  def start(args: Array[String]): Int ={
+  def start(args: Array[String]): Int = {
     val artefactName: String = args(0)
     val rcVersion: String = args(1)
-    val targetVersion: String = calculateTarget(args(2))
+    val targetVersionString: String = calculateTarget(args(2))
 
-    val transformedZipOpt = bintray.download(artefactName, rcVersion, reposToTry) flatMap { case(repo, localZipFile) =>
-      Transformer(localZipFile, targetVersion) map { transformed =>
-        repo -> transformed
-      }
-    }
-
-    val result = transformedZipOpt map { case (repo, transformedZip) =>
-      bintray.upload(repo, transformedZip)
-    }
-
-    result match {
+    release(artefactName, rcVersion, targetVersionString) match {
       case Failure(e) => e.printStackTrace(); 1
       case Success(_) => 0;
     }
   }
 
+  def release(artefactName: String, rcVersion:String, targetVersionString:String): Try[Unit] ={
+
+    val sourceVersion = VersionDescriptor(releaseCandidateRepo, artefactName, "2.10", rcVersion)
+    val targetVersion = VersionDescriptor(releaseRepo, artefactName, "2.10", targetVersionString)
+
+    for(
+      localZipFile <- bintray.download(sourceVersion);
+      transformed  <- Transformer(localZipFile, targetVersionString);
+      result       <- bintray.upload(targetVersion, transformed)
+    ) yield result
+  }
+
 }
 
 //https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby.jar
-class BintrayIvyPaths(bintrayRepoRoot:String){
+//https://bintray.com/api/v1/   content/hmrc/sbt-plugin-releases          /uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/1.0.0/jars/sbt-bobby.jar
+class BintrayIvyPaths() extends PathBuilder {
 
   val sbtVersion = "sbt_0.13"
+  val bintrayRepoRoot = "https://bintray.com/artifact/download/hmrc/"
+  val bintrayApiRoot = "https://bintray.com/api/v1/content/hmrc/"
 
-  def jarFilenameFor(artefactName:String):String={
-    s"$artefactName.jar"
+  override def jarFilenameFor(v:VersionDescriptor):String={
+    s"${v.artefactName}.jar"
   }
 
-  def jarUrlFor(repo:String, artefactName:String, scalaVersion:String, releaseCandidateVersion:String):String={
-    val fileName = jarFilenameFor(artefactName)
-    s"$bintrayRepoRoot$repo/uk.gov.hmrc/${artefactName}/scala_$scalaVersion/$sbtVersion/${releaseCandidateVersion}/jars/$fileName"
-  }
-}
-
-//https://bintray.com/artifact/download/hmrc/releases/uk/gov/hmrc/http-verbs_2.11/1.4.0/http-verbs_2.11-1.4.0-javadoc.jar
-class BintrayPaths(bintrayRepoRoot:String){
-  def jarFilenameFor(artefactName:String, scalaVersion:String, releaseCandidateVersion:String):String={
-    s"${artefactName}_$scalaVersion-$releaseCandidateVersion.jar"
+  override def jarUrlFor(v:VersionDescriptor):String={
+    val fileName = jarFilenameFor(v)
+    s"$bintrayRepoRoot${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/${sbtVersion}/${v.version}/jars/$fileName"
   }
 
-  def jarUrlFor(repo:String, artefactName:String, scalaVersion:String, releaseCandidateVersion:String):String={
-    val fileName = jarFilenameFor(artefactName, scalaVersion, releaseCandidateVersion)
-    s"$bintrayRepoRoot$repo/uk/gov/hmrc/${artefactName}_$scalaVersion/${releaseCandidateVersion}/$fileName"
+  override def jarUploadFor(v:VersionDescriptor):String={
+    val fileName = jarFilenameFor(v)
+    s"$bintrayApiRoot${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
   }
 }
 
-class BintrayConnector(bintrayPaths:BintrayIvyPaths, workDir:File){
+//https://bintray.com/artifact/download/hmrc/releases/uk/gov/hmrc/http-verbs_2.11/1.4.0/http-verbs_2.11-1.4.0.jar
+class BintrayMavenPaths() extends PathBuilder{
+
+  val bintrayRepoRoot = "https://bintray.com/artifact/download/hmrc/"
+  val bintrayApiRoot = "https://bintray.com/api/v1/maven/hmrc/"
+
+  def jarFilenameFor(v:VersionDescriptor):String={
+    s"${v.artefactName}_${v.scalaVersion}-${v.version}.jar"
+  }
+
+  def jarUrlFor(v:VersionDescriptor):String={
+    val fileName = jarFilenameFor(v)
+    s"$bintrayRepoRoot${v.repo}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
+  }
+
+
+  def jarUploadFor(v:VersionDescriptor):String={
+    val fileName = jarFilenameFor(v)
+    s"$bintrayApiRoot${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
+  }
+}
+
+trait Connector{
+  def upload(version: VersionDescriptor, jarFile:File):Try[Unit];
+  def download(version:VersionDescriptor):Try[File]
+}
+
+class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector{
+
+  val log = new Logger()
 
   val scalaVersion = "2.10"
-  
-  def upload(repo:String, jarFile:File):Try[Unit] = ???
 
-  def download(artefactName:String, releaseCandidateVersion:String, reposToTry:Seq[String]):Try[(String, File)] = {
+  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
 
-    val fileName = bintrayPaths.jarFilenameFor(artefactName)
-    val artefactUrl = bintrayPaths.jarUrlFor(reposToTry.head, artefactName, scalaVersion, releaseCandidateVersion)
+  def upload(version: VersionDescriptor, jarFile:File):Try[Unit] = {
+
+    val url = bintrayPaths.jarUploadFor(version)
+
+    log.info(s"version $version")
+    log.info(s"posting file to $url")
+    log.info(s"bintray user ${System.getProperty("bintray.api.user")}")
+
+
+    val call = ws.url(url)
+      .withAuth(
+        System.getProperty("bintray.api.user"),
+        System.getProperty("bintray.api.key"),
+        WSAuthScheme.BASIC)
+      .withHeaders(
+        "X-Bintray-Package" -> version.artefactName,
+        "X-Bintray-Version" -> version.version)
+      .post(jarFile)
+
+    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+
+    log.info(s"result ${result.status} - ${result.statusText}")
+
+    result.status match {
+      case s if s >= 200 && s < 300 => Success(Unit)
+      case _ @ e => Failure(new Exception(s"${result.status}: ${result.body}"))
+    }
+  }
+
+  def download(version:VersionDescriptor):Try[File] = {
+
+    val fileName = bintrayPaths.jarFilenameFor(version)
+    val artefactUrl = bintrayPaths.jarUrlFor(version)
     val targetZipFile = new File(workDir, fileName)
 
-    Http.url2File(artefactUrl, targetZipFile).map { unit =>
-      reposToTry.head -> targetZipFile
-    }
+    Http.url2File(artefactUrl, targetZipFile) map { unit => targetZipFile }
   }
 
 }
@@ -126,5 +201,5 @@ object Http{
 }
 
 object Transformer{
-  def apply(localZipFile:File, targetVersion:String):Try[File] = ???
+  def apply(localZipFile:File, targetVersion:String):Try[File] = Try { localZipFile }
 }
