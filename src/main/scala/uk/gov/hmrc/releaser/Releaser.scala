@@ -37,6 +37,11 @@ class Logger{
 
 object ReleaserMain {
   def main(args: Array[String]) {
+    if(args.length != 3){
+      println("<artefact name> <release-candidate-version> <target-version>")
+      System.exit(1)
+    }
+
     val result = Releaser.main(args)
     System.exit(result)
   }
@@ -65,12 +70,14 @@ case class VersionDescriptor(repo:String, artefactName:String, scalaVersion:Stri
 
 class Releaser(bintray:Connector, releaseCandidateRepo:String, releaseRepo:String){
 
+  val scalaVersion: String = "2.11"
+
   import Releaser._
 
   def start(args: Array[String]): Int = {
     val artefactName: String = args(0)
     val rcVersion: String = args(1)
-    val targetVersionString: String = calculateTarget(args(2))
+    val targetVersionString: String = args(2)
 
     release(artefactName, rcVersion, targetVersionString) match {
       case Failure(e) => e.printStackTrace(); 1
@@ -80,8 +87,8 @@ class Releaser(bintray:Connector, releaseCandidateRepo:String, releaseRepo:Strin
 
   def release(artefactName: String, rcVersion:String, targetVersionString:String): Try[Unit] ={
 
-    val sourceVersion = VersionDescriptor(releaseCandidateRepo, artefactName, "2.10", rcVersion)
-    val targetVersion = VersionDescriptor(releaseRepo, artefactName, "2.10", targetVersionString)
+    val sourceVersion = VersionDescriptor(releaseCandidateRepo, artefactName, scalaVersion, rcVersion)
+    val targetVersion = VersionDescriptor(releaseRepo, artefactName, scalaVersion, targetVersionString)
 
     for(
       localZipFile <- bintray.download(sourceVersion);
@@ -156,18 +163,19 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
 
     log.info(s"version $version")
     log.info(s"posting file to $url")
-    log.info(s"bintray user ${System.getProperty("bintray.api.user")}")
+    log.info(s"bintray user ${System.getenv("BINTRAY_USER")}")
 
 
     val call = ws.url(url)
       .withAuth(
-        System.getProperty("bintray.api.user"),
-        System.getProperty("bintray.api.key"),
+        System.getenv("BINTRAY_USER"),
+        System.getenv("BINTRAY_PASS"),
         WSAuthScheme.BASIC)
       .withHeaders(
+        "content-type" -> "application/json",
         "X-Bintray-Package" -> version.artefactName,
         "X-Bintray-Version" -> version.version)
-      .post(jarFile)
+      .put(jarFile)
 
     val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
 

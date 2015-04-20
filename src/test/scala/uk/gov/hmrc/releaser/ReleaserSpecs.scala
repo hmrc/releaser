@@ -39,7 +39,7 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
 
       val fakeConnector = new Connector(){
 
-        var lastUploadedVersion:Option[(VersionDescriptor, File)] =None
+        var lastUploadedVersion:Option[(VersionDescriptor, File)] = None
 
         override def download(version: VersionDescriptor): Try[File] = {
           Success {
@@ -58,7 +58,7 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
       val Some((v, file)) = fakeConnector.lastUploadedVersion
       val manifest = manfestFromZipFile(file)
 
-      v shouldBe VersionDescriptor("releases", "time", "2.10", "0.9.9")
+      v shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
 //      manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
     }
   }
