@@ -53,13 +53,16 @@ object Releaser {
   val releaseCandidateRepo = "release-candidates"
 //  val releaseRepo = "sbt-plugin-releases"
   val releaseRepo = "releases"
+
   val workDir = Files.createTempDirectory("releaser").toFile
-  val downloader = new BintrayConnector(new BintrayMavenPaths(), workDir)
+  val paths: BintrayMavenPaths = new BintrayMavenPaths()
+  val downloader = new BintrayConnector(paths, workDir)
+  val transformer = new Transformer(workDir)
 
   val log = new Logger()
 
   def main(args: Array[String]):Int= {
-    new Releaser(downloader, releaseCandidateRepo, releaseRepo).start(args)
+    new Releaser(downloader, transformer, paths, releaseCandidateRepo, releaseRepo).start(args)
   }
   
   def calculateTarget(releaseType: String): String = "0.9.9"
@@ -68,11 +71,9 @@ object Releaser {
 case class VersionDescriptor(repo:String, artefactName:String, scalaVersion:String, version:String)
 
 
-class Releaser(bintray:Connector, releaseCandidateRepo:String, releaseRepo:String){
+class Releaser(bintray:Connector, transformer:Transformer, pathBuilder: PathBuilder, releaseCandidateRepo:String, releaseRepo:String){
 
   val scalaVersion: String = "2.11"
-
-  import Releaser._
 
   def start(args: Array[String]): Int = {
     val artefactName: String = args(0)
@@ -92,7 +93,7 @@ class Releaser(bintray:Connector, releaseCandidateRepo:String, releaseRepo:Strin
 
     for(
       localZipFile <- bintray.download(sourceVersion);
-      transformed  <- Transformer(localZipFile, targetVersionString);
+      transformed  <- transformer(localZipFile, targetVersionString, pathBuilder.jarFilenameFor(targetVersion));
       result       <- bintray.upload(targetVersion, transformed)
     ) yield result
   }
@@ -208,6 +209,4 @@ object Http{
   }
 }
 
-object Transformer{
-  def apply(localZipFile:File, targetVersion:String):Try[File] = Try { localZipFile }
-}
+

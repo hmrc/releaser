@@ -17,16 +17,15 @@
 package uk.gov.hmrc.releaser
 
 import java.io.File
-import java.net.URL
-import java.util
-import java.util.Map.Entry
+import java.nio.file.Files
 import java.util.jar
 import java.util.jar.Attributes
 import java.util.zip.ZipFile
-import scala.collection.JavaConversions._
 
-import org.scalatest.{OptionValues, Matchers, WordSpec}
-import scala.util.{Success, Try}
+import org.scalatest.{Matchers, OptionValues, WordSpec}
+
+import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
 
@@ -52,18 +51,24 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
         }
       }
 
-      val releaser = new Releaser(fakeConnector, "release-candidates", "releases")
-      releaser.release("time", "1.3.0-1-g21312cc", "0.9.9")
+      val transformer = new Transformer(Files.createTempDirectory("test-release").toFile)
+      val pathBuilder = new BintrayMavenPaths()
+
+      val releaser = new Releaser(fakeConnector, transformer, pathBuilder, "release-candidates", "releases")
+      releaser.release("time", "1.3.0-1-g21312cc", "0.9.9") match {
+        case Failure(e) => fail(e)
+        case _ =>
+      }
 
       val Some((v, file)) = fakeConnector.lastUploadedVersion
-      val manifest = manfestFromZipFile(file)
+      val manifest = manifestFromZipFile(file)
 
       v shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
-//      manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
+      manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
     }
   }
 
-  def manfestFromZipFile(file: File): Option[Attributes] = {
+  def manifestFromZipFile(file: File): Option[Attributes] = {
     val zipFile: ZipFile = new ZipFile(file)
 
     zipFile.entries().toList.find { ze =>

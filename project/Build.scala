@@ -25,6 +25,7 @@ object HmrcBuild extends Build {
 
   val libraries = Seq(
     "com.typesafe.play" %% "play-ws" % "2.3.8",
+    "com.jsuereth" %% "scala-arm" % "1.4",
     "org.scalatest" %% "scalatest" % "2.2.2" % "test",
     "org.pegdown" % "pegdown" % "1.4.2" % "test"
   )
