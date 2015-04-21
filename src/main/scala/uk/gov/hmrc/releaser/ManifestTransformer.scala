@@ -17,6 +17,7 @@
 package uk.gov.hmrc.releaser
 
 import java.io.{File, FileOutputStream}
+import java.nio.file.{Files, Paths}
 import java.util.jar._
 import java.util.zip.{ZipEntry, ZipFile, ZipOutputStream}
 
@@ -26,7 +27,30 @@ import scala.collection.JavaConversions._
 import scala.util.Try
 import resource._
 
-class Transformer(stagingDir:File){
+import scala.xml.{Node, XML}
+
+trait Transformer{
+
+  def apply(localJarFile:File, targetVersion:String, targetJarName:String):Try[File]
+
+}
+
+class PomTransformer(stagingDir:File) {
+  def apply(localPomFile: File, targetVersion: String, targetFileName: String): Try[File] = Try {
+    val updatedXml = updateVersion(XML.loadFile(localPomFile), targetVersion).mkString
+    val targetFile = new File(targetFileName)
+    Files.write(targetFile.toPath, updatedXml.getBytes)
+    targetFile
+  }
+
+  def updateVersion(node: Node, newVersion:String): Node = node match {
+    case <project>{ n @ _* }</project> => <project>{ n.map { a => updateVersion(a, newVersion) }} </project>
+    case <version>{ _* }</version> => <version>{ newVersion }</version>
+    case other @ _ => other
+  }
+}
+
+class ManifestTransformer(stagingDir:File){
 
   val versionNumberFields = Set("Git-Describe", "Implementation-Version", "Specification-Version")
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.releaser
 
 import java.io.File
+import java.net.URL
 import java.nio.file.Files
 import java.util.jar
 import java.util.jar.Attributes
@@ -26,6 +27,7 @@ import org.scalatest.{Matchers, OptionValues, WordSpec}
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
+import scala.xml.XML
 
 class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
 
@@ -38,35 +40,57 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
 
       val fakeConnector = new Connector(){
 
-        var lastUploadedVersion:Option[(VersionDescriptor, File)] = None
+        var lastUploadedJar:Option[(VersionDescriptor, File)] = None
+        var lastUploadedPom:Option[(VersionDescriptor, File)] = None
 
-        override def download(version: VersionDescriptor): Try[File] = {
+        override def downloadJar(version: VersionDescriptor): Try[File] = {
           Success {
             new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI) }
         }
 
-        override def upload(version: VersionDescriptor, jarFile: File): Try[Unit] = {
-          lastUploadedVersion = Some(version -> jarFile)
-          Success(Unit)
+        override def uploadJar(version: VersionDescriptor, jarFile: File): Try[URL] = {
+          lastUploadedJar = Some(version -> jarFile)
+          Success(new URL("http://the-url-we-uploaded-to.org"))
+        }
+
+        override def uploadPom(version: VersionDescriptor, file: File): Try[URL] = {
+          lastUploadedPom = Some(version -> file)
+          Success(new URL("http://the-url-we-uploaded-to.org"))
+        }
+
+        override def downloadPom(version: VersionDescriptor): Try[File] = {
+          Success {
+            new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI) }
         }
       }
 
-      val transformer = new Transformer(Files.createTempDirectory("test-release").toFile)
       val pathBuilder = new BintrayMavenPaths()
 
-      val releaser = new Releaser(fakeConnector, transformer, pathBuilder, "release-candidates", "releases")
-      releaser.release("time", "1.3.0-1-g21312cc", "0.9.9") match {
+      val releaser = new Releaser(fakeConnector, tmpDir, pathBuilder, "release-candidates", "releases")
+
+      val uploadedURLs = releaser.publishNewVersion("time", "1.3.0-1-g21312cc", "0.9.9") match {
         case Failure(e) => fail(e)
-        case _ =>
+        case Success(urls) => urls
       }
 
-      val Some((version, file)) = fakeConnector.lastUploadedVersion
-      val manifest = manifestFromZipFile(file)
+      val Some((jarVersion, jarFile)) = fakeConnector.lastUploadedJar
+      val Some((pomVersion, pomFile)) = fakeConnector.lastUploadedPom
 
-      version shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
+      jarFile.getName should endWith(".jar")
+      pomFile.getName should endWith(".pom")
+
+      val manifest = manifestFromZipFile(jarFile)
+
+      jarVersion shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
+      pomVersion shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
+
       manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
+      val pomVersionText = (XML.loadFile(pomFile) \ "version").text
+      pomVersionText shouldBe "0.9.9"
     }
   }
+
+  def tmpDir: File = Files.createTempDirectory("test-release").toFile
 
   def manifestFromZipFile(file: File): Option[Attributes] = {
     val zipFile: ZipFile = new ZipFile(file)

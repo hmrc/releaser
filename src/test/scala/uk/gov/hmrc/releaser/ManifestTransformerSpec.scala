@@ -23,22 +23,21 @@ import java.util
 import java.util.jar
 import java.util.jar.Attributes
 import java.util.zip.ZipFile
+
 import com.google.common.io.ByteStreams
 import org.scalatest._
-import sun.security.provider.MD5
 
 import scala.collection.JavaConversions._
-import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
-class TransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues{
+class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues{
 
   val timeJarFile = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI)
 
-  var transformer:Transformer = _
+  var transformer:ManifestTransformer = _
 
   override def beforeEach(){
-    transformer = new Transformer(Files.createTempDirectory("test-release").toFile)
+    transformer = new ManifestTransformer(Files.createTempDirectory("test-release").toFile)
   }
 
   def version(versionString:String):VersionDescriptor={
