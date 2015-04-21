@@ -32,37 +32,42 @@ import scala.xml.XML
 class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
 
   "the releaser" should {
-    "release version 0.8.0 when given the inputs 'bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" ignore {
-      Releaser.main(Array("sbt-bobby", "0.8.1-4-ge733d26", "patch")) shouldBe 0
+
+    def buildConnector() = new Connector(){
+
+      var lastUploadedJar:Option[(VersionDescriptor, File)] = None
+      var lastUploadedPom:Option[(VersionDescriptor, File)] = None
+      var lastPublishDescriptor:Option[VersionDescriptor] = None
+
+      override def downloadJar(version: VersionDescriptor): Try[File] = {
+        Success {
+          new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI) }
+      }
+
+      override def uploadJar(version: VersionDescriptor, jarFile: File): Try[URL] = {
+        lastUploadedJar = Some(version -> jarFile)
+        Success(new URL("http://the-url-we-uploaded-to.org"))
+      }
+
+      override def uploadPom(version: VersionDescriptor, file: File): Try[URL] = {
+        lastUploadedPom = Some(version -> file)
+        Success(new URL("http://the-url-we-uploaded-to.org"))
+      }
+
+      override def downloadPom(version: VersionDescriptor): Try[File] = {
+        Success {
+          new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI) }
+      }
+
+      override def publish(version: VersionDescriptor): Try[URL] = {
+        lastPublishDescriptor = Some(version)
+        Success(new URL("http://the-url-we-uploaded-to.org"))
+      }
     }
 
     "release version 0.9.9 when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
 
-      val fakeConnector = new Connector(){
-
-        var lastUploadedJar:Option[(VersionDescriptor, File)] = None
-        var lastUploadedPom:Option[(VersionDescriptor, File)] = None
-
-        override def downloadJar(version: VersionDescriptor): Try[File] = {
-          Success {
-            new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI) }
-        }
-
-        override def uploadJar(version: VersionDescriptor, jarFile: File): Try[URL] = {
-          lastUploadedJar = Some(version -> jarFile)
-          Success(new URL("http://the-url-we-uploaded-to.org"))
-        }
-
-        override def uploadPom(version: VersionDescriptor, file: File): Try[URL] = {
-          lastUploadedPom = Some(version -> file)
-          Success(new URL("http://the-url-we-uploaded-to.org"))
-        }
-
-        override def downloadPom(version: VersionDescriptor): Try[File] = {
-          Success {
-            new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI) }
-        }
-      }
+      val fakeConnector = buildConnector()
 
       val pathBuilder = new BintrayMavenPaths()
 
@@ -75,9 +80,11 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
 
       val Some((jarVersion, jarFile)) = fakeConnector.lastUploadedJar
       val Some((pomVersion, pomFile)) = fakeConnector.lastUploadedPom
+      val publishedDescriptor = fakeConnector.lastPublishDescriptor
 
       jarFile.getName should endWith(".jar")
       pomFile.getName should endWith(".pom")
+      publishedDescriptor should not be None
 
       val manifest = manifestFromZipFile(jarFile)
 

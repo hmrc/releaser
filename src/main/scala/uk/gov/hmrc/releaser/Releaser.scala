@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit
 
 import play.api.libs.ws._
 import play.api.libs.ws.ning.NingWSClient
+import play.api.mvc.Results
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -89,15 +90,22 @@ class Releaser(bintray:Connector, stageDir:File, pathBuilder: PathBuilder, relea
     }
   }
 
+  def publish(targetVersion: VersionDescriptor): Try[URL] = {
+    bintray.publish(targetVersion)
+  }
+
   def publishNewVersion(artefactName: String, rcVersion: String, targetVersionString: String): Try[Set[URL]] ={
     val sourceVersion = VersionDescriptor(releaseCandidateRepo, artefactName, scalaVersion, rcVersion)
     val targetVersion = VersionDescriptor(releaseRepo, artefactName, scalaVersion, targetVersionString)
 
-
-    for(
+    val result = for(
       jarUrl <- uploadNewJar(sourceVersion, targetVersion);
       pomUrl <- uploadNewPom(sourceVersion, targetVersion)
     ) yield Set(pomUrl, jarUrl)
+
+    result flatMap { urls =>
+      publish(targetVersion).map { _ => urls }
+    }
   }
 
   def uploadNewPom(sourceVersion:VersionDescriptor, target:VersionDescriptor): Try[URL] = {
@@ -120,10 +128,11 @@ class Releaser(bintray:Connector, stageDir:File, pathBuilder: PathBuilder, relea
 
 
 trait Connector{
-  def uploadJar(version: VersionDescriptor, jarFile:File):Try[URL];
+  def uploadJar(version: VersionDescriptor, jarFile:File):Try[URL]
   def downloadJar(version:VersionDescriptor):Try[File]
-  def uploadPom(version: VersionDescriptor, pomFile:File):Try[URL];
+  def uploadPom(version: VersionDescriptor, pomFile:File):Try[URL]
   def downloadPom(version:VersionDescriptor):Try[File]
+  def publish(version: VersionDescriptor):Try[URL]
 }
 
 class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector{
@@ -144,11 +153,61 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
     putFile(version, jarFile, url)
   }
 
+  def publish(version: VersionDescriptor):Try[URL]={
+    val url = bintrayPaths.publishUrlFor(version)
+    publishFile(url)
+  }
+
+  def downloadPom(version:VersionDescriptor):Try[File]={
+
+    val fileName = bintrayPaths.pomFilenameFor(version)
+    val pomUrl = bintrayPaths.pomUrlFor(version)
+
+    downloadFile(pomUrl, fileName)
+  }
+
+
+  def downloadJar(version:VersionDescriptor):Try[File] = {
+
+    val fileName = bintrayPaths.jarFilenameFor(version)
+    val artefactUrl = bintrayPaths.jarUrlFor(version)
+
+    downloadFile(artefactUrl, fileName)
+  }
+
+  def downloadFile(url:String, fileName:String):Try[File]={
+    val targetFile = new File(workDir, fileName)
+
+    Http.url2File(url, targetFile) map { unit => targetFile }
+  }
+
+  def publishFile(url:String): Try[URL] ={
+    uk.gov.hmrc.time.DateConverter
+    log.info(s"posting file to $url")
+
+    val call = ws.url(url)
+      .withAuth(
+        System.getenv("BINTRAY_USER"),
+        System.getenv("BINTRAY_PASS"),
+        WSAuthScheme.BASIC)
+      .withHeaders(
+        "content-type" -> "application/json")
+      .post(Results.EmptyContent())
+
+    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+
+    log.info(s"result ${result.status} - ${result.statusText}")
+
+    result.status match {
+      case s if s >= 200 && s < 300 => Success(new URL(url))
+      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
+    }
+  }
+
   def putFile(version: VersionDescriptor, file: File, url: String): Try[URL] = {
     log.info(s"version $version")
-    log.info(s"posting file to $url")
+    log.info(s"putting file to $url")
     log.info(s"bintray user ${System.getenv("BINTRAY_USER")}")
-
 
     val call = ws.url(url)
       .withAuth(
@@ -170,26 +229,6 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
       case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
     }
   }
-
-  def downloadPom(version:VersionDescriptor):Try[File]={
-
-    val fileName = bintrayPaths.pomFilenameFor(version)
-    val artefactUrl = bintrayPaths.pomUrlFor(version)
-    val downloadedFile = new File(workDir, fileName)
-
-    Http.url2File(artefactUrl, downloadedFile) map { unit => downloadedFile }
-  }
-
-
-  def downloadJar(version:VersionDescriptor):Try[File] = {
-
-    val fileName = bintrayPaths.jarFilenameFor(version)
-    val artefactUrl = bintrayPaths.jarUrlFor(version)
-    val targetZipFile = new File(workDir, fileName)
-
-    Http.url2File(artefactUrl, targetZipFile) map { unit => targetZipFile }
-  }
-
 }
 
 object Http{

@@ -24,6 +24,7 @@ object HmrcBuild extends Build {
   val appVersion = "0.1.0"
 
   val libraries = Seq(
+    "uk.gov.hmrc" %% "time" % "0.9.9",
     "com.typesafe.play" %% "play-ws" % "2.3.8",
     "com.jsuereth" %% "scala-arm" % "1.4",
     "org.scalatest" %% "scalatest" % "2.2.2" % "test",

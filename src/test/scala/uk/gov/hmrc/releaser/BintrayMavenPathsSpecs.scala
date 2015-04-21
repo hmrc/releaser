@@ -52,5 +52,18 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
       mavenPaths.jarUploadFor(version) shouldBe expectedUrl
 
     }
+
+    "Generate correct URL for publishing a package in Bintray" in {
+      val expectedUrl = "https://bintray.com/api/v1/content/hmrc/releases/time/0.9.9/publish"
+
+      val repoName = "releases"
+      val artefactName = "time"
+      val versionString = "0.9.9"
+
+      val version = VersionDescriptor(repoName, artefactName, "2.10", versionString)
+
+      mavenPaths.publishUrlFor(version) shouldBe expectedUrl
+
+    }
   }
 }
