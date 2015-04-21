@@ -15,16 +15,12 @@
  */
 
 package uk.gov.hmrc.releaser
-import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-
-
-import java.io.{FileOutputStream, File}
 import java.net.URL
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.util.concurrent.TimeUnit
 
 import play.api.libs.ws._
-import play.api.libs.ws.ning.NingWSClient
+import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.mvc.Results
 
 import scala.concurrent.Await
@@ -55,7 +51,7 @@ object Releaser {
 //  val releaseRepo = "sbt-plugin-releases"
   val releaseRepo = "releases"
 
-  val workDir = Files.createTempDirectory("releaser").toFile
+  val workDir = Files.createTempDirectory("releaser")
   val paths: BintrayMavenPaths = new BintrayMavenPaths()
   val downloader = new BintrayConnector(paths, workDir)
 
@@ -71,7 +67,7 @@ object Releaser {
 case class VersionDescriptor(repo:String, artefactName:String, scalaVersion:String, version:String)
 
 
-class Releaser(bintray:Connector, stageDir:File, pathBuilder: PathBuilder, releaseCandidateRepo:String, releaseRepo:String){
+class Releaser(bintray:Connector, stageDir:Path, pathBuilder: PathBuilder, releaseCandidateRepo:String, releaseRepo:String){
 
   val scalaVersion: String = "2.11"
 
@@ -128,14 +124,14 @@ class Releaser(bintray:Connector, stageDir:File, pathBuilder: PathBuilder, relea
 
 
 trait Connector{
-  def uploadJar(version: VersionDescriptor, jarFile:File):Try[URL]
-  def downloadJar(version:VersionDescriptor):Try[File]
-  def uploadPom(version: VersionDescriptor, pomFile:File):Try[URL]
-  def downloadPom(version:VersionDescriptor):Try[File]
+  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[URL]
+  def downloadJar(version:VersionDescriptor):Try[Path]
+  def uploadPom(version: VersionDescriptor, pomPath:Path):Try[URL]
+  def downloadPom(version:VersionDescriptor):Try[Path]
   def publish(version: VersionDescriptor):Try[URL]
 }
 
-class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector{
+class BintrayConnector(bintrayPaths:PathBuilder, workDir:Path) extends Connector{
 
   val log = new Logger()
 
@@ -143,12 +139,12 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
 
   val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
 
-  def uploadPom(version: VersionDescriptor, pomFile:File):Try[URL] ={
+  def uploadPom(version: VersionDescriptor, pomFile:Path):Try[URL] ={
     val url = bintrayPaths.pomUploadFor(version)
     putFile(version, pomFile, url)
   }
 
-  def uploadJar(version: VersionDescriptor, jarFile:File):Try[URL] = {
+  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[URL] = {
     val url = bintrayPaths.jarUploadFor(version)
     putFile(version, jarFile, url)
   }
@@ -158,7 +154,7 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
     publishFile(url)
   }
 
-  def downloadPom(version:VersionDescriptor):Try[File]={
+  def downloadPom(version:VersionDescriptor):Try[Path]={
 
     val fileName = bintrayPaths.pomFilenameFor(version)
     val pomUrl = bintrayPaths.pomUrlFor(version)
@@ -167,7 +163,7 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
   }
 
 
-  def downloadJar(version:VersionDescriptor):Try[File] = {
+  def downloadJar(version:VersionDescriptor):Try[Path] = {
 
     val fileName = bintrayPaths.jarFilenameFor(version)
     val artefactUrl = bintrayPaths.jarUrlFor(version)
@@ -175,8 +171,8 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
     downloadFile(artefactUrl, fileName)
   }
 
-  def downloadFile(url:String, fileName:String):Try[File]={
-    val targetFile = new File(workDir, fileName)
+  def downloadFile(url:String, fileName:String):Try[Path]={
+    val targetFile = workDir.resolve(fileName)
 
     Http.url2File(url, targetFile) map { unit => targetFile }
   }
@@ -203,7 +199,7 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
     }
   }
 
-  def putFile(version: VersionDescriptor, file: File, url: String): Try[URL] = {
+  def putFile(version: VersionDescriptor, file: Path, url: String): Try[URL] = {
     log.info(s"version $version")
     log.info(s"putting file to $url")
     log.info(s"bintray user ${System.getenv("BINTRAY_USER")}")
@@ -217,7 +213,7 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
         "content-type" -> "application/json",
         "X-Bintray-Package" -> version.artefactName,
         "X-Bintray-Version" -> version.version)
-      .put(file)
+      .put(file.toFile)
 
     val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
 
@@ -234,9 +230,9 @@ object Http{
 
   val log = new Logger()
 
-  def url2File(url: String, targetFile: File): Try[Unit] = Try {
+  def url2File(url: String, targetFile: Path): Try[Unit] = Try {
     log.info(s"downloading $url to $targetFile")
-    new URL(url) #> targetFile !!
+    new URL(url) #> targetFile.toFile !!
   }
 }
 

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.releaser
 
 import java.io.{File, FileOutputStream}
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Path, Files, Paths}
 import java.util.jar._
 import java.util.zip.{ZipEntry, ZipFile, ZipOutputStream}
 
@@ -35,12 +35,11 @@ trait Transformer{
 
 }
 
-class PomTransformer(stagingDir:File) {
-  def apply(localPomFile: File, targetVersion: String, targetFileName: String): Try[File] = Try {
-    val updatedXml = updateVersion(XML.loadFile(localPomFile), targetVersion).mkString
-    val targetFile = new File(targetFileName)
-    Files.write(targetFile.toPath, updatedXml.getBytes)
-    targetFile
+class PomTransformer(stagingDir:Path) {
+  def apply(localPomFile: Path, targetVersion: String, targetFileName: String): Try[Path] = Try {
+    val updatedXml = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion).mkString
+    val targetFile = stagingDir.resolve(targetFileName)
+    Files.write(targetFile, updatedXml.getBytes)
   }
 
   def updateVersion(node: Node, newVersion:String): Node = node match {
@@ -50,7 +49,7 @@ class PomTransformer(stagingDir:File) {
   }
 }
 
-class ManifestTransformer(stagingDir:File){
+class ManifestTransformer(stagingDir:Path){
 
   val versionNumberFields = Set("Git-Describe", "Implementation-Version", "Specification-Version")
 
@@ -66,13 +65,13 @@ class ManifestTransformer(stagingDir:File){
     }
   }
 
-  def apply(localJarFile:File, targetVersion:String, targetJarName:String):Try[File] = Try {
+  def apply(localJarFile:Path, targetVersion:String, targetJarName:String):Try[Path] = Try {
 
-    val targetFile = new File(stagingDir, targetJarName)
+    val targetFile = stagingDir.resolve(targetJarName)
 
     for {
-      jarFile <- managed(new ZipFile(localJarFile))
-      zout <- managed(new ZipOutputStream(new FileOutputStream(targetFile)))
+      jarFile <- managed(new ZipFile(localJarFile.toFile))
+      zout <- managed(new ZipOutputStream(new FileOutputStream(targetFile.toFile)))
     } {
 
       jarFile.entries().foreach { ze =>

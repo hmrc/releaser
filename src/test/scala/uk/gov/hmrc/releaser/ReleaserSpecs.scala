@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.releaser
 
-import java.io.File
 import java.net.URL
-import java.nio.file.Files
+import java.nio.file.{Paths, Files, Path}
 import java.util.jar
 import java.util.jar.Attributes
 import java.util.zip.ZipFile
@@ -35,28 +34,28 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
 
     def buildConnector() = new Connector(){
 
-      var lastUploadedJar:Option[(VersionDescriptor, File)] = None
-      var lastUploadedPom:Option[(VersionDescriptor, File)] = None
+      var lastUploadedJar:Option[(VersionDescriptor, Path)] = None
+      var lastUploadedPom:Option[(VersionDescriptor, Path)] = None
       var lastPublishDescriptor:Option[VersionDescriptor] = None
 
-      override def downloadJar(version: VersionDescriptor): Try[File] = {
+      override def downloadJar(version: VersionDescriptor): Try[Path] = {
         Success {
-          new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI) }
+          Paths.get(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI) }
       }
 
-      override def uploadJar(version: VersionDescriptor, jarFile: File): Try[URL] = {
+      override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[URL] = {
         lastUploadedJar = Some(version -> jarFile)
         Success(new URL("http://the-url-we-uploaded-to.org"))
       }
 
-      override def uploadPom(version: VersionDescriptor, file: File): Try[URL] = {
+      override def uploadPom(version: VersionDescriptor, file: Path): Try[URL] = {
         lastUploadedPom = Some(version -> file)
         Success(new URL("http://the-url-we-uploaded-to.org"))
       }
 
-      override def downloadPom(version: VersionDescriptor): Try[File] = {
+      override def downloadPom(version: VersionDescriptor): Try[Path] = {
         Success {
-          new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI) }
+          Paths.get(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI) }
       }
 
       override def publish(version: VersionDescriptor): Try[URL] = {
@@ -82,8 +81,8 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
       val Some((pomVersion, pomFile)) = fakeConnector.lastUploadedPom
       val publishedDescriptor = fakeConnector.lastPublishDescriptor
 
-      jarFile.getName should endWith(".jar")
-      pomFile.getName should endWith(".pom")
+      jarFile.getFileName.toString should endWith(".jar")
+      pomFile.getFileName.toString should endWith(".pom")
       publishedDescriptor should not be None
 
       val manifest = manifestFromZipFile(jarFile)
@@ -92,15 +91,15 @@ class ReleaserSpecs extends WordSpec with Matchers with OptionValues{
       pomVersion shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
 
       manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
-      val pomVersionText = (XML.loadFile(pomFile) \ "version").text
+      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
       pomVersionText shouldBe "0.9.9"
     }
   }
 
-  def tmpDir: File = Files.createTempDirectory("test-release").toFile
+  def tmpDir: Path = Files.createTempDirectory("test-release")
 
-  def manifestFromZipFile(file: File): Option[Attributes] = {
-    val zipFile: ZipFile = new ZipFile(file)
+  def manifestFromZipFile(file: Path): Option[Attributes] = {
+    val zipFile: ZipFile = new ZipFile(file.toFile)
 
     zipFile.entries().toList.find { ze =>
       ze.getName == "META-INF/MANIFEST.MF"

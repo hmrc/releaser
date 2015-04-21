@@ -17,7 +17,7 @@
 package uk.gov.hmrc.releaser
 
 import java.io.File
-import java.nio.file.Files
+import java.nio.file.{Path, Files}
 import java.security.MessageDigest
 import java.util
 import java.util.jar
@@ -32,12 +32,12 @@ import scala.util.{Failure, Success, Try}
 
 class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues{
 
-  val timeJarFile = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI)
+  val timeJarPath = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI).toPath
 
   var transformer:ManifestTransformer = _
 
   override def beforeEach(){
-    transformer = new ManifestTransformer(Files.createTempDirectory("test-release").toFile)
+    transformer = new ManifestTransformer(Files.createTempDirectory("test-release"))
   }
 
   def version(versionString:String):VersionDescriptor={
@@ -48,9 +48,9 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
 
     "not transform any file metadata other than the META-INF/MANIFEST.MF file" in {
 
-      val outFile = transformer(timeJarFile, "1.4.0", "time-1.4.0.jar").success.get
-      val inZip: ZipFile = new ZipFile(timeJarFile)
-      val outZip: ZipFile = new ZipFile(outFile)
+      val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar").success.get
+      val inZip: ZipFile = new ZipFile(timeJarPath.toFile)
+      val outZip: ZipFile = new ZipFile(outFile.toFile)
 
       val inTimes = zipFileTimes(inZip)
       val outTimes = zipFileTimes(outZip)
@@ -60,21 +60,21 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
 
     "not transform any files other than the META-INF/MANIFEST.MF file" in {
 
-      val outFile = transformer(timeJarFile, "1.4.0", "time-1.4.0.jar").success
+      val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar").success
 
-      md5OfJarEntries(outFile.get) - "META-INF/MANIFEST.MF" shouldBe md5OfJarEntries(timeJarFile) - "META-INF/MANIFEST.MF"
+      md5OfJarEntries(outFile.get) - "META-INF/MANIFEST.MF" shouldBe md5OfJarEntries(timeJarPath) - "META-INF/MANIFEST.MF"
     }
 
     "transform the manifest of a zip file and name the generated jar file to time-1.4.0.jar" in {
 
-      val outFile = transformer(timeJarFile, "1.4.0", "time-1.4.0.jar") match {
+      val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar") match {
         case Success(f) => Success(f)
         case Failure(f) => println(f); Failure(f)
       }
       
-      val manifest = manifestFromJarFile(outFile.get).value
+      val manifest = manifestFromJarFile(outFile.get.toFile).value
       
-      outFile.get.getName shouldBe "time-1.4.0.jar"
+      outFile.get.getFileName.toString shouldBe "time-1.4.0.jar"
       manifest.getValue("Implementation-Version") shouldBe "1.4.0"
       manifest.getValue("Git-Describe") shouldBe "1.4.0"
       manifest.getValue("Specification-Version") shouldBe "1.4.0"
@@ -88,8 +88,8 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
     }.toMap
   }
 
-  def md5OfJarEntries(jarIn: File): Map[String, String] = {
-    val zipFile: ZipFile = new ZipFile(jarIn)
+  def md5OfJarEntries(jarIn: Path): Map[String, String] = {
+    val zipFile: ZipFile = new ZipFile(jarIn.toFile)
 
     val name2md5s = zipFile.entries().toList.map { ze =>
       ze.getName -> util.Arrays.toString(MessageDigest.getInstance("MD5").digest(ByteStreams.toByteArray(zipFile.getInputStream(ze))))

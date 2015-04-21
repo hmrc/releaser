@@ -26,12 +26,12 @@ import scala.xml.XML
 
 class PomTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues {
 
-  val timePomFile = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI)
+  val timePomFile = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI).toPath
 
   var transformer: PomTransformer = _
 
   override def beforeEach() {
-    transformer = new PomTransformer(Files.createTempDirectory("test-release").toFile)
+    transformer = new PomTransformer(Files.createTempDirectory("test-release"))
   }
 
   def version(versionString: String): VersionDescriptor = {
@@ -44,7 +44,7 @@ class PomTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach
 
       val outFile = transformer(timePomFile, "1.4.0", "time-1.4.0.pom").success.get
 
-      val pomVersionText = (XML.loadFile(outFile) \ "version").text
+      val pomVersionText = (XML.loadFile(outFile.toFile) \ "version").text
 
       pomVersionText shouldBe "1.4.0"
     }
