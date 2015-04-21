@@ -182,7 +182,6 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:File) extends Connector
   }
 
   def publishFile(url:String): Try[URL] ={
-    uk.gov.hmrc.time.DateConverter
     log.info(s"posting file to $url")
 
     val call = ws.url(url)

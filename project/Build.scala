@@ -13,10 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import sbt.Keys._
 import sbt._
+import sbtassembly.AssemblyKeys._
+import sbtassembly._
 import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.DefaultBuildSettings._
+
 
 object HmrcBuild extends Build {
 
@@ -24,7 +28,6 @@ object HmrcBuild extends Build {
   val appVersion = "0.1.0"
 
   val libraries = Seq(
-    "uk.gov.hmrc" %% "time" % "0.9.9",
     "com.typesafe.play" %% "play-ws" % "2.3.8",
     "com.jsuereth" %% "scala-arm" % "1.4",
     "org.scalatest" %% "scalatest" % "2.2.2" % "test",
@@ -38,7 +41,14 @@ object HmrcBuild extends Build {
       targetJvm := "jvm-1.7",
       scalaVersion := "2.11.6",
       libraryDependencies ++= libraries,
-      BuildDescriptionSettings()
+      BuildDescriptionSettings(),
+      assemblyMergeStrategy in assembly := {
+        case PathList("org", "apache", "commons", "logging", xs@_*) => MergeStrategy.first
+        case PathList("play", "core", "server", xs@_*) => MergeStrategy.first
+        case x =>
+          val oldStrategy = (assemblyMergeStrategy in assembly).value
+          oldStrategy(x)
+      }
     )
 }
 
