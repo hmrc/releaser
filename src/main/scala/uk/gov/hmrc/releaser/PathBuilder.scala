@@ -16,7 +16,24 @@
 
 package uk.gov.hmrc.releaser
 
-trait PathBuilder {
+
+trait BintrayPaths{
+
+  val bintrayRepoRoot = "https://bintray.com/artifact/download/hmrc"
+  val bintrayApiRoot = "https://bintray.com/api/v1"
+
+  def metadata(repo:String, artefactName: String): String = {
+    s"$bintrayApiRoot/packages/hmrc/$repo/$artefactName"
+  }
+
+  def publishUrlFor(v: VersionDescriptor): String = {
+    s"$bintrayApiRoot/content/hmrc/${v.repo}/${v.artefactName}/${v.version}/publish"
+  }
+}
+
+object BintrayPaths extends BintrayPaths
+
+trait PathBuilder extends BintrayPaths{
 
   def jarFilenameFor(v: VersionDescriptor): String
 
@@ -29,16 +46,11 @@ trait PathBuilder {
   def pomFilenameFor(v: VersionDescriptor): String
 
   def pomUrlFor(v: VersionDescriptor): String
-
-  def publishUrlFor(v: VersionDescriptor): String
 }
 
 class BintrayIvyPaths() extends PathBuilder {
 
   val sbtVersion = "sbt_0.13"
-
-  val bintrayRepoRoot = "https://bintray.com/artifact/download/hmrc/"
-  val bintrayApiRoot = "https://bintray.com/api/v1/content/hmrc/"
 
   override def jarFilenameFor(v:VersionDescriptor):String={
     s"${v.artefactName}.jar"
@@ -46,12 +58,12 @@ class BintrayIvyPaths() extends PathBuilder {
 
   override def jarUrlFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayRepoRoot${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
   }
 
   override def jarUploadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayApiRoot${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
+    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
   }
 
   override def pomUploadFor(v: VersionDescriptor): String = ???
@@ -60,13 +72,10 @@ class BintrayIvyPaths() extends PathBuilder {
 
   override def pomUrlFor(v: VersionDescriptor): String = ???
 
-  override def publishUrlFor(v: VersionDescriptor): String = ???
+  override def metadata(repo: String, artefactName: String): String = ???
 }
 
 class BintrayMavenPaths() extends PathBuilder{
-
-  val bintrayRepoRoot = "https://bintray.com/artifact/download/hmrc"
-  val bintrayApiRoot = "https://bintray.com/api/v1"
   
   def jarFilenameFor(v:VersionDescriptor):String={
     s"${v.artefactName}_${v.scalaVersion}-${v.version}.jar"
@@ -94,7 +103,4 @@ class BintrayMavenPaths() extends PathBuilder{
     s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
   }
 
-  def publishUrlFor(v: VersionDescriptor): String = {
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/${v.artefactName}/${v.version}/publish"
-  }
 }

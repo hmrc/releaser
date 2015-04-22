@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit
 import play.api.libs.ws._
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.mvc.Results
+import uk.gov.hmrc.releaser.RepoFlavour.EnumVal
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -46,19 +47,23 @@ object ReleaserMain {
 
 object Releaser {
 
-//  val releaseCandidateRepo = "sbt-plugin-release-candidates"
-  val releaseCandidateRepo = "release-candidates"
-//  val releaseRepo = "sbt-plugin-releases"
-  val releaseRepo = "releases"
-
   val workDir = Files.createTempDirectory("releaser")
-  val paths: BintrayMavenPaths = new BintrayMavenPaths()
-  val downloader = new BintrayConnector(paths, workDir)
+
+  val repositories  = new Repositories {
+    override def connector: BintrayMetaConnector = new BintrayMetaConnector(new BintrayHttp)
+    override def repos: Seq[RepositoryFlavour] = Seq(
+      RepositoryFlavour(new BintrayMavenPaths(), "release-candidates", "releases"),
+      RepositoryFlavour(new BintrayIvyPaths(), "sbt-plugin-release-candidates", "sbt-plugin-releases")
+    )
+  }
+
 
   val log = new Logger()
 
   def main(args: Array[String]):Int= {
-    new Releaser(downloader, workDir, paths, releaseCandidateRepo, releaseRepo).start(args)
+    val builder = BintrayRepoConnector.apply(workDir, new BintrayHttp) _
+    val coordinator = Coordinator.apply(workDir) _
+    new Releaser(workDir, repositories, builder, coordinator).start(args)
   }
   
   def calculateTarget(releaseType: String): String = "0.9.9"
@@ -66,14 +71,35 @@ object Releaser {
 
 case class VersionDescriptor(repo:String, artefactName:String, scalaVersion:String, version:String)
 
+object RepoFlavour {
+  sealed trait EnumVal
+  case object Maven extends EnumVal
+  case object Ivy extends EnumVal
+  val repoFlavours = Seq(Maven, Ivy)
+}
 
-class Releaser(bintray:Connector, stageDir:Path, pathBuilder: PathBuilder, releaseCandidateRepo:String, releaseRepo:String){
+case class RepositoryFlavour(pathBuilder:PathBuilder, releaseCandidateRepo:String, releaseRepo:String)
+
+trait Repositories{
+  def connector:BintrayMetaConnector
+  def repos:Seq[RepositoryFlavour]
+
+  def findReposOfArtefact(artefactName: String): Try[RepositoryFlavour] = {
+    repos.find { repo =>
+      connector.getRepoMetaData(repo.releaseCandidateRepo, artefactName).isSuccess
+    } match {
+      case Some(r) => Success(r)
+      case None => Failure(new Exception(s"Didn't find a release candidate repository for $artefactName"))
+    }
+  }}
+
+class Releaser(stageDir:Path,
+               repositories:Repositories,
+               connectorBuilder:(PathBuilder) => RepoConnector,
+               coordinatorBuilder:(RepoConnector, PathBuilder) => Coordinator
+                ){
 
   val scalaVersion: String = "2.11"
-
-  val manifestTransformer = new ManifestTransformer(stageDir)
-  val pomTransformer      = new PomTransformer(stageDir)
-
 
   def start(args: Array[String]): Int = {
     val artefactName: String = args(0)
@@ -86,72 +112,187 @@ class Releaser(bintray:Connector, stageDir:Path, pathBuilder: PathBuilder, relea
     }
   }
 
-  def publish(targetVersion: VersionDescriptor): Try[URL] = {
-    bintray.publish(targetVersion)
-  }
+  def publishNewVersion(
+                         artefactName: String,
+                         rcVersion: String,
+                         targetVersionString: String): Try[Unit] ={
 
-  def publishNewVersion(artefactName: String, rcVersion: String, targetVersionString: String): Try[Set[URL]] ={
-    val sourceVersion = VersionDescriptor(releaseCandidateRepo, artefactName, scalaVersion, rcVersion)
-    val targetVersion = VersionDescriptor(releaseRepo, artefactName, scalaVersion, targetVersionString)
+    repositories.findReposOfArtefact(artefactName) map { repo =>
+      val connector = connectorBuilder(repo.pathBuilder)
+      val sourceVersion = VersionDescriptor(repo.releaseCandidateRepo, artefactName, scalaVersion, rcVersion)
+      val targetVersion = VersionDescriptor(repo.releaseRepo, artefactName, scalaVersion, targetVersionString)
 
-    val result = for(
-      jarUrl <- uploadNewJar(sourceVersion, targetVersion);
-      pomUrl <- uploadNewPom(sourceVersion, targetVersion)
-    ) yield Set(pomUrl, jarUrl)
-
-    result flatMap { urls =>
-      publish(targetVersion).map { _ => urls }
+      coordinatorBuilder(connector, repo.pathBuilder).start(sourceVersion, targetVersion)
     }
   }
 
-  def uploadNewPom(sourceVersion:VersionDescriptor, target:VersionDescriptor): Try[URL] = {
+}
+
+object Coordinator{
+  def apply(stageDir:Path)(connector:RepoConnector, bintrayPaths:PathBuilder):Coordinator={
+    new Coordinator(stageDir, connector, bintrayPaths)
+  }
+}
+
+class Coordinator(stageDir:Path, connector:RepoConnector, bintrayPaths:PathBuilder){
+
+  val manifestTransformer = new ManifestTransformer(stageDir)
+  val pomTransformer      = new PomTransformer(stageDir)
+
+  def start(sourceVersion:VersionDescriptor, targetVersion:VersionDescriptor): Try[Unit] ={
+    for(
+      _ <- uploadNewJar(sourceVersion, targetVersion, connector);
+      _ <- uploadNewPom(sourceVersion, targetVersion, connector)
+    ) yield publish(targetVersion)
+  }
+
+
+  def publish(targetVersion: VersionDescriptor): Try[Unit] = {
+    connector.publish(targetVersion)
+  }
+
+  def uploadNewPom(sourceVersion:VersionDescriptor, target:VersionDescriptor, bintray:RepoConnector): Try[URL] = {
 
     for(
       localFile    <- bintray.downloadPom(sourceVersion);
-      transformed  <- pomTransformer(localFile, target.version, pathBuilder.pomFilenameFor(target));
+      transformed  <- pomTransformer(localFile, target.version, bintrayPaths.pomFilenameFor(target));
       jarUrl       <- bintray.uploadPom(target, transformed)
     ) yield jarUrl  }
 
-  def uploadNewJar(sourceVersion:VersionDescriptor, target:VersionDescriptor): Try[URL] ={
+  def uploadNewJar(sourceVersion:VersionDescriptor, target:VersionDescriptor, bintray:RepoConnector): Try[URL] ={
 
     for(
       localZipFile <- bintray.downloadJar(sourceVersion);
-      transformed  <- manifestTransformer(localZipFile, target.version, pathBuilder.jarFilenameFor(target));
+      transformed  <- manifestTransformer(localZipFile, target.version, bintrayPaths.jarFilenameFor(target));
       jarUrl       <- bintray.uploadJar(target, transformed)
     ) yield jarUrl
   }
 }
 
 
-trait Connector{
+trait RepoConnector{
   def uploadJar(version: VersionDescriptor, jarFile:Path):Try[URL]
   def downloadJar(version:VersionDescriptor):Try[Path]
   def uploadPom(version: VersionDescriptor, pomPath:Path):Try[URL]
   def downloadPom(version:VersionDescriptor):Try[Path]
-  def publish(version: VersionDescriptor):Try[URL]
+  def publish(version: VersionDescriptor):Try[Unit]
 }
 
-class BintrayConnector(bintrayPaths:PathBuilder, workDir:Path) extends Connector{
+class BintrayHttp{
+
+  val log = new Logger()
+  
+  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
+
+
+  def apiWs(url:String) = ws.url(url)
+    .withAuth(
+      System.getenv("BINTRAY_USER"),
+      System.getenv("BINTRAY_PASS"),
+      WSAuthScheme.BASIC)
+    .withHeaders(
+      "content-type" -> "application/json")
+
+  def emptyPost(url:String): Try[Unit] = {
+    log.info(s"posting file to $url")
+
+    val call = apiWs(url).post(Results.EmptyContent())
+
+    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+
+    log.info(s"result ${result.status} - ${result.statusText}")
+
+    result.status match {
+      case s if s >= 200 && s < 300 => Success(new URL(url))
+      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
+    }
+  }
+
+  def get[A](url:String): Try[String] ={
+    log.info(s"getting file from $url")
+
+    val call = apiWs(url).get()
+
+    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+
+    log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
+
+    result.status match {
+      case s if s >= 200 && s < 300 => Success(result.body)
+      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
+    }
+  }
+
+  def putFile(version: VersionDescriptor, file: Path, url: String): Try[URL] = {
+    log.info(s"version $version")
+    log.info(s"putting file to $url")
+    log.info(s"bintray user ${System.getenv("BINTRAY_USER")}")
+
+    val call = apiWs(url)
+      .withHeaders(
+        "X-Bintray-Package" -> version.artefactName,
+        "X-Bintray-Version" -> version.version)
+      .put(file.toFile)
+
+    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+
+    log.info(s"result ${result.status} - ${result.statusText}")
+
+    result.status match {
+      case s if s >= 200 && s < 300 => Success(new URL(url))
+      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
+    }
+  }
+}
+
+trait MetaConnector{
+
+  def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]
+
+  def publish(version: VersionDescriptor):Try[Unit]
+
+}
+
+
+class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
+
+  def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]={
+    val url = BintrayPaths.metadata(repoName, artefactName)
+    bintrayHttp.get(url).map { _ => url }
+  }
+
+  def publish(version: VersionDescriptor):Try[Unit]={
+    val url = BintrayPaths.publishUrlFor(version)
+    bintrayHttp.emptyPost(url).map { _ => url }
+  }
+
+}
+
+object BintrayRepoConnector{
+  def apply(workDir:Path, bintrayHttp:BintrayHttp)(f:PathBuilder):BintrayRepoConnector = {
+    new BintrayRepoConnector(workDir, bintrayHttp, f)
+  }
+}
+
+class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:PathBuilder) extends RepoConnector{
 
   val log = new Logger()
 
   val scalaVersion = "2.10"
 
-  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
-
   def uploadPom(version: VersionDescriptor, pomFile:Path):Try[URL] ={
     val url = bintrayPaths.pomUploadFor(version)
-    putFile(version, pomFile, url)
+    bintrayHttp.putFile(version, pomFile, url)
   }
 
   def uploadJar(version: VersionDescriptor, jarFile:Path):Try[URL] = {
     val url = bintrayPaths.jarUploadFor(version)
-    putFile(version, jarFile, url)
+    bintrayHttp.putFile(version, jarFile, url)
   }
 
-  def publish(version: VersionDescriptor):Try[URL]={
+  def publish(version: VersionDescriptor):Try[Unit]={
     val url = bintrayPaths.publishUrlFor(version)
-    publishFile(url)
+    bintrayHttp.emptyPost(url)
   }
 
   def downloadPom(version:VersionDescriptor):Try[Path]={
@@ -161,7 +302,6 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:Path) extends Connector
 
     downloadFile(pomUrl, fileName)
   }
-
 
   def downloadJar(version:VersionDescriptor):Try[Path] = {
 
@@ -177,53 +317,6 @@ class BintrayConnector(bintrayPaths:PathBuilder, workDir:Path) extends Connector
     Http.url2File(url, targetFile) map { unit => targetFile }
   }
 
-  def publishFile(url:String): Try[URL] ={
-    log.info(s"posting file to $url")
-
-    val call = ws.url(url)
-      .withAuth(
-        System.getenv("BINTRAY_USER"),
-        System.getenv("BINTRAY_PASS"),
-        WSAuthScheme.BASIC)
-      .withHeaders(
-        "content-type" -> "application/json")
-      .post(Results.EmptyContent())
-
-    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
-
-    log.info(s"result ${result.status} - ${result.statusText}")
-
-    result.status match {
-      case s if s >= 200 && s < 300 => Success(new URL(url))
-      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
-    }
-  }
-
-  def putFile(version: VersionDescriptor, file: Path, url: String): Try[URL] = {
-    log.info(s"version $version")
-    log.info(s"putting file to $url")
-    log.info(s"bintray user ${System.getenv("BINTRAY_USER")}")
-
-    val call = ws.url(url)
-      .withAuth(
-        System.getenv("BINTRAY_USER"),
-        System.getenv("BINTRAY_PASS"),
-        WSAuthScheme.BASIC)
-      .withHeaders(
-        "content-type" -> "application/json",
-        "X-Bintray-Package" -> version.artefactName,
-        "X-Bintray-Version" -> version.version)
-      .put(file.toFile)
-
-    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
-
-    log.info(s"result ${result.status} - ${result.statusText}")
-
-    result.status match {
-      case s if s >= 200 && s < 300 => Success(new URL(url))
-      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
-    }
-  }
 }
 
 object Http{
