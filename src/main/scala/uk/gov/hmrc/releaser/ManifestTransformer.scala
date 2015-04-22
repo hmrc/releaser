@@ -77,7 +77,9 @@ class ManifestTransformer(stagingDir:Path){
       jarFile.entries().foreach { ze =>
 
         if (ze.getName == "META-INF/MANIFEST.MF") {
-          zout.putNextEntry(new ZipEntry(ze.getName))
+          val newZipEntry = new ZipEntry(ze.getName)
+          newZipEntry.setTime(ze.getTime)
+          zout.putNextEntry(newZipEntry)
           val newManifest: Manifest = manifestTransformer(new Manifest(jarFile.getInputStream(ze)), targetVersion)
           newManifest.write(zout)
         } else {

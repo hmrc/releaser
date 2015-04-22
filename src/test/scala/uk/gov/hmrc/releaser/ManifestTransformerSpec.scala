@@ -49,13 +49,18 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
     "not transform any file metadata other than the META-INF/MANIFEST.MF file" in {
 
       val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar").success.get
-      val inZip: ZipFile = new ZipFile(timeJarPath.toFile)
-      val outZip: ZipFile = new ZipFile(outFile.toFile)
 
-      val inTimes = zipFileTimes(inZip)
-      val outTimes = zipFileTimes(outZip)
+      val inTimes = zipFileTimes(timeJarPath)
+      val outTimes = zipFileTimes(outFile)
 
       inTimes - "META-INF/MANIFEST.MF" shouldBe outTimes - "META-INF/MANIFEST.MF"
+    }
+
+    "not transform any timestamps including the META-INF/MANIFEST.MF file" in {
+
+      val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar").success
+
+      zipFileTimes(outFile.get) shouldBe zipFileTimes(timeJarPath)
     }
 
     "not transform any files other than the META-INF/MANIFEST.MF file" in {
@@ -82,8 +87,10 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
   }
 
 
-  def zipFileTimes(outZip: ZipFile): Map[String, Long] = {
-    outZip.entries().toList.map { ze =>
+  def zipFileTimes(zip: Path): Map[String, Long] = {
+    val zipFile: ZipFile = new ZipFile(zip.toFile)
+
+    zipFile.entries().toList.map { ze =>
       ze.getName -> ze.getTime
     }.toMap
   }
