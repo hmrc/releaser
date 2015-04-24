@@ -61,6 +61,11 @@ class BintrayIvyPaths() extends PathBuilder {
     s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
   }
 
+  override def pomDownloadUrlFor(v: VersionDescriptor): String = {
+    val fileName = pomFilenameFor(v)
+    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/ivys/$fileName"
+  }
+
   override def jarUploadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
     s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
@@ -73,10 +78,6 @@ class BintrayIvyPaths() extends PathBuilder {
 
   override def pomFilenameFor(v: VersionDescriptor): String = "ivy.xml"
 
-  override def pomDownloadUrlFor(v: VersionDescriptor): String = {
-    val fileName = pomFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/ivys/$fileName"
-  }
 }
 
 class BintrayMavenPaths() extends PathBuilder{
@@ -90,6 +91,11 @@ class BintrayMavenPaths() extends PathBuilder{
     s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
   }
 
+  def pomDownloadUrlFor(v: VersionDescriptor): String = {
+    val fileName = pomFilenameFor(v)
+    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
+  }
+
   def jarUploadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
     s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
@@ -100,11 +106,6 @@ class BintrayMavenPaths() extends PathBuilder{
   def pomUploadFor(v: VersionDescriptor): String={
     val fileName = pomFilenameFor(v)
     s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
-  }
-
-  def pomDownloadUrlFor(v: VersionDescriptor): String = {
-    val fileName = pomFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
   }
 
 }

@@ -96,7 +96,7 @@ trait RepoFlavour{
   def scalaVersion:String
   def releaseCandidateRepo:String
   def releaseRepo:String
-  def pomTransformer(workDir:Path):Transformer
+  def pomTransformer(workDir:Path):XmlTransformer
 }
 
 trait IvyRepo extends RepoFlavour{

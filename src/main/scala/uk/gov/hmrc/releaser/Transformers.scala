@@ -31,12 +31,13 @@ import scala.xml._
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 
 trait Transformer{
-
   def apply(localFile: Path, targetVersion: String, targetFileName: String): Try[Path]
-
 }
 
-class PomTransformer(stagingDir:Path) extends Transformer{
+trait XmlTransformer extends Transformer{
+
+  def stagingDir:Path
+
   def apply(localPomFile: Path, targetVersion: String, targetFileName: String): Try[Path] =  {
     val updatedT: Try[Node] = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion)
     updatedT.flatMap { updated => Try{
@@ -44,6 +45,12 @@ class PomTransformer(stagingDir:Path) extends Transformer{
       Files.write(targetFile, updated.mkString.getBytes)
     }}
   }
+
+  def updateVersion(node: Node, newVersion:String): Try[Node]
+
+}
+
+class PomTransformer(val stagingDir:Path) extends XmlTransformer{
 
   def updateVersion(node: Node, newVersion:String): Try[Node] = {
     if((node \ "version").isEmpty){
@@ -61,14 +68,7 @@ class PomTransformer(stagingDir:Path) extends Transformer{
 }
 
 
-class IvyTransformer(stagingDir:Path) extends Transformer{
-  def apply(localIvyFile: Path, targetVersion: String, targetFileName: String): Try[Path] =  {
-    val updatedT: Try[Node] = updateVersion(XML.loadFile(localIvyFile.toFile), targetVersion)
-    updatedT.flatMap { updated => Try{
-      val targetFile = stagingDir.resolve(targetFileName)
-      Files.write(targetFile, updated.mkString.getBytes)
-    }}
-  }
+class IvyTransformer(val stagingDir:Path) extends XmlTransformer{
 
   def updateVersion(node: Node, newVersion:String): Try[Node] = {
     if((node \ "info" \ "@revision").isEmpty){
