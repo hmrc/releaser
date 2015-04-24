@@ -20,11 +20,11 @@ import org.scalatest.{Matchers, WordSpec}
 
 class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
-  val scalaVersion: String = "2.10"
-
   "BintrayIvyPathsSpecs" should {
 
-    val ivyPaths = new BintrayIvyPaths()
+    val ivyPaths = new BintrayIvyPaths(){
+      override def scalaVersion: String = "2.10"
+    }
 
     "Generate URL for files on Bintray" in {
       val expectedJarUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby.jar"
@@ -37,7 +37,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       val artefactName = "sbt-bobby"
       val releaseCandidateVersion = "0.8.1-4-ge733d26"
 
-      val version = VersionDescriptor(repoName, artefactName, "2.10", releaseCandidateVersion)
+      val version = VersionDescriptor(repoName, artefactName, releaseCandidateVersion)
 
       ivyPaths.jarFilenameFor(version) shouldBe jarFile
       ivyPaths.pomFilenameFor(version) shouldBe pomFile
@@ -54,7 +54,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       val artefactName = "sbt-bobby"
       val versionString = "0.9.0"
 
-      val version = VersionDescriptor(repoName, artefactName, "2.10", versionString)
+      val version = VersionDescriptor(repoName, artefactName, versionString)
 
       ivyPaths.jarUploadFor(version) shouldBe expectedJarUrl
       ivyPaths.pomUploadFor(version) shouldBe expectedIvyUrl

@@ -123,7 +123,7 @@ class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
   def publish(version: VersionDescriptor):Try[Unit]={
     val url = BintrayPaths.publishUrlFor(version)
-    bintrayHttp.emptyPost(url).map { _ => url }
+    bintrayHttp.emptyPost(url)
   }
 
 }

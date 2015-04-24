@@ -41,7 +41,7 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
   }
 
   def version(versionString:String):VersionDescriptor={
-    VersionDescriptor(repo = "releases", "time", "2.10", versionString)
+    VersionDescriptor(repo = "releases", "time", "2.10")
   }
 
   "the transformer" should {

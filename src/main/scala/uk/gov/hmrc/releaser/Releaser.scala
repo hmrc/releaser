@@ -76,8 +76,8 @@ object Releaser {
 
   def main(args: Array[String]):Int= {
     val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, http) _
-    val coordinatorBuilder = Coordinator.apply(stageDir) _
-    new Releaser(stageDir, repositories, repoConnectorBuilder, coordinatorBuilder)
+    val coordinator = new Coordinator(stageDir)
+    new Releaser(stageDir, repositories, repoConnectorBuilder, coordinator)
       .start(args)
       .map{ _ => log.info(s"deleting $tmpDir"); FileUtils.forceDelete(tmpDir.toFile) } match {
         case Failure(e) => log.info(s"failed with error '${e.getMessage}'");e.printStackTrace(); 1
@@ -88,27 +88,24 @@ object Releaser {
   def calculateTarget(releaseType: String): String = "0.9.9"
 }
 
-case class VersionDescriptor(repo:String, artefactName:String, scalaVersion:String, version:String)
-
-
-trait RepoFlavour{
-  def pathBuilder:PathBuilder  
+trait RepoFlavour extends PathBuilder{
+//  def pathBuilder:PathBuilder
+  val workDir:Path = Files.createTempDirectory("releaser")
+  
   def scalaVersion:String
   def releaseCandidateRepo:String
   def releaseRepo:String
-  def pomTransformer(workDir:Path):XmlTransformer
+  def pomTransformer:XmlTransformer
 }
 
-trait IvyRepo extends RepoFlavour{
-  val pathBuilder = new BintrayIvyPaths
+trait IvyRepo extends RepoFlavour with BintrayIvyPaths{
   val scalaVersion = "2.10"
-  def pomTransformer(workDir:Path) = new IvyTransformer(workDir)
+  val pomTransformer = new IvyTransformer(workDir)
 }
 
-trait MavenRepo extends RepoFlavour{
-  val pathBuilder = new BintrayMavenPaths
+trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
   val scalaVersion = "2.11"
-  def pomTransformer(workDir:Path) = new PomTransformer(workDir)
+  val pomTransformer = new PomTransformer(workDir)
 }
 
 
@@ -129,8 +126,8 @@ trait Repositories{
 
 class Releaser(stageDir:Path,
                repositories:Repositories,
-               connectorBuilder:(PathBuilder) => RepoConnector,
-               coordinatorBuilder:(RepoConnector, PathBuilder, Transformer) => Coordinator
+               connectorBuilder:(RepoFlavour) => RepoConnector,
+               coordinator:Coordinator
                 ){
 
   def start(args: Array[String]): Try[Unit] = {
@@ -138,66 +135,62 @@ class Releaser(stageDir:Path,
     val rcVersion: String = args(1)
     val targetVersionString: String = args(2)
 
-    publishNewVersion(artefactName, rcVersion, targetVersionString)
-  }
-
-  def publishNewVersion(
-                         artefactName: String,
-                         rcVersion: String,
-                         targetVersionString: String): Try[Unit] ={
-
-    repositories.findReposOfArtefact(artefactName) map { repo =>
-      val connector = connectorBuilder(repo.pathBuilder)
-      val sourceVersion = VersionDescriptor(repo.releaseCandidateRepo, artefactName, repo.scalaVersion, rcVersion)
-      val targetVersion = VersionDescriptor(repo.releaseRepo, artefactName, repo.scalaVersion, targetVersionString)
-
-      coordinatorBuilder(connector, repo.pathBuilder, repo.pomTransformer(stageDir)).start(sourceVersion, targetVersion)
+    repositories.findReposOfArtefact(artefactName) flatMap { repo =>
+      val ver = VersionMapping(repo, artefactName, rcVersion, targetVersionString)
+      coordinator.start(ver, connectorBuilder(repo))
     }
   }
+}
+
+case class VersionDescriptor(repo:String, artefactName:String, version:String)
+
+
+case class VersionMapping (
+                          repo:RepoFlavour,
+                          artefactName:String, 
+                          sourceVersion:String,
+                          targetVersion:String
+                          ) {
+  
+  def targetArtefact = VersionDescriptor(repo.releaseRepo, artefactName, targetVersion)
+  def sourceArtefact = VersionDescriptor(repo.releaseCandidateRepo, artefactName, sourceVersion)
 
 }
 
-object Coordinator{
-  def apply(stageDir:Path)(connector:RepoConnector, bintrayPaths:PathBuilder, pomTransformer:Transformer):Coordinator={
-    new Coordinator(stageDir, connector, bintrayPaths, pomTransformer)
-  }
-}
 
-class Coordinator(stageDir:Path, connector:RepoConnector, bintrayPaths:PathBuilder, pomTransformer:Transformer){
+class Coordinator(stageDir:Path){
 
   val logger = new Logger()
 
   val manifestTransformer = new ManifestTransformer(stageDir)
 
-  def start(sourceVersion:VersionDescriptor, targetVersion:VersionDescriptor): Try[Unit] ={
+  def start(map: VersionMapping, connector:RepoConnector): Try[Unit] ={
     for(
-      _ <- uploadNewJar(sourceVersion, targetVersion, connector);
-      _ <- uploadNewPom(sourceVersion, targetVersion, connector)
-    ) yield publish(targetVersion)
+      _ <- uploadNewJar(map, connector);
+      _ <- uploadNewPom(map, connector);
+      _ <- publish(map, connector)
+    ) yield ()
   }
 
-
-  def publish(targetVersion: VersionDescriptor): Try[Unit] = {
-    connector.publish(targetVersion)
-  }
-
-  def uploadNewPom(sourceVersion:VersionDescriptor, target:VersionDescriptor, bintray:RepoConnector): Try[URL] = {
-    logger.info(s"uploadNewPom mapping ${bintrayPaths.pomFilenameFor(sourceVersion)} -> ${bintrayPaths.pomFilenameFor(target)}")
+  def uploadNewPom(map:VersionMapping, connector:RepoConnector): Try[Unit] = {
 
     for(
-      localFile    <- bintray.downloadPom(sourceVersion);
-      transformed  <- pomTransformer(localFile, target.version, bintrayPaths.pomFilenameFor(target));
-      jarUrl       <- bintray.uploadPom(target, transformed)
-    ) yield jarUrl
+      localFile   <- connector.downloadPom(map.sourceArtefact);
+      transformed <- map.repo.pomTransformer.apply(localFile, map.targetVersion, map.repo.pomFilenameFor(map.targetArtefact));
+      _           <- connector.uploadPom(map.targetArtefact, transformed)
+    ) yield ()
   }
 
-  def uploadNewJar(sourceVersion:VersionDescriptor, target:VersionDescriptor, bintray:RepoConnector): Try[URL] ={
-    logger.info(s"uploadNewJar mapping ${bintrayPaths.jarFilenameFor(sourceVersion)} -> ${bintrayPaths.jarFilenameFor(target)}")
-
+  def uploadNewJar(map:VersionMapping, connector:RepoConnector): Try[Unit] ={
     for(
-      localZipFile <- bintray.downloadJar(sourceVersion);
-      transformed  <- manifestTransformer(localZipFile, target.version, bintrayPaths.jarFilenameFor(target));
-      jarUrl       <- bintray.uploadJar(target, transformed)
-    ) yield jarUrl
+      localFile   <- connector.downloadJar(map.sourceArtefact);
+      transformed <- manifestTransformer(localFile, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
+      _           <- connector.uploadJar(map.targetArtefact, transformed)
+    ) yield ()
+  }
+
+  def publish(map: VersionMapping, connector:RepoConnector): Try[Unit] = {
+    connector.publish(map.targetArtefact)
   }
 }
+
