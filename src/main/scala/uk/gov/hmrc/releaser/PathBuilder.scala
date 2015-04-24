@@ -37,7 +37,7 @@ trait PathBuilder extends BintrayPaths{
 
   def jarFilenameFor(v: VersionDescriptor): String
 
-  def jarUrlFor(v: VersionDescriptor): String
+  def jarDownloadFor(v: VersionDescriptor): String
 
   def jarUploadFor(v: VersionDescriptor): String
 
@@ -45,7 +45,7 @@ trait PathBuilder extends BintrayPaths{
 
   def pomFilenameFor(v: VersionDescriptor): String
 
-  def pomUrlFor(v: VersionDescriptor): String
+  def pomDownloadUrlFor(v: VersionDescriptor): String
 }
 
 class BintrayIvyPaths() extends PathBuilder {
@@ -56,7 +56,7 @@ class BintrayIvyPaths() extends PathBuilder {
     s"${v.artefactName}.jar"
   }
 
-  override def jarUrlFor(v:VersionDescriptor):String={
+  override def jarDownloadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
     s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
   }
@@ -66,13 +66,17 @@ class BintrayIvyPaths() extends PathBuilder {
     s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/jars/$fileName"
   }
 
-  override def pomUploadFor(v: VersionDescriptor): String = ???
+  override def pomUploadFor(v: VersionDescriptor): String = {
+    val fileName = pomFilenameFor(v)
+    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/ivys/$fileName"
+  }
 
-  override def pomFilenameFor(v: VersionDescriptor): String = ???
+  override def pomFilenameFor(v: VersionDescriptor): String = "ivy.xml"
 
-  override def pomUrlFor(v: VersionDescriptor): String = ???
-
-  override def metadata(repo: String, artefactName: String): String = ???
+  override def pomDownloadUrlFor(v: VersionDescriptor): String = {
+    val fileName = pomFilenameFor(v)
+    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_${v.scalaVersion}/$sbtVersion/${v.version}/ivys/$fileName"
+  }
 }
 
 class BintrayMavenPaths() extends PathBuilder{
@@ -81,7 +85,7 @@ class BintrayMavenPaths() extends PathBuilder{
     s"${v.artefactName}_${v.scalaVersion}-${v.version}.jar"
   }
 
-  def jarUrlFor(v:VersionDescriptor):String={
+  def jarDownloadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
     s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
   }
@@ -98,7 +102,7 @@ class BintrayMavenPaths() extends PathBuilder{
     s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
   }
 
-  def pomUrlFor(v: VersionDescriptor): String = {
+  def pomDownloadUrlFor(v: VersionDescriptor): String = {
     val fileName = pomFilenameFor(v)
     s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_${v.scalaVersion}/${v.version}/$fileName"
   }

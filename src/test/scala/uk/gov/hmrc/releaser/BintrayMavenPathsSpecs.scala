@@ -37,7 +37,7 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
       val version = VersionDescriptor(repoName, artefactName, "2.10", versionString)
 
       mavenPaths.jarFilenameFor(version) shouldBe "time_2.10-1.3.0-1-g21312cc.jar"
-      mavenPaths.jarUrlFor(version) shouldBe expectedJarUrl
+      mavenPaths.jarDownloadFor(version) shouldBe expectedJarUrl
     }
 
     "Generate correct URL for uploading a jar file to Bintray" in {

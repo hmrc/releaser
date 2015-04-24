@@ -37,9 +37,9 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Moc
       val respositories = new Repositories{
         override def connector: BintrayMetaConnector = metaConnector
 
-        override def repos: Seq[RepositoryFlavour] = Seq(
-          RepositoryFlavour(new BintrayMavenPaths, "rc", "r"),
-          RepositoryFlavour(new BintrayMavenPaths, "rc1", "r1"))
+        override def repos: Seq[RepoFlavour] = Seq(
+          new BintrayRepository("rc", "r") with IvyRepo,
+          new BintrayRepository("rc1", "r1") with MavenRepo)
       }
 
       respositories.findReposOfArtefact(artefactName).get.releaseCandidateRepo shouldBe "rc1"

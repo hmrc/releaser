@@ -24,28 +24,67 @@ import java.util.zip.{ZipEntry, ZipFile, ZipOutputStream}
 import com.google.common.io.ByteStreams
 
 import scala.collection.JavaConversions._
-import scala.util.Try
+import scala.util.{Success, Failure, Try}
 import resource._
 
-import scala.xml.{Node, XML}
+import scala.xml._
+import scala.xml.transform.{RewriteRule, RuleTransformer}
 
 trait Transformer{
 
-  def apply(localJarFile:File, targetVersion:String, targetJarName:String):Try[File]
+  def apply(localFile: Path, targetVersion: String, targetFileName: String): Try[Path]
 
 }
 
-class PomTransformer(stagingDir:Path) {
-  def apply(localPomFile: Path, targetVersion: String, targetFileName: String): Try[Path] = Try {
-    val updatedXml = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion).mkString
-    val targetFile = stagingDir.resolve(targetFileName)
-    Files.write(targetFile, updatedXml.getBytes)
+class PomTransformer(stagingDir:Path) extends Transformer{
+  def apply(localPomFile: Path, targetVersion: String, targetFileName: String): Try[Path] =  {
+    val updatedT: Try[Node] = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion)
+    updatedT.flatMap { updated => Try{
+      val targetFile = stagingDir.resolve(targetFileName)
+      Files.write(targetFile, updated.mkString.getBytes)
+    }}
   }
 
-  def updateVersion(node: Node, newVersion:String): Node = node match {
-    case <project>{ n @ _* }</project> => <project>{ n.map { a => updateVersion(a, newVersion) }} </project>
-    case <version>{ _* }</version> => <version>{ newVersion }</version>
-    case other @ _ => other
+  def updateVersion(node: Node, newVersion:String): Try[Node] = {
+    if((node \ "version").isEmpty){
+      Failure(new Exception("Didn't find project element in pom file"))
+    } else {
+
+      def updateVersionRec(node: Node, newVersion:String): Node = node match {
+        case <project>{ n @ _* }</project> => <project>{ n.map { a => updateVersionRec(a, newVersion) }} </project>
+        case <version>{ _* }</version> => <version>{ newVersion }</version>
+        case other @ _ => other
+      }
+      Try { updateVersionRec(node, newVersion)}
+    }
+  }
+}
+
+
+class IvyTransformer(stagingDir:Path) extends Transformer{
+  def apply(localIvyFile: Path, targetVersion: String, targetFileName: String): Try[Path] =  {
+    val updatedT: Try[Node] = updateVersion(XML.loadFile(localIvyFile.toFile), targetVersion)
+    updatedT.flatMap { updated => Try{
+      val targetFile = stagingDir.resolve(targetFileName)
+      Files.write(targetFile, updated.mkString.getBytes)
+    }}
+  }
+
+  def updateVersion(node: Node, newVersion:String): Try[Node] = {
+    if((node \ "info" \ "@revision").isEmpty){
+      Failure(new Exception("Didn't find revision element in ivy file"))
+    } else {
+
+      val rewrite = new RuleTransformer(new RewriteRule {
+        override def transform(node: Node) = node match {
+          case n: Elem if n.label == "info" =>
+            n % Attribute("revision", Text(newVersion), n.attributes.remove("revision"))
+          case other => other
+        }
+      })
+
+      Try { rewrite(node) }
+    }
   }
 }
 

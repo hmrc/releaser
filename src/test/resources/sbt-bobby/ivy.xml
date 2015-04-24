@@ -1,0 +1,39 @@
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info e:sbtVersion="0.13" e:scalaVersion="2.10" publication="20150409103300" status="integration" revision="0.8.1-4-ge733d26" module="sbt-bobby" organisation="uk.gov.hmrc">
+		<license url="http://www.apache.org/licenses/LICENSE-2.0" name="Apache-2.0"/>
+		<description>
+		sbt-bobby
+		</description>
+	</info>
+	<configurations>
+		<conf description="" visibility="public" name="compile"/>
+		<conf extends="compile" description="" visibility="public" name="runtime"/>
+		<conf extends="runtime" description="" visibility="public" name="test"/>
+		<conf description="" visibility="public" name="provided"/>
+		<conf description="" visibility="public" name="optional"/>
+		
+		
+		
+		
+		<conf description="" visibility="public" name="sources"/>
+		<conf description="" visibility="public" name="docs"/>
+		<conf description="" visibility="public" name="pom"/>
+		
+	</configurations>
+	<publications>
+		<artifact conf="compile" ext="jar" type="jar" name="sbt-bobby"/>
+		<artifact e:classifier="sources" conf="sources" ext="jar" type="src" name="sbt-bobby"/>
+		<artifact e:classifier="javadoc" conf="docs" ext="jar" type="doc" name="sbt-bobby"/>
+	</publications>
+	<dependencies>
+		
+		<dependency conf="provided-&gt;default(compile)" rev="2.10.4" name="scala-library" org="org.scala-lang"/>
+		<dependency conf="provided-&gt;default(compile)" rev="0.13.8" name="sbt" org="org.scala-sbt"/>
+		<dependency conf="compile-&gt;default(compile)" rev="2.4.0-M1" name="play-json_2.10" org="com.typesafe.play"/>
+		<dependency conf="test-&gt;default(compile)" rev="2.2.4" name="scalatest_2.10" org="org.scalatest"/>
+		<dependency conf="test-&gt;default(compile)" rev="1.5.0" name="pegdown" org="org.pegdown"/>
+		<override rev="2.10.4" matcher="exact" module="scala-library" org="org.scala-lang"/>
+		<override rev="2.10.4" matcher="exact" module="scala-compiler" org="org.scala-lang"/>
+		<override rev="2.10.4" matcher="exact" module="scala-reflect" org="org.scala-lang"/>
+	</dependencies>
+</ivy-module>

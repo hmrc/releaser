@@ -33,7 +33,7 @@ object Builders {
     }
   }
 
-  def buildConnector() = new RepoConnector(){
+  def buildConnector(jarResoure:String, pomResource:String) = new RepoConnector(){
 
     var lastUploadedJar:Option[(VersionDescriptor, Path)] = None
     var lastUploadedPom:Option[(VersionDescriptor, Path)] = None
@@ -41,7 +41,7 @@ object Builders {
 
     override def downloadJar(version: VersionDescriptor): Try[Path] = {
       Success {
-        Paths.get(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI) }
+        Paths.get(this.getClass.getResource(jarResoure).toURI) }
     }
 
     override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[URL] = {
@@ -56,7 +56,7 @@ object Builders {
 
     override def downloadPom(version: VersionDescriptor): Try[Path] = {
       Success {
-        Paths.get(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI) }
+        Paths.get(this.getClass.getResource(pomResource).toURI) }
     }
 
     override def publish(version: VersionDescriptor): Try[Unit] = {

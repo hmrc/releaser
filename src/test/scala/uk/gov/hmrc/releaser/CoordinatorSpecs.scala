@@ -27,6 +27,7 @@ import org.scalatest.{Matchers, OptionValues, WordSpec}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
+import scala.io.Source
 import scala.util.{Failure, Success, Try}
 import org.mockito.Mockito._
 import scala.xml.XML
@@ -37,17 +38,16 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
 
     "release version 0.9.9 when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
 
-      val fakeRepoConnector = Builders.buildConnector()
-//      val fakeMetaConnector = Builders.buildMetaConnector()
+      val fakeRepoConnector = Builders.buildConnector(
+        "/time/time_2.11-1.3.0-1-g21312cc.jar",
+        "/time/time_2.11-1.3.0-1-g21312cc.pom"
+      )
 
       val pathBuilder = new BintrayMavenPaths()
-
-//      val releaser = new Releaser(Paths.get("/tmp"), Seq(RepositoryFlavour(pathBuilder, "release-candidates", "releases")), mockConnector)
-      val coordinator = new Coordinator(Paths.get("/tmp"), fakeRepoConnector, pathBuilder)
+      val coordinator = new Coordinator(Paths.get("/tmp"), fakeRepoConnector, pathBuilder, new PomTransformer(Paths.get("/tmp")))
 
       val source = VersionDescriptor(repo = "release-candidates", "time", "2.11", "1.3.0-1-g21312cc")
       val target = VersionDescriptor(repo = "releases", "time", "2.11", "0.9.9")
-
 
       val uploadedURLs = coordinator.start(source, target) match {
         case Failure(e) => fail(e)
@@ -64,12 +64,47 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
 
       val manifest = manifestFromZipFile(jarFile)
 
-      jarVersion shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
-      pomVersion shouldBe VersionDescriptor("releases", "time", "2.11", "0.9.9")
+      jarVersion shouldBe target
+      pomVersion shouldBe target
 
       manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
       val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
       pomVersionText shouldBe "0.9.9"
+    }
+
+    "release version 0.1.1 when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
+
+      val fakeRepoConnector = Builders.buildConnector(
+        "/sbt-bobby/sbt-bobby.jar",
+        "/sbt-bobby/ivy.xml"
+      )
+      val pathBuilder = new BintrayIvyPaths()
+      val coordinator = new Coordinator(Paths.get("/tmp"), fakeRepoConnector, pathBuilder, new IvyTransformer(Paths.get("/tmp")))
+
+      val source = VersionDescriptor(repo = "sbt-plugin-release-candidates", "sbt-bobby", "2.10", "0.8.1-4-ge733d26")
+      val target = VersionDescriptor(repo = "sbt-plugin-releases", "sbt-bobby", "2.10", "0.1.1")
+
+      val uploadedURLs = coordinator.start(source, target) match {
+        case Failure(e) => fail(e)
+        case Success(urls) => urls
+      }
+
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
+      val Some((ivyVersion, ivyFile)) = fakeRepoConnector.lastUploadedPom
+      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
+
+      jarFile.getFileName.toString should be("sbt-bobby.jar")
+      ivyFile.getFileName.toString should be("ivy.xml")
+      publishedDescriptor should not be None
+
+      val manifest = manifestFromZipFile(jarFile)
+
+      jarVersion shouldBe target
+      ivyVersion shouldBe target
+
+      manifest.value.getValue("Implementation-Version") shouldBe "0.1.1"
+      val ivyVersionText = (XML.loadFile(ivyFile.toFile) \ "info" \ "@revision").text
+      ivyVersionText shouldBe "0.1.1"
     }
   }
 
