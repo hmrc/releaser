@@ -22,8 +22,10 @@ import java.util.jar
 import java.util.jar.Attributes
 import java.util.zip.ZipFile
 
+import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, WordSpec}
+import uk.gov.hmrc.releaser.RepoFlavour
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
@@ -42,7 +44,17 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
 
       val repo: RepoFlavour = Releaser.mavenRepository
 
-      val fakeRepositories = Builders.buildRepositories(repo)
+      val artefactBulider:(Path) => Try[ArtefactMetaData] = {
+        (x) => Success(ArtefactMetaData("sha", "time", DateTime.now()))
+      }
+
+      val githubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] ={
+        (a, b) => Success()
+      }
+
+      val repoFinder:((String) => Try[RepoFlavour])={
+        (a) => Success(repo)
+      }
 
       val fakeRepoConnector = Builders.buildConnector(
         "/time/time_2.11-1.3.0-1-g21312cc.jar",
@@ -51,7 +63,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
 
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
-      new Releaser(tempDir, fakeRepositories, fakeRepoConnectorBuilder, new Coordinator(tempDir))
+      new Releaser(tempDir, repoFinder, fakeRepoConnectorBuilder, new Coordinator(tempDir, artefactBulider, githubTagPublisher))
         .start(Array("time", "1.3.0-1-g21312cc", "0.9.9")) match {
         case Failure(e) => fail(e)
         case _ =>
@@ -80,12 +92,33 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
 
     }
 
+    class GithubTagPublisherBuilder{
+
+      var params:Option[(ArtefactMetaData, VersionMapping)] = None
+
+      def build:(ArtefactMetaData, VersionMapping) => Try[Unit] ={
+        (a, b) => {
+          params = Some(a, b)
+          Success()
+        }
+      }
+    }
+
     "release version 0.1.1 when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
       val tempDir = Files.createTempDirectory("tmp")
 
       val repo: RepoFlavour = Releaser.ivyRepository
 
-      val fakeRepositories = Builders.buildRepositories(repo)
+      val githubBuilder = new GithubTagPublisherBuilder()
+      val githubTagPublisher = githubBuilder.build
+
+      val artefactBulider:(Path) => Try[ArtefactMetaData] = {
+        (x) => Success(ArtefactMetaData("sha", "sbt-bobby", DateTime.now()))
+      }
+
+      val repoFinder:((String) => Try[RepoFlavour])={
+        (a) => Success(repo)
+      }
 
       val fakeRepoConnector = Builders.buildConnector(
         "/sbt-bobby/sbt-bobby.jar",
@@ -94,7 +127,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
 
-      val result = new Releaser(tempDir, fakeRepositories, fakeRepoConnectorBuilder, new Coordinator(tempDir))
+      val coordinator: Coordinator = new Coordinator(tempDir, artefactBulider, githubTagPublisher)
+      new Releaser(tempDir, repoFinder, fakeRepoConnectorBuilder, coordinator)
         .start(Array("sbt-bobby", "0.8.1-4-ge733d26", "0.1.1")) match {
           case Failure(e) => fail(e)
           case _ =>
@@ -118,6 +152,10 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
       manifest.value.getValue("Implementation-Version") shouldBe "0.1.1"
       val ivyVersionText = (XML.loadFile(ivyFile.toFile) \ "info" \ "@revision").text
       ivyVersionText shouldBe "0.1.1"
+
+      val(md, ver) = githubBuilder.params.value
+      md.sha shouldBe "sha"
+      ver.sourceVersion shouldBe "0.8.1-4-ge733d26"
     }
   }
 

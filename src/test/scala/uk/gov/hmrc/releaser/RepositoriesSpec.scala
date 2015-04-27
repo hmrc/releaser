@@ -20,7 +20,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{OptionValues, Matchers, WordSpec}
 import org.mockito.Mockito._
 
-import scala.util.{Success, Failure}
+import scala.util.{Try, Success, Failure}
 
 class RepositoriesSpec extends WordSpec with Matchers with OptionValues with MockitoSugar{
 
@@ -34,16 +34,15 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Moc
       when(metaConnector.getRepoMetaData("rc",  artefactName)).thenReturn(Failure(new Exception("fail")))
       when(metaConnector.getRepoMetaData("rc1", artefactName)).thenReturn(Success())
 
-      val respositories = new Repositories{
-        override def connector: BintrayMetaConnector = metaConnector
 
-        override def repos: Seq[RepoFlavour] = Seq(
-          new BintrayRepository("rc", "r") with IvyRepo,
-          new BintrayRepository("rc1", "r1") with MavenRepo)
-      }
+      val repos = Seq(
+        new BintrayRepository("rc", "r") with IvyRepo,
+        new BintrayRepository("rc1", "r1") with MavenRepo
+      )
+
+      val respositories = new Repositories(metaConnector.getRepoMetaData)(repos)
 
       respositories.findReposOfArtefact(artefactName).get.releaseCandidateRepo shouldBe "rc1"
-
     }
   }
 }

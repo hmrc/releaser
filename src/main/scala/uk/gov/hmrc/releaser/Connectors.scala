@@ -20,9 +20,11 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
+import play.api.libs.json.JsValue
 import play.api.libs.ws.{WSResponse, WSAuthScheme, DefaultWSClientConfig}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.mvc.Results
+import play.libs.Json
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -36,6 +38,36 @@ trait RepoConnector{
   def uploadPom(version: VersionDescriptor, pomPath:Path):Try[URL]
   def downloadPom(version:VersionDescriptor):Try[Path]
   def publish(version: VersionDescriptor):Try[Unit]
+}
+
+class GithubHttp(githubApiToken:String){
+  val log = new Logger()
+
+  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
+
+
+  def apiWs(url:String) = ws.url(url)
+    .withAuth(
+      githubApiToken,//System.getenv("GITHUB_TOKEN"),
+      "",
+      WSAuthScheme.BASIC)
+    .withHeaders(
+      "content-type" -> "application/json")
+
+  def post(url:String, body:JsValue): Try[Unit] = {
+    log.info(s"posting file to $url")
+
+    val call = apiWs(url).post(body)
+
+    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+
+    log.info(s"result ${result.status} - ${result.statusText}")
+
+    result.status match {
+      case s if s >= 200 && s < 300 => Success(new URL(url))
+      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: ${result.body}"))
+    }
+  }
 }
 
 class BintrayHttp{

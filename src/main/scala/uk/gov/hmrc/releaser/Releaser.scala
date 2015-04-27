@@ -32,10 +32,17 @@ package uk.gov.hmrc.releaser
  * limitations under the License.
  */
 
+import scala.collection.JavaConversions._
 import java.net.URL
 import java.nio.file.{Files, Path}
+import java.util.jar.Manifest
+import java.util.zip.{ZipFile, ZipEntry}
 
+import com.google.common.io.ByteStreams
 import org.apache.commons.io.FileUtils
+import org.joda.time.DateTime
+import play.api.data.format.Formats
+import play.api.libs.json.{JsValue, Json}
 
 import scala.util.{Failure, Success, Try}
 
@@ -55,30 +62,40 @@ object ReleaserMain {
   }
 }
 
-object Releaser {
+trait Clock{
+  def now():DateTime
+}
 
-  val tmpDir   = Files.createTempDirectory("releaser")
-  val workDir  = Files.createDirectories(tmpDir.resolve("work"))
-  val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
+class SystemClock extends Clock {
+  def now:DateTime = DateTime.now
+}
+
+object Releaser {
 
   val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
   val ivyRepository:   RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
-
-  val http = new BintrayHttp
-
-  val repositories  = new Repositories {
-    override def connector: BintrayMetaConnector = new BintrayMetaConnector(http)
-    override def repos: Seq[RepoFlavour] = Seq(mavenRepository, ivyRepository)
-  }
 
 
   val log = new Logger()
 
   def main(args: Array[String]):Int= {
-    val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, http) _
-    val coordinator = new Coordinator(stageDir)
-    new Releaser(stageDir, repositories, repoConnectorBuilder, coordinator)
-      .start(args)
+
+    val tmpDir   = Files.createTempDirectory("releaser")
+    val workDir  = Files.createDirectories(tmpDir.resolve("work"))
+    val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
+
+    val githubConnector = new GithubHttp("token")
+    val bintrayConnector = new BintrayHttp
+
+    val metaDataGetter = new BintrayMetaConnector(bintrayConnector).getRepoMetaData _
+    val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, bintrayConnector) _
+    val artefactBuilder = ArtefactMetaData.fromFile(new SystemClock()) _
+
+    val coordinator = new Coordinator(stageDir, artefactBuilder, Github.postTag(githubConnector.post))
+    val repoFinder  = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
+    val releaser = new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
+
+    releaser.start(args)
       .map{ _ => log.info(s"deleting $tmpDir"); FileUtils.forceDelete(tmpDir.toFile) } match {
         case Failure(e) => log.info(s"failed with error '${e.getMessage}'");e.printStackTrace(); 1
         case Success(_) => 0;
@@ -111,13 +128,11 @@ trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
 
 case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)
 
-trait Repositories{
-  def connector:BintrayMetaConnector
-  def repos:Seq[RepoFlavour]
+class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoFlavour]){
 
   def findReposOfArtefact(artefactName: String): Try[RepoFlavour] = {
     repos.find { repo =>
-      connector.getRepoMetaData(repo.releaseCandidateRepo, artefactName).isSuccess
+      metaDataGetter(repo.releaseCandidateRepo, artefactName).isSuccess
     } match {
       case Some(r) => Success(r)
       case None => Failure(new Exception(s"Didn't find a release candidate repository for $artefactName"))
@@ -125,7 +140,7 @@ trait Repositories{
   }}
 
 class Releaser(stageDir:Path,
-               repositories:Repositories,
+               repositoryFinder:(String) => Try[RepoFlavour],
                connectorBuilder:(RepoFlavour) => RepoConnector,
                coordinator:Coordinator
                 ){
@@ -135,7 +150,7 @@ class Releaser(stageDir:Path,
     val rcVersion: String = args(1)
     val targetVersionString: String = args(2)
 
-    repositories.findReposOfArtefact(artefactName) flatMap { repo =>
+    repositoryFinder(artefactName) flatMap { repo =>
       val ver = VersionMapping(repo, artefactName, rcVersion, targetVersionString)
       coordinator.start(ver, connectorBuilder(repo))
     }
@@ -157,8 +172,79 @@ case class VersionMapping (
 
 }
 
+object Pimps{
+  implicit class OptionPimp[A](opt:Option[A]){
+    def toTry(e:Exception):Try[A] = opt match {
+      case Some(x) => Success(x)
+      case None => Failure(e)
+    }
+  }
+}
 
-class Coordinator(stageDir:Path){
+object ArtefactMetaData{
+
+  import Pimps._
+
+  def fromFile(clock:Clock)(p:Path):Try[ArtefactMetaData] = {
+    Try {new ZipFile(p.toFile) }.flatMap { jarFile =>
+      jarFile.entries().filter(_.getName == "META-INF/MANIFEST.MF").toList.headOption.map { ze =>
+        val man = new Manifest(jarFile.getInputStream(ze))
+        ArtefactMetaData(
+          man.getMainAttributes.getValue("Git-Head-Rev"),
+          man.getMainAttributes.getValue("Implementation-Title"), clock.now())
+      }.toTry(new Exception(s"Failed to retrieve maniefts from $p"))
+    }
+  }
+}
+
+case class ArtefactMetaData(sha:String, name:String, date:DateTime)
+
+//class GithubTagger(github:GithubHttp){
+object Github{
+
+  val taggerName = "hmrc-web-operations"
+  val taggerEmail = "hmrc-web-operations@hmrc.digital.gov.uk"
+
+  case class GitTagger( name:String, email:String, date:DateTime)
+  case class GitTag(tag:String, message:String, `object`:String, tagger:GitTagger, `type`:String = "commit" )
+
+  object GitTagger { implicit val formats = Json.format[GitTagger] }
+  object GitTag    { implicit val formats = Json.format[GitTag] }
+
+  def postTag(githubConnector: (String, JsValue) => Try[Unit])(a: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
+    githubConnector(Github.url(v), Github.tag(v, a))
+  }
+
+  def tag(versionMapping:VersionMapping, pomData:ArtefactMetaData):JsValue={
+    //POST /repos/:owner/:repo/git/tags
+//
+//    {
+//      "tag": "v0.0.1",
+//      "message": "initial version\n",
+//      "object": "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
+//      "type": "commit",
+//      "tagger": {
+//        "name": "Scott Chacon",
+//        "email": "schacon@gmail.com",
+//        "date": "2011-06-17T14:53:35-07:00"
+//      }
+//    }
+
+    val message = s"releasing"
+    val tag: GitTag = GitTag(versionMapping.targetVersion, message, pomData.sha, GitTagger(taggerName, taggerEmail, DateTime.now()))
+
+    Json.toJson(tag)
+  }
+
+  def url(artefactName:VersionMapping)={
+    s"https://github.com/repos/hmrc/${artefactName.artefactName}/git/tags"
+  }
+}
+
+class Coordinator(
+                   stageDir:Path,
+                   artefactBuilder:(Path) => Try[ArtefactMetaData],
+                   githubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit]){
 
   val logger = new Logger()
 
@@ -166,9 +252,10 @@ class Coordinator(stageDir:Path){
 
   def start(map: VersionMapping, connector:RepoConnector): Try[Unit] ={
     for(
-      _ <- uploadNewJar(map, connector);
-      _ <- uploadNewPom(map, connector);
-      _ <- publish(map, connector)
+      man <- uploadNewJar(map, connector);
+      _   <- uploadNewPom(map, connector);
+      _   <- publish(map, connector);
+      _   <- githubTagPublisher(man, map)
     ) yield ()
   }
 
@@ -181,12 +268,13 @@ class Coordinator(stageDir:Path){
     ) yield ()
   }
 
-  def uploadNewJar(map:VersionMapping, connector:RepoConnector): Try[Unit] ={
+  def uploadNewJar(map:VersionMapping, connector:RepoConnector): Try[ArtefactMetaData] ={
     for(
       localFile   <- connector.downloadJar(map.sourceArtefact);
-      transformed <- manifestTransformer(localFile, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
-      _           <- connector.uploadJar(map.targetArtefact, transformed)
-    ) yield ()
+      path        <- manifestTransformer(localFile, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
+      _           <- connector.uploadJar(map.targetArtefact, path);
+      metaData    <- artefactBuilder(localFile)
+    ) yield metaData
   }
 
   def publish(map: VersionMapping, connector:RepoConnector): Try[Unit] = {

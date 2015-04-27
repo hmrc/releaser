@@ -33,13 +33,6 @@ object Builders {
     }
   }
 
-  def buildRepositories(repo:RepoFlavour): Repositories = new Repositories{
-      override def findReposOfArtefact(artefactName: String): Try[RepoFlavour] = Success(repo)
-
-      override def connector: BintrayMetaConnector = ???
-      override def repos: Seq[RepoFlavour] = ???
-  }
-
   def buildConnector(jarResoure:String, pomResource:String) = new RepoConnector(){
 
     var lastUploadedJar:Option[(VersionDescriptor, Path)] = None
