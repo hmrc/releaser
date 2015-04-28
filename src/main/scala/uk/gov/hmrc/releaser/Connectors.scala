@@ -40,28 +40,31 @@ trait RepoConnector{
   def publish(version: VersionDescriptor):Try[Unit]
 }
 
-class GithubHttp(githubApiToken:String){
+class GithubHttp(cred:ServiceCredentials){
   val log = new Logger()
 
   val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
 
 
-  def apiWs(url:String) = ws.url(url)
-    .withAuth(
-      githubApiToken,//System.getenv("GITHUB_TOKEN"),
-      "",
-      WSAuthScheme.BASIC)
-    .withHeaders(
-      "content-type" -> "application/json")
+  def apiWs(url:String) = {
+
+    log.debug(s"github client_id ${cred.user.takeRight(5)}")
+    log.debug(s"github client_secret ${cred.pass.takeRight(5)}")
+
+    ws.url(url)
+      .withAuth(cred.user, cred.pass, WSAuthScheme.BASIC)
+      .withQueryString("client_id" -> cred.user, "client_secret" -> cred.pass)
+      .withHeaders("content-type" -> "application/json")
+  }
 
   def post(url:String, body:JsValue): Try[Unit] = {
-    log.info(s"posting file to $url")
+    log.info(s"posting file to ${apiWs(url).url}")
 
     val call = apiWs(url).post(body)
 
     val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
 
-    log.info(s"result ${result.status} - ${result.statusText}")
+    log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
 
     result.status match {
       case s if s >= 200 && s < 300 => Success(new URL(url))
@@ -70,7 +73,7 @@ class GithubHttp(githubApiToken:String){
   }
 }
 
-class BintrayHttp{
+class BintrayHttp(creds:ServiceCredentials){
 
   val log = new Logger()
 
@@ -79,11 +82,8 @@ class BintrayHttp{
 
   def apiWs(url:String) = ws.url(url)
     .withAuth(
-      System.getenv("BINTRAY_USER"),
-      System.getenv("BINTRAY_PASS"),
-      WSAuthScheme.BASIC)
-    .withHeaders(
-      "content-type" -> "application/json")
+      creds.user, creds.pass, WSAuthScheme.BASIC)
+    .withHeaders("content-type" -> "application/json")
 
   def emptyPost(url:String): Try[Unit] = {
     log.info(s"posting file to $url")

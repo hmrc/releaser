@@ -31,6 +31,7 @@ object HmrcBuild extends Build {
     "com.typesafe.play" %% "play-ws" % "2.3.8",
     "com.jsuereth" %% "scala-arm" % "1.4",
     "commons-io" % "commons-io" % "2.4",
+    "com.github.scopt" %% "scopt" % "3.3.0",
     "org.scalatest" %% "scalatest" % "2.2.2" % "test",
     "org.pegdown" % "pegdown" % "1.4.2" % "test",
     "org.mockito" % "mockito-all" % "1.9.5" % "test"

@@ -18,22 +18,22 @@ package uk.gov.hmrc.releaser
 
 import java.nio.file.Paths
 
-import org.joda.time.DateTime
 import org.scalatest.{Matchers, TryValues, WordSpec}
+
+import scala.util.Failure
 
 class ArtefactMetaDataSpecs extends WordSpec with Matchers with TryValues{
 
   "ArtefactMetaData" should {
     "build instance from file" in {
-      val theTime = DateTime.now
-      val clock = new Clock{
-        override def now(): DateTime = theTime
+      val md = ArtefactMetaData.fromFile(Paths.get(this.getClass.getResource("/sbt-bobby/sbt-bobby.jar").toURI))  match {
+        case Failure(e) => fail(e)
+        case s => s
       }
-      val md = ArtefactMetaData.fromFile(clock)(Paths.get(this.getClass.getResource("/sbt-bobby/sbt-bobby.jar").toURI))
 
-      md.success.value.name shouldBe "sbt-bobby"
+      md.success.value.commitAuthor shouldBe "Charles Kubicek"
       md.success.value.sha  shouldBe "e733d26fa504c040f2c95ecd25a3a55399a00883"
-      md.success.value.date shouldBe theTime
+      md.success.value.commitDate shouldBe GithubApi.githubDateTimeFormatter.parseDateTime("2015-04-09T10:18:12.000Z")
     }
   }
 }

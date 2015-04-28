@@ -64,7 +64,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
       new Releaser(tempDir, repoFinder, fakeRepoConnectorBuilder, new Coordinator(tempDir, artefactBulider, githubTagPublisher))
-        .start(Array("time", "1.3.0-1-g21312cc", "0.9.9")) match {
+        .start("time", "1.3.0-1-g21312cc", "0.9.9") match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -113,7 +113,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
       val githubTagPublisher = githubBuilder.build
 
       val artefactBulider:(Path) => Try[ArtefactMetaData] = {
-        (x) => Success(ArtefactMetaData("sha", "sbt-bobby", DateTime.now()))
+        (x) => Success(ArtefactMetaData("gitsha", "sbt-bobby", DateTime.now()))
       }
 
       val repoFinder:((String) => Try[RepoFlavour])={
@@ -129,7 +129,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
 
       val coordinator: Coordinator = new Coordinator(tempDir, artefactBulider, githubTagPublisher)
       new Releaser(tempDir, repoFinder, fakeRepoConnectorBuilder, coordinator)
-        .start(Array("sbt-bobby", "0.8.1-4-ge733d26", "0.1.1")) match {
+        .start("sbt-bobby", "0.8.1-4-ge733d26", "0.1.1") match {
           case Failure(e) => fail(e)
           case _ =>
         }
@@ -154,7 +154,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Moc
       ivyVersionText shouldBe "0.1.1"
 
       val(md, ver) = githubBuilder.params.value
-      md.sha shouldBe "sha"
+      md.sha shouldBe "gitsha"
       ver.sourceVersion shouldBe "0.8.1-4-ge733d26"
     }
   }
