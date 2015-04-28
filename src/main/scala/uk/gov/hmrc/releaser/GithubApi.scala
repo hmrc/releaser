@@ -44,12 +44,12 @@ class GithubApi(clock:Clock){
   val logger = new Logger()
 
   //TODO how do we test this.
-  def postTag(githubConnector: (String, JsValue) => Try[Unit])(a: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
+  def postTag(tagger: (String, JsValue) => Try[Unit])(a: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
     logger.debug("publishing meta data " + a + " version mapping " + v)
     logger.debug("github url: " + buildUrl(v.artefactName))
     logger.debug("github body: " + buildTagBody(v.sourceVersion, v.targetVersion, a))
 
-    githubConnector(
+    tagger(
       buildUrl(v.artefactName),
       buildTagBody(v.sourceVersion, v.targetVersion, a))
   }

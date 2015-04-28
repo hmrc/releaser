@@ -85,7 +85,7 @@ object Releaser {
 
   def main(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
-      case Some(config) => start(config.artefactName, config.rcVersion, config.targetVersion)
+      case Some(config) => start(config.artefactName, config.rcVersion, "0.0.0")
       case None => -1
     }
   }
@@ -133,7 +133,6 @@ object Releaser {
 }
 
 trait RepoFlavour extends PathBuilder{
-//  def pathBuilder:PathBuilder
   val workDir:Path = Files.createTempDirectory("releaser")
   
   def scalaVersion:String

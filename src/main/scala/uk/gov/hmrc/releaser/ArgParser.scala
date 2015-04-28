@@ -16,25 +16,39 @@
 
 package uk.gov.hmrc.releaser
 
+import scala.collection.immutable.SortedSet
+
 object ArgParser{
+
+  object ReleaseType extends Enumeration {
+    type Margin = Value
+    val MAJOR, MINOR, PATCH = Value
+
+    val stringValues: SortedSet[String] = this.values.map(_.toString)
+  }
 
   case class Config(
                      artefactName: String = "",
                      rcVersion:String = "",
-                     targetVersion:String = "",
+                     releaseType:ReleaseType.Value = ReleaseType.PATCH,
                      tag:Boolean = true,
                      verbose:Boolean = false,
                      dryRun:Boolean = false)
 
 
+
   val parser = new scopt.OptionParser[Config]("releaser") {
-    head("HMRC Releaser", "1.0-alpha")
+    override def showUsageOnError = false
+    head("\nHMRC Releaser", "1.0-alpha\n")
+    help("help") text "prints this usage text"
     arg[String]("artefactName") action { (x, c) =>
       c.copy(artefactName = x) } text "the artefact"
     arg[String]("release-candidate") action { (x, c) =>
       c.copy(rcVersion = x) } text "the release candidate"
-    arg[String]("target-version") action { (x, c) =>
-      c.copy(targetVersion = x) } text "the target version"
+    arg[String]("release-type") action { (x, c) =>
+      c.copy(releaseType = ReleaseType.withName(x)) } validate { x =>
+       if (ReleaseType.stringValues.contains(x)) success else failure(releaseTypeErrorMessage(x))
+    } text "the release type. Permitted values are: " + ReleaseType.stringValues.mkString(" ")
     opt[Boolean]("tag") action { (x, c) =>
       c.copy(tag = x) } text "tag in github"
     opt[Boolean]('v', "verbose") action { (x, c) =>
@@ -43,4 +57,7 @@ object ArgParser{
       c.copy(dryRun = x) } text "dry run"
   }
 
+  def releaseTypeErrorMessage(givenReleaseType:String):String={
+    s"release-type must be one of: ${ReleaseType.stringValues.mkString(" ")}. Supplied release-type was '$givenReleaseType'"
+  }
 }
