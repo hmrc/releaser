@@ -37,7 +37,7 @@ object HmrcBuild extends Build {
     "org.mockito" % "mockito-all" % "1.9.5" % "test"
   )
 
-  lazy val sbtUtils = Project(appName, file("."))
+  lazy val releaser = Project(appName, file("."))
     .enablePlugins(SbtAutoBuildPlugin)
     .settings(
       version := appVersion,
@@ -45,14 +45,26 @@ object HmrcBuild extends Build {
       scalaVersion := "2.11.6",
       libraryDependencies ++= libraries,
       BuildDescriptionSettings(),
-      assemblyMergeStrategy in assembly := {
-        case PathList("org", "apache", "commons", "logging", xs@_*) => MergeStrategy.first
-        case PathList("play", "core", "server", xs@_*) => MergeStrategy.first
-        case x =>
-          val oldStrategy = (assemblyMergeStrategy in assembly).value
-          oldStrategy(x)
-      }
+      AssemblySettings(),
+      addArtifact(artifact in (Compile, assembly), assembly)
     )
+}
+
+object AssemblySettings{
+  def apply()= Seq(
+    assemblyJarName in assembly := "releaser.jar",
+    assemblyMergeStrategy in assembly := {
+      case PathList("org", "apache", "commons", "logging", xs@_*) => MergeStrategy.first
+      case PathList("play", "core", "server", xs@_*) => MergeStrategy.first
+      case x =>
+        val oldStrategy = (assemblyMergeStrategy in assembly).value
+        oldStrategy(x)
+    },
+    artifact in(Compile, assembly) := {
+      val art = (artifact in(Compile, assembly)).value
+      art.copy(`classifier` = Some("assembly"))
+    }
+  )
 }
 
 
