@@ -32,20 +32,17 @@ package uk.gov.hmrc.releaser
  * limitations under the License.
  */
 
+import java.nio.file.{Files, Path}
+import java.util.jar.Manifest
+import java.util.zip.ZipFile
+
+import org.apache.commons.io.FileUtils
+import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
 import scala.collection.JavaConversions._
-import java.net.URL
-import java.nio.file.{Files, Path}
-import java.util.jar.Manifest
-import java.util.zip.{ZipFile, ZipEntry}
-
-import com.google.common.io.ByteStreams
-import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
-import play.api.data.format.Formats
-import play.api.libs.json.{Writes, JsString, JsValue, Json}
-
+import scala.collection.immutable.SortedSet
+import scala.util.matching.Regex.Match
 import scala.util.{Failure, Success, Try}
 
 class Logger{
@@ -66,7 +63,15 @@ trait Clock{
 }
 
 class SystemClock extends Clock {
-  def now:DateTime = DateTime.now
+  def now():DateTime = DateTime.now
+}
+
+
+object ReleaseType extends Enumeration {
+  type Margin = Value
+  val MAJOR, MINOR, PATCH = Value
+
+  val stringValues: SortedSet[String] = this.values.map(_.toString)
 }
 
 case class ServiceCredentials(user:String, pass:String)
@@ -80,26 +85,27 @@ object Releaser {
   val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
   val ivyRepository:   RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
 
-
   val log = new Logger()
 
   def main(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
-      case Some(config) => start(config.artefactName, config.rcVersion, "0.0.0")
+      case Some(config) => start(config.artefactName, config.rcVersion, config.releaseType)
       case None => -1
     }
   }
 
-  def start(artefactName: String, rcVersion: String, targetVersion: String)={
+  def start(artefactName: String, rcVersion: String, releaseType: ReleaseType.Value)={
     val tmpDir = Files.createTempDirectory("releaser")
 
     val githubCreds  = ServiceCredentials(Option(System.getenv("GITHUB_USER")).getOrElse(""), Option(System.getenv("GITHUB_PASS")).getOrElse(""))
     val bintrayCreds = ServiceCredentials(Option(System.getenv("BINTRAY_USER")).getOrElse(""), Option(System.getenv("BINTRAY_PASS")).getOrElse(""))
 
     val releaser = buildReleaser(tmpDir, githubCreds, bintrayCreds)
+    val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
 
-    releaser.start(artefactName, rcVersion, targetVersion)
-      .map{ _ => log.info(s"deleting $tmpDir"); FileUtils.forceDelete(tmpDir.toFile) } match {
+    targetVersion
+      .map { tv => releaser.start(artefactName, rcVersion, tv) }
+      .map { _ => log.info(s"deleting $tmpDir"); FileUtils.forceDelete(tmpDir.toFile) } match {
         case Failure(e) => log.info(s"failed with error '${e.getMessage}'");e.printStackTrace(); 1
         case Success(_) => 0;
       }
@@ -128,8 +134,21 @@ object Releaser {
     val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
     new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
+}
 
-  def calculateTarget(releaseType: String): String = "0.9.9"
+class Releaser(stageDir:Path,
+               repositoryFinder:(String) => Try[RepoFlavour],
+               connectorBuilder:(RepoFlavour) => RepoConnector,
+               coordinator:Coordinator
+                ){
+
+  def start(artefactName: String, rcVersion: String, targetVersionString: String): Try[Unit] = {
+
+    repositoryFinder(artefactName) flatMap { repo =>
+      val ver = VersionMapping(repo, artefactName, rcVersion, targetVersionString)
+      coordinator.start(ver, connectorBuilder(repo))
+    }
+  }
 }
 
 trait RepoFlavour extends PathBuilder{
@@ -164,21 +183,6 @@ class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoF
       case None => Failure(new Exception(s"Didn't find a release candidate repository for $artefactName"))
     }
   }}
-
-class Releaser(stageDir:Path,
-               repositoryFinder:(String) => Try[RepoFlavour],
-               connectorBuilder:(RepoFlavour) => RepoConnector,
-               coordinator:Coordinator
-                ){
-
-  def start(artefactName: String, rcVersion: String, targetVersionString: String): Try[Unit] = {
-
-    repositoryFinder(artefactName) flatMap { repo =>
-      val ver = VersionMapping(repo, artefactName, rcVersion, targetVersionString)
-      coordinator.start(ver, connectorBuilder(repo))
-    }
-  }
-}
 
 case class VersionDescriptor(repo:String, artefactName:String, version:String)
 

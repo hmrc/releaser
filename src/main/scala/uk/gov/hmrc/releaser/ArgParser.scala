@@ -20,13 +20,6 @@ import scala.collection.immutable.SortedSet
 
 object ArgParser{
 
-  object ReleaseType extends Enumeration {
-    type Margin = Value
-    val MAJOR, MINOR, PATCH = Value
-
-    val stringValues: SortedSet[String] = this.values.map(_.toString)
-  }
-
   case class Config(
                      artefactName: String = "",
                      rcVersion:String = "",
