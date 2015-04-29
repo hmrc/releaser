@@ -12,6 +12,6 @@ There are release and release candidate repositories in Bintray HMRC for standar
 ### Running
 `java -jar target/scala-2.11/releaser-assembly-x.x.x.jar` artifact release-candidate-version release-version
 
-## License ##
+### License
  
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
