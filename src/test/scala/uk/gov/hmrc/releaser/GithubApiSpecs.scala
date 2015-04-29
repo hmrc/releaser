@@ -23,16 +23,30 @@ import org.scalatest.{Matchers, TryValues, WordSpec}
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.releaser.domain.ArtefactMetaData
 
+import scala.util.{Try, Success}
+
 class GithubApiSpecs extends WordSpec with Matchers with TryValues{
+
+  import Builders._
 
   "GithubApiSpecs" should {
     "create the correct url for tagging" in {
-      val theTime = DateTime.now
-      val clock = new Clock{
-        override def now(): DateTime = theTime
-      }
+      val url = new GithubApi(fakeClockSetToNow()).buildTagPostUrl("myArtefact")
 
-      new GithubApi(clock).buildUrl("myArtefact") shouldBe "https://api.github.com/repos/hmrc/myArtefact/releases"
+      url shouldBe "https://api.github.com/repos/hmrc/myArtefact/releases"
+    }
+
+    "create the correct url for getting a commit" in {
+      val url = new GithubApi(fakeClockSetToNow()).buildCommitGetUrl("myArtefact", "thesha")
+
+      url shouldBe "https://api.github.com/repos/hmrc/myArtefact/git/commits/thesha"
+    }
+
+    "verify the commit" in {
+      val clock = fakeClockSetToNow()
+
+      val getResult: Try[Unit] = new GithubApi(clock).verifyCommit((s) => Success())("myArtefact", "thesha")
+      getResult shouldBe Success()
     }
 
     "create the correct body for posting a tag" in {

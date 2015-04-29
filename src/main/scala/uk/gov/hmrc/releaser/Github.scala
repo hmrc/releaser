@@ -58,14 +58,18 @@ class GithubApi(clock:Clock){
 
   val logger = new Logger()
 
+  def verifyCommit(getter:(String) => Try[Unit])(repo:String, sha:String): Try[Unit] ={
+    getter(buildCommitGetUrl(repo, sha))
+  }
+
   //TODO how do we test this.
   def postTag(tagger: (String, JsValue) => Try[Unit])(a: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
     logger.debug("publishing meta data " + a + " version mapping " + v)
-    logger.debug("github url: " + buildUrl(v.artefactName))
+    logger.debug("github url: " + buildTagPostUrl(v.artefactName))
     logger.debug("github body: " + buildTagBody(v.sourceVersion, v.targetVersion, a))
 
     tagger(
-      buildUrl(v.artefactName),
+      buildTagPostUrl(v.artefactName),
       buildTagBody(v.sourceVersion, v.targetVersion, a))
   }
 
@@ -91,7 +95,11 @@ class GithubApi(clock:Clock){
         | Last Commit Time: ${DateTimeFormat.longDateTime().print(commitDate)}""".stripMargin
   }
 
-  def buildUrl(artefactName:String)={
+  def buildCommitGetUrl(artefactName:String, sha:String)={
+    s"https://api.github.com/repos/hmrc/$artefactName/git/commits/$sha"
+  }
+  
+  def buildTagPostUrl(artefactName:String)={
     s"https://api.github.com/repos/hmrc/$artefactName/releases"
   }
 }
@@ -101,27 +109,36 @@ class GithubHttp(cred:ServiceCredentials){
 
   val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
 
-
-  def apiWs(url:String) = {
+  def callAndWait(method:String, url:String, body:Option[JsValue] = None): WSResponse = {
 
     log.debug(s"github client_id ${cred.user.takeRight(5)}")
     log.debug(s"github client_secret ${cred.pass.takeRight(5)}")
 
-    ws.url(url)
+    val req = ws.url(url)
+      .withMethod(method)
       .withAuth(cred.user, cred.pass, WSAuthScheme.BASIC)
       .withQueryString("client_id" -> cred.user, "client_secret" -> cred.pass)
       .withHeaders("content-type" -> "application/json")
-  }
 
-  def post(url:String, body:JsValue): Try[Unit] = {
-    log.info(s"posting file to ${apiWs(url).url}")
+    log.info(s"$method with ${req.url}")
 
-    val call = apiWs(url).post(body)
-
-    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+    val result: WSResponse = Await.result(req.execute(), Duration.apply(1, TimeUnit.MINUTES))
 
     log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
 
+    result
+  }
+
+  def head(url:String): Try[Unit] = {
+    val result = callAndWait("HEAD", url)
+    result.status match {
+      case s if s >= 200 && s < 300 => Success()
+      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: ${result.body}"))
+    }
+  }
+
+  def post(url:String, body:JsValue): Try[Unit] = {
+    val result = callAndWait("POST", url, Some(body))
     result.status match {
       case s if s >= 200 && s < 300 => Success(new URL(url))
       case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: ${result.body}"))

@@ -78,9 +78,7 @@ object ReleaseType extends Enumeration {
 object Releaser {
 
   import ArgParser._
-
-  val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
-  val ivyRepository:   RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
+  import RepoFlavours._
 
   val log = new Logger()
 
@@ -123,11 +121,13 @@ object Releaser {
 
     val metaDataGetter = new BintrayMetaConnector(bintrayConnector).getRepoMetaData _
     val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, bintrayConnector) _
-    val githubPublisher = new GithubApi(clock).postTag(githubConnector.post) _
+    val githubApi = new GithubApi(clock)
+    val githubPublisher = githubApi.postTag(githubConnector.post) _
+    val verifyGithubCommit = githubApi.verifyCommit(githubConnector.head) _
 
     val artefactBuilder = ArtefactMetaData.fromFile _
 
-    val coordinator = new Coordinator(stageDir, artefactBuilder, githubPublisher)
+    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, githubPublisher)
     val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
     new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
@@ -151,6 +151,7 @@ class Releaser(stageDir:Path,
 class Coordinator(
                    stageDir:Path,
                    artefactBuilder:(Path) => Try[ArtefactMetaData],
+                   verifyGithubTagExists:(String, String) => Try[Unit],
                    githubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit]){
 
   val logger = new Logger()
@@ -159,10 +160,14 @@ class Coordinator(
 
   def start(map: VersionMapping, connector:RepoConnector): Try[Unit] ={
     for(
-      man <- uploadNewJar(map, connector);
-      _   <- uploadNewPom(map, connector);
-      _   <- publish(map, connector);
-      _   <- githubTagPublisher(man, map)
+      localFile <- connector.downloadJar(map.sourceArtefact);
+      metaData  <- artefactBuilder(localFile);
+      _         <- verifyGithubTagExists(map.artefactName, metaData.sha);
+      path      <- manifestTransformer(localFile, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
+      _         <- connector.uploadJar(map.targetArtefact, path);
+      _         <- uploadNewPom(map, connector);
+      _         <- publish(map, connector);
+      _         <- githubTagPublisher(metaData, map)
     ) yield ()
   }
 
@@ -173,15 +178,6 @@ class Coordinator(
       transformed <- map.repo.pomTransformer.apply(localFile, map.targetVersion, map.repo.pomFilenameFor(map.targetArtefact));
       _           <- connector.uploadPom(map.targetArtefact, transformed)
     ) yield ()
-  }
-
-  def uploadNewJar(map:VersionMapping, connector:RepoConnector): Try[ArtefactMetaData] ={
-    for(
-      localFile   <- connector.downloadJar(map.sourceArtefact);
-      path        <- manifestTransformer(localFile, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
-      _           <- connector.uploadJar(map.targetArtefact, path);
-      metaData    <- artefactBuilder(localFile)
-    ) yield metaData
   }
 
   def publish(map: VersionMapping, connector:RepoConnector): Try[Unit] = {

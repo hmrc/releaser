@@ -41,6 +41,11 @@ trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
   val pomTransformer = new PomTransformer(workDir)
 }
 
+object RepoFlavours {
+  val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
+  val ivyRepository: RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
+}
+
 case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)
 
 class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoFlavour]){

@@ -17,13 +17,16 @@
 package uk.gov.hmrc.releaser
 
 import java.net.URL
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Files, Paths, Path}
 
-import uk.gov.hmrc.releaser.domain.VersionDescriptor
+import org.joda.time.DateTime
+import uk.gov.hmrc.releaser.domain._
 
 import scala.util.{Success, Try}
 
 object Builders {
+
+  import RepoFlavours._
 
   def buildMetaConnector() = new MetaConnector(){
     override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
@@ -32,6 +35,64 @@ object Builders {
 
     override def publish(version: VersionDescriptor): Try[Unit] = {
       Success(Unit)
+    }
+  }
+
+  def successfulArtefactBulider(artefactMetaData:ArtefactMetaData):(Path) => Try[ArtefactMetaData] = {
+    (x) => Success(artefactMetaData)
+  }
+  
+  val successfulGithubVerifier:(String, String) => Try[Unit] ={
+    (a, b) => Success()
+  }
+
+  val successfulGithubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] ={
+    (a, b) => Success()
+  }
+
+  def successfulRepoFinder(repo: RepoFlavour):((String) => Try[RepoFlavour])={
+    (a) => Success(repo)
+  }
+
+  val successfulRepoFinder:((String) => Try[RepoFlavour])={
+    (a) => Success(mavenRepository)
+  }
+
+  val successfulConnectorBuilder:(RepoFlavour) => RepoConnector = (r) => Builders.buildConnector(
+    "/time/time_2.11-1.3.0-1-g21312cc.jar",
+    "/time/time_2.11-1.3.0-1-g21312cc.pom"
+  )
+
+  def buildDefaultReleaser(
+                        stageDir:Path = tempDir(),
+                        repositoryFinder:(String) => Try[RepoFlavour] = successfulRepoFinder,
+                        connectorBuilder:(RepoFlavour) => RepoConnector = successfulConnectorBuilder,
+                        artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
+                        githubRepoGetter:(String, String) => Try[Unit] = successfulGithubVerifier,
+                        githubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] = successfulGithubTagPublisher
+                          ): Releaser ={
+    val coord = buildDefaultCoordinator(stageDir, artefactMetaData, githubRepoGetter, githubTagPublisher)
+    new Releaser(stageDir, repositoryFinder, connectorBuilder, coord)
+  }
+
+
+  def tempDir() = Files.createTempDirectory("tmp")
+
+
+  def buildDefaultCoordinator(
+                               stageDir:Path,
+                               artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
+                               githubRepoGetter:(String, String) => Try[Unit] = successfulGithubVerifier,
+                               githubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] = successfulGithubTagPublisher
+                               )={
+
+    val artefactBuilder = successfulArtefactBulider(artefactMetaData)
+    new Coordinator(stageDir, artefactBuilder, githubRepoGetter, githubTagPublisher)
+  }
+
+  def fakeClockSetToNow():Clock={
+    new Clock{
+      val now: DateTime = DateTime.now()
     }
   }
 
