@@ -6,9 +6,12 @@ The release candidate is a published artefact in a Bintray HMRC release candidat
 
 There are release and release candidate repositories in Bintray HMRC for standard (maven) projects and sbt-plugins which are in the Ivy style.
 
-
 ### Building
 `sbt assembly` will place releaser-assembly-x.x.x.jar in your target/scala-2.11/ directory
 
 ### Running
 `java -jar target/scala-2.11/releaser-assembly-x.x.x.jar` artifact release-candidate-version release-version
+
+## License ##
+ 
+This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
