@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.releaser
 
-import java.net.URL
-import java.nio.file.{Paths, Files, Path}
+import java.nio.file.{Files, Path}
 import java.util.jar
 import java.util.jar.Attributes
 import java.util.zip.ZipFile
@@ -25,13 +24,10 @@ import java.util.zip.ZipFile
 import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import uk.gov.hmrc.releaser.RepoFlavour
+import uk.gov.hmrc.releaser.domain.{ArtefactMetaData, PathBuilder, RepoFlavour, VersionMapping}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ListBuffer
-import scala.io.Source
 import scala.util.{Failure, Success, Try}
-import org.mockito.Mockito._
 import scala.xml.XML
 
 class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with MockitoSugar{

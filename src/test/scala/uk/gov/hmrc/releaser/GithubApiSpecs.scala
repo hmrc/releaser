@@ -21,6 +21,7 @@ import java.nio.file.Paths
 import org.joda.time.DateTime
 import org.scalatest.{Matchers, TryValues, WordSpec}
 import play.api.libs.json.{JsValue, Json}
+import uk.gov.hmrc.releaser.domain.ArtefactMetaData
 
 class GithubApiSpecs extends WordSpec with Matchers with TryValues{
 

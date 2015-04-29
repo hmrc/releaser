@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.domain
 
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{OptionValues, Matchers, WordSpec}
 import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
+import org.scalatest.{Matchers, OptionValues, WordSpec}
+import uk.gov.hmrc.releaser.BintrayMetaConnector
 
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success}
 
 class RepositoriesSpec extends WordSpec with Matchers with OptionValues with MockitoSugar{
 

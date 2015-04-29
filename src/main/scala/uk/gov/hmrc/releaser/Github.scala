@@ -16,11 +16,19 @@
 
 package uk.gov.hmrc.releaser
 
+import java.net.URL
+import java.util.concurrent.TimeUnit
+
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import play.api.libs.json.{Json, JsValue}
+import play.api.libs.json.{JsValue, Json}
+import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
+import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
+import uk.gov.hmrc.releaser.domain.{ArtefactMetaData, VersionMapping}
 
-import scala.util.Try
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success, Try}
 
 object GithubApi{
 
@@ -31,7 +39,14 @@ object GithubApi{
   val taggerName  = "hmrc-web-operations"
   val taggerEmail = "hmrc-web-operations@digital.hmrc.gov.uk"
 
-  case class GitRelease(name:String, tag_name:String, body:String, target_commitish:String, draft:Boolean, prerelease:Boolean)
+  case class GitRelease(
+                         name:String,
+                         tag_name:String,
+                         body:String,
+                         target_commitish:String,
+                         draft:Boolean,
+                         prerelease:Boolean)
+
   object GitRelease{
     implicit val formats = Json.format[GitRelease]
   }
@@ -78,5 +93,38 @@ class GithubApi(clock:Clock){
 
   def buildUrl(artefactName:String)={
     s"https://api.github.com/repos/hmrc/$artefactName/releases"
+  }
+}
+
+class GithubHttp(cred:ServiceCredentials){
+  val log = new Logger()
+
+  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
+
+
+  def apiWs(url:String) = {
+
+    log.debug(s"github client_id ${cred.user.takeRight(5)}")
+    log.debug(s"github client_secret ${cred.pass.takeRight(5)}")
+
+    ws.url(url)
+      .withAuth(cred.user, cred.pass, WSAuthScheme.BASIC)
+      .withQueryString("client_id" -> cred.user, "client_secret" -> cred.pass)
+      .withHeaders("content-type" -> "application/json")
+  }
+
+  def post(url:String, body:JsValue): Try[Unit] = {
+    log.info(s"posting file to ${apiWs(url).url}")
+
+    val call = apiWs(url).post(body)
+
+    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+
+    log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
+
+    result.status match {
+      case s if s >= 200 && s < 300 => Success(new URL(url))
+      case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: ${result.body}"))
+    }
   }
 }

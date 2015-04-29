@@ -14,34 +14,34 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.domain
 
 import java.io.File
 import java.nio.file.Files
 
 import org.scalatest._
 
-import scala.io.Source
 import scala.xml.XML
 
-class IvyTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues {
+class PomTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues {
 
-  val bobbyIvyFile = new File(this.getClass.getResource("/sbt-bobby/ivy.xml").toURI).toPath
+  val timePomFile = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI).toPath
 
-  var transformer: IvyTransformer = _
+  var transformer: PomTransformer = _
 
   override def beforeEach() {
-    transformer = new IvyTransformer(Files.createTempDirectory("test-release"))
+    transformer = new PomTransformer(Files.createTempDirectory("test-release"))
   }
-  
-  "the ivy transformer" should {
 
-    "re-write the ivy with a new version 1.4.0" in {
-      val outFile = transformer(bobbyIvyFile, "1.4.0", "ivy.xml").success.get
+  "the pom transformer" should {
 
-      val ivyVersionText = (XML.loadFile(outFile.toFile) \ "info" \ "@revision").text
+    "re-write the pom with a new version 1.4.0" in {
 
-      ivyVersionText shouldBe "1.4.0"
+      val outFile = transformer(timePomFile, "1.4.0", "time-1.4.0.pom").success.get
+
+      val pomVersionText = (XML.loadFile(outFile.toFile) \ "version").text
+
+      pomVersionText shouldBe "1.4.0"
     }
   }
   

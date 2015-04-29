@@ -39,6 +39,7 @@ import java.util.zip.ZipFile
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.JavaConversions._
 import scala.collection.immutable.SortedSet
@@ -73,10 +74,6 @@ object ReleaseType extends Enumeration {
 
   val stringValues: SortedSet[String] = this.values.map(_.toString)
 }
-
-case class ServiceCredentials(user:String, pass:String)
-
-
 
 object Releaser {
 
@@ -150,85 +147,6 @@ class Releaser(stageDir:Path,
     }
   }
 }
-
-trait RepoFlavour extends PathBuilder{
-  val workDir:Path = Files.createTempDirectory("releaser")
-  
-  def scalaVersion:String
-  def releaseCandidateRepo:String
-  def releaseRepo:String
-  def pomTransformer:XmlTransformer
-}
-
-trait IvyRepo extends RepoFlavour with BintrayIvyPaths{
-  val scalaVersion = "2.10"
-  val pomTransformer = new IvyTransformer(workDir)
-}
-
-trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
-  val scalaVersion = "2.11"
-  val pomTransformer = new PomTransformer(workDir)
-}
-
-
-case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)
-
-class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoFlavour]){
-
-  def findReposOfArtefact(artefactName: String): Try[RepoFlavour] = {
-    repos.find { repo =>
-      metaDataGetter(repo.releaseCandidateRepo, artefactName).isSuccess
-    } match {
-      case Some(r) => Success(r)
-      case None => Failure(new Exception(s"Didn't find a release candidate repository for $artefactName"))
-    }
-  }}
-
-case class VersionDescriptor(repo:String, artefactName:String, version:String)
-
-
-case class VersionMapping (
-                          repo:RepoFlavour,
-                          artefactName:String, 
-                          sourceVersion:String,
-                          targetVersion:String
-                          ) {
-  
-  def targetArtefact = VersionDescriptor(repo.releaseRepo, artefactName, targetVersion)
-  def sourceArtefact = VersionDescriptor(repo.releaseCandidateRepo, artefactName, sourceVersion)
-
-}
-
-object Pimps{
-  implicit class OptionPimp[A](opt:Option[A]){
-    def toTry(e:Exception):Try[A] = opt match {
-      case Some(x) => Success(x)
-      case None => Failure(e)
-    }
-  }
-}
-
-object ArtefactMetaData{
-
-  val gitCommitDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-
-  import Pimps._
-
-  def fromFile(p:Path):Try[ArtefactMetaData] = {
-    Try {new ZipFile(p.toFile) }.flatMap { jarFile =>
-      jarFile.entries().filter(_.getName == "META-INF/MANIFEST.MF").toList.headOption.map { ze =>
-        val man = new Manifest(jarFile.getInputStream(ze))
-        ArtefactMetaData(
-          man.getMainAttributes.getValue("Git-Head-Rev"),
-          man.getMainAttributes.getValue("Git-Commit-Author"),
-          gitCommitDateFormat.parseDateTime(man.getMainAttributes.getValue("Git-Commit-Date"))
-        )
-      }.toTry(new Exception(s"Failed to retrieve manifest from $p"))
-    }
-  }
-}
-
-case class ArtefactMetaData(sha:String, commitAuthor:String, commitDate:DateTime)
 
 class Coordinator(
                    stageDir:Path,

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.domain
 
 import java.io.File
-import java.nio.file.{Path, Files}
+import java.nio.file.{Files, Path}
 import java.security.MessageDigest
 import java.util
 import java.util.jar

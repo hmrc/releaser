@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.releaser
 
-import scala.collection.immutable.SortedSet
-
 object ArgParser{
 
   case class Config(
@@ -32,7 +30,7 @@ object ArgParser{
 
   val parser = new scopt.OptionParser[Config]("releaser") {
     override def showUsageOnError = false
-    head("\nHMRC Releaser", "1.0-alpha\n")
+    head("\nHMRC Releaser - https://github.com/hmrc/releaser", "1.0-alpha\n")
     help("help") text "prints this usage text"
     arg[String]("artefactName") action { (x, c) =>
       c.copy(artefactName = x) } text "the artefact"

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, WordSpec}
 

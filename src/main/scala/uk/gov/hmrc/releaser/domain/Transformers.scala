@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.domain
 
-import java.io.{File, FileOutputStream}
-import java.nio.file.{Path, Files, Paths}
+import java.io.FileOutputStream
+import java.nio.file.{Files, Path}
 import java.util.jar._
 import java.util.zip.{ZipEntry, ZipFile, ZipOutputStream}
 
 import com.google.common.io.ByteStreams
-
-import scala.collection.JavaConversions._
-import scala.util.{Success, Failure, Try}
 import resource._
 
+import scala.collection.JavaConversions._
+import scala.util.{Failure, Try}
 import scala.xml._
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 

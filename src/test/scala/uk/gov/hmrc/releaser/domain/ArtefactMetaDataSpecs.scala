@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.domain
 
 import java.nio.file.Paths
 
 import org.scalatest.{Matchers, TryValues, WordSpec}
+import uk.gov.hmrc.releaser.GithubApi
 
 import scala.util.Failure
 

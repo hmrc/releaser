@@ -19,6 +19,8 @@ package uk.gov.hmrc.releaser
 import java.net.URL
 import java.nio.file.{Paths, Path}
 
+import uk.gov.hmrc.releaser.domain.VersionDescriptor
+
 import scala.util.{Success, Try}
 
 object Builders {
