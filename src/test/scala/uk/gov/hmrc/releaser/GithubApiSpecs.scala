@@ -16,14 +16,12 @@
 
 package uk.gov.hmrc.releaser
 
-import java.nio.file.Paths
-
 import org.joda.time.DateTime
 import org.scalatest.{Matchers, TryValues, WordSpec}
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.releaser.domain.ArtefactMetaData
 
-import scala.util.{Try, Success}
+import scala.util.{Success, Try}
 
 class GithubApiSpecs extends WordSpec with Matchers with TryValues{
 
@@ -31,41 +29,55 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
 
   "GithubApiSpecs" should {
     "create the correct url for tagging" in {
-      val url = new GithubApi(fakeClockSetToNow()).buildTagPostUrl("myArtefact")
+      val url = GithubApi.buildTagPostUrl("myArtefact")
 
       url shouldBe "https://api.github.com/repos/hmrc/myArtefact/releases"
     }
 
     "create the correct url for getting a commit" in {
-      val url = new GithubApi(fakeClockSetToNow()).buildCommitGetUrl("myArtefact", "thesha")
+      val url = GithubApi.buildCommitGetUrl("myArtefact", "thesha")
 
       url shouldBe "https://api.github.com/repos/hmrc/myArtefact/git/commits/thesha"
     }
 
     "verify the commit" in {
-      val clock = fakeClockSetToNow()
-
-      val getResult: Try[Unit] = new GithubApi(clock).verifyCommit((s) => Success())("myArtefact", "thesha")
+      val getResult: Try[Unit] = GithubApi.verifyCommit((s) => Success())("myArtefact", "thesha")
       getResult shouldBe Success()
     }
 
-    "create the correct body for posting a tag" in {
-      val theTime = DateTime.now
-      val clock = new Clock{
-        override def now(): DateTime = theTime
-      }
-
-      val tagDate = DateTime.now()
+    "create the corect message for a tag" in {
       val commitDate = DateTime.now().minusDays(4)
+
       val sourceVersion = "1.0.0-abcd"
-      val formatter = GithubApi.githubDateTimeFormatter
+      val artefactMetaData = ArtefactMetaData(
+        "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
+        "charleskubicek",
+        commitDate)
+
+      val expectedMessage =
+        s"""
+          |Release and tag created by [Releaser](https://github.com/hmrc/releaser) version 6.6.6.
+          |
+          |Release candidate  : 1.0.0-abcd
+          |
+          |Last commit sha    : c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c
+          |Last commit author : charleskubicek
+          |Last commit time   : ${GithubApi.releaseMessageDateTimeFormat.print(commitDate)}""".stripMargin
+
+      GithubApi.buildMessage("6.6.6", sourceVersion, artefactMetaData) shouldBe expectedMessage
+
+    }
+
+    "create the correct body for posting a tag" in {
+
+      val commitDate = DateTime.now().minusDays(4)
 
       val expectedBody =
         s"""
           |{
-          |  "name": "v1.0.1",
+          |  "name": "1.0.1",
           |  "tag_name": "v1.0.1",
-          |  "body": "\\n Release and tag created by [Releaser](https://github.com/hmrc/releaser).\\n\\n Release Candidate: 1.0.0-abcd\\n Released from Commit: c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c\\n Last Commit User: charleskubicek\\n Last Commit Time: ${GithubApi.releaseMessageDateTimeFormat.print(commitDate)}",
+          |  "body": "the message",
           |  "target_commitish": "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
           |  "draft" : false,
           |  "prerelease" : false
@@ -78,7 +90,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
         "charleskubicek",
         commitDate)
 
-      val bodyJson: JsValue = new GithubApi(clock).buildTagBody(sourceVersion, "1.0.1", artefactMetaData)
+      val bodyJson: JsValue = GithubApi.buildTagBody("the message", "1.0.1", artefactMetaData)
 
 
       Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))

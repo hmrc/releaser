@@ -23,7 +23,8 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
+import play.api.libs.ws._
+import uk.gov.hmrc.releaser.ArgParser._
 import uk.gov.hmrc.releaser.domain.{ArtefactMetaData, VersionMapping}
 
 import scala.concurrent.Await
@@ -50,11 +51,7 @@ object GithubApi{
   object GitRelease{
     implicit val formats = Json.format[GitRelease]
   }
-}
 
-class GithubApi(clock:Clock){
-
-  import GithubApi._
 
   val logger = new Logger()
 
@@ -63,36 +60,45 @@ class GithubApi(clock:Clock){
   }
 
   //TODO how do we test this.
-  def postTag(tagger: (String, JsValue) => Try[Unit])(a: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
-    logger.debug("publishing meta data " + a + " version mapping " + v)
-    logger.debug("github url: " + buildTagPostUrl(v.artefactName))
-    logger.debug("github body: " + buildTagBody(v.sourceVersion, v.targetVersion, a))
+  def postTag(tagger: (String, JsValue) => Try[Unit])(releaserVersion:String)(artefactMd: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
+    logger.debug("publishing meta data " + artefactMd + " version mapping " + v)
 
-    tagger(
-      buildTagPostUrl(v.artefactName),
-      buildTagBody(v.sourceVersion, v.targetVersion, a))
+    val url = buildTagPostUrl(v.artefactName)
+
+    val message = buildMessage(
+      releaserVersion,
+      v.sourceVersion,
+      artefactMd)
+
+    val body = buildTagBody(message, v.targetVersion, artefactMd)
+
+    logger.debug("github url: " + url)
+    logger.debug("github body: " + body)
+
+    tagger(url, body)
   }
 
-  def buildTagBody(sourceVersion:String, targetVersion:String, artefactMd:ArtefactMetaData):JsValue={
+  def buildTagBody(message:String, targetVersion:String, artefactMd:ArtefactMetaData):JsValue={
     val tagName = "v" + targetVersion
-    val message = buildMessage(sourceVersion, artefactMd.sha, artefactMd.commitAuthor, artefactMd.commitDate)
 
     Json.toJson(
-      GitRelease(tagName, tagName, message, artefactMd.sha, draft = false, prerelease = false))
+      GitRelease(targetVersion, tagName, message, artefactMd.sha, draft = false, prerelease = false))
   }
 
-  private def buildMessage(
-                            sourceVersion:String,
-                            commitSha:String,
-                            committerUserName:String,
-                            commitDate:DateTime)={
+  def buildMessage(
+                    releaserVersion:String,
+                    sourceVersion:String,
+                    artefactMetaData: ArtefactMetaData)={
+
+
     s"""
-        | Release and tag created by [Releaser](https://github.com/hmrc/releaser).
+        |Release and tag created by [Releaser](https://github.com/hmrc/releaser) version $releaserVersion.
         |
-        | Release Candidate: $sourceVersion
-        | Released from Commit: $commitSha
-        | Last Commit User: $committerUserName
-        | Last Commit Time: ${DateTimeFormat.longDateTime().print(commitDate)}""".stripMargin
+        |Release candidate  : $sourceVersion
+        |
+        |Last commit sha    : ${artefactMetaData.sha}
+        |Last commit author : ${artefactMetaData.commitAuthor}
+        |Last commit time   : ${DateTimeFormat.longDateTime().print(artefactMetaData.commitDate)}""".stripMargin
   }
 
   def buildCommitGetUrl(artefactName:String, sha:String)={
@@ -109,8 +115,7 @@ class GithubHttp(cred:ServiceCredentials){
 
   val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
 
-  def callAndWait(method:String, url:String, body:Option[JsValue] = None): WSResponse = {
-
+  def buildCall(method:String, url:String, body:Option[JsValue] = None):WSRequestHolder={
     log.debug(s"github client_id ${cred.user.takeRight(5)}")
     log.debug(s"github client_secret ${cred.pass.takeRight(5)}")
 
@@ -120,7 +125,14 @@ class GithubHttp(cred:ServiceCredentials){
       .withQueryString("client_id" -> cred.user, "client_secret" -> cred.pass)
       .withHeaders("content-type" -> "application/json")
 
-    log.info(s"$method with ${req.url}")
+    body.map { b =>
+      req.withBody(b)
+    }.getOrElse(req)
+  }
+
+  def callAndWait(req:WSRequestHolder): WSResponse = {
+
+    log.info(s"${req.method} with ${req.url}")
 
     val result: WSResponse = Await.result(req.execute(), Duration.apply(1, TimeUnit.MINUTES))
 
@@ -129,8 +141,8 @@ class GithubHttp(cred:ServiceCredentials){
     result
   }
 
-  def head(url:String): Try[Unit] = {
-    val result = callAndWait("HEAD", url)
+  def get(url:String): Try[Unit] = {
+    val result = callAndWait(buildCall("GET", url))
     result.status match {
       case s if s >= 200 && s < 300 => Success()
       case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: ${result.body}"))
@@ -138,7 +150,7 @@ class GithubHttp(cred:ServiceCredentials){
   }
 
   def post(url:String, body:JsValue): Try[Unit] = {
-    val result = callAndWait("POST", url, Some(body))
+    val result = callAndWait(buildCall("POST", url, Some(body)))
     result.status match {
       case s if s >= 200 && s < 300 => Success(new URL(url))
       case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: ${result.body}"))

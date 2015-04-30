@@ -52,7 +52,7 @@ class Logger{
 }
 
 object ReleaserMain {
-  def main(args: Array[String]) {
+  def main(args: Array[String]):Unit= {
     val result = Releaser.main(args)
     System.exit(result)
   }
@@ -89,21 +89,41 @@ object Releaser {
     }
   }
 
-  def start(artefactName: String, rcVersion: String, releaseType: ReleaseType.Value)={
+  def credsFromEnv(userVar:String, passVar:String):Option[ServiceCredentials]={
+    for(
+      user <- Option(System.getenv(userVar));
+      pass <- Option(System.getenv(passVar))
+    ) yield ServiceCredentials(user, pass)
+  }
+
+  def start(artefactName: String, rcVersion: String, releaseType: ReleaseType.Value):Int={
     val tmpDir = Files.createTempDirectory("releaser")
 
-    val githubCreds  = ServiceCredentials(Option(System.getenv("GITHUB_USER")).getOrElse(""), Option(System.getenv("GITHUB_PASS")).getOrElse(""))
-    val bintrayCreds = ServiceCredentials(Option(System.getenv("BINTRAY_USER")).getOrElse(""), Option(System.getenv("BINTRAY_PASS")).getOrElse(""))
+    val githubCredsOpt  = credsFromEnv("GITHUB_USER", "GITHUB_PASS")
+    val bintrayCredsOpt = credsFromEnv("BINTRAY_USER", "BINTRAY_PASS")
 
-    val releaser = buildReleaser(tmpDir, githubCreds, bintrayCreds)
-    val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
+    if(githubCredsOpt.isEmpty){
+      log.info("Didn't find github credentials")
+      -1
+    } else if(bintrayCredsOpt.isEmpty){
+      log.info("Didn't find Bintray credentials")
+      -1
+    } else {
 
-    targetVersion
-      .map { tv => releaser.start(artefactName, rcVersion, tv) }
-      .map { _ => log.info(s"deleting $tmpDir"); FileUtils.forceDelete(tmpDir.toFile) } match {
-        case Failure(e) => log.info(s"failed with error '${e.getMessage}'");e.printStackTrace(); 1
+      val releaser = buildReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get)
+      val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
+
+      targetVersion.flatMap { tv =>
+        val result: Try[Unit] = releaser.start(artefactName, rcVersion, tv)
+        Try {
+          log.info(s"deleting $tmpDir"); FileUtils.forceDelete(tmpDir.toFile)
+        }
+        result
+      } match {
+        case Failure(e) => log.info(s"failed with error '${e.getMessage}'"); 1
         case Success(_) => 0;
       }
+    }
   }
 
   //TODO not tested
@@ -115,15 +135,15 @@ object Releaser {
     val githubConnector = new GithubHttp(githubCreds)
     val bintrayConnector = new BintrayHttp(bintrayCreds)
     val clock = new SystemClock()
+    val releaserVersion = getClass.getPackage.getImplementationVersion
 
     val workDir = Files.createDirectories(tmpDir.resolve("work"))
     val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
 
     val metaDataGetter = new BintrayMetaConnector(bintrayConnector).getRepoMetaData _
     val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, bintrayConnector) _
-    val githubApi = new GithubApi(clock)
-    val githubPublisher = githubApi.postTag(githubConnector.post) _
-    val verifyGithubCommit = githubApi.verifyCommit(githubConnector.head) _
+    val githubPublisher = GithubApi.postTag(githubConnector.post)(releaserVersion) _
+    val verifyGithubCommit = GithubApi.verifyCommit(githubConnector.get) _
 
     val artefactBuilder = ArtefactMetaData.fromFile _
 

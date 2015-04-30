@@ -26,11 +26,11 @@ object ArgParser{
                      verbose:Boolean = false,
                      dryRun:Boolean = false)
 
-
+  val currentVersion = getClass.getPackage.getImplementationVersion
 
   val parser = new scopt.OptionParser[Config]("releaser") {
     override def showUsageOnError = false
-    head("\nHMRC Releaser - https://github.com/hmrc/releaser", "1.0-alpha\n")
+    head(s"\nHMRC Releaser", s"$currentVersion\n")
     help("help") text "prints this usage text"
     arg[String]("artefactName") action { (x, c) =>
       c.copy(artefactName = x) } text "the artefact"
