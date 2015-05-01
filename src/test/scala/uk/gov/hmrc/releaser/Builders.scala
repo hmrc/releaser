@@ -90,12 +90,6 @@ object Builders {
     new Coordinator(stageDir, artefactBuilder, githubRepoGetter, githubTagPublisher)
   }
 
-  def fakeClockSetToNow():Clock={
-    new Clock{
-      val now: DateTime = DateTime.now()
-    }
-  }
-
   def buildConnector(jarResoure:String, pomResource:String) = new RepoConnector(){
 
     var lastUploadedJar:Option[(VersionDescriptor, Path)] = None

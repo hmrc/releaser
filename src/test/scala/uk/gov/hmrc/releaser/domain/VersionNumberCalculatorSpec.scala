@@ -25,7 +25,6 @@ class VersionNumberCalculatorSpec extends WordSpec with Matchers with TryValues 
 
   "VersionNumberCalculator" should {
     "calculate 0.8.2 given a release candidate of 0.8.1-4-ge733d26 and release type of PATCH" in {
-      println(calculateTarget("0.8.1-4-ge733d26", ReleaseType.PATCH))
       calculateTarget("0.8.1-4-ge733d26", ReleaseType.PATCH).success.value shouldBe "0.8.2"
     }
 

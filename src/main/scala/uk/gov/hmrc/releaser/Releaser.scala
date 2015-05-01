@@ -59,15 +59,6 @@ object ReleaserMain {
 
 }
 
-trait Clock{
-  def now():DateTime
-}
-
-class SystemClock extends Clock {
-  def now():DateTime = DateTime.now
-}
-
-
 object ReleaseType extends Enumeration {
   type Margin = Value
   val MAJOR, MINOR, PATCH = Value
@@ -134,7 +125,6 @@ object Releaser {
 
     val githubConnector = new GithubHttp(githubCreds)
     val bintrayConnector = new BintrayHttp(bintrayCreds)
-    val clock = new SystemClock()
     val releaserVersion = getClass.getPackage.getImplementationVersion
 
     val workDir = Files.createDirectories(tmpDir.resolve("work"))

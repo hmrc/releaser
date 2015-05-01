@@ -59,7 +59,6 @@ object GithubApi{
     getter(buildCommitGetUrl(repo, sha))
   }
 
-  //TODO how do we test this.
   def postTag(tagger: (String, JsValue) => Try[Unit])(releaserVersion:String)(artefactMd: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
     logger.debug("publishing meta data " + artefactMd + " version mapping " + v)
 
