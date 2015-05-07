@@ -92,8 +92,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       def build:(ArtefactMetaData, VersionMapping) => Try[Unit] ={
         (a, b) => {
-          params = Some(a, b)
-          Success()
+          params = Some((a, b))
+          Success(Unit)
         }
       }
     }

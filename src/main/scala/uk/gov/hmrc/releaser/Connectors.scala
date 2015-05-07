@@ -35,9 +35,9 @@ import scala.sys.process._
 case class ServiceCredentials(user:String, pass:String)
 
 trait RepoConnector{
-  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[URL]
+  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[Unit]
   def downloadJar(version:VersionDescriptor):Try[Path]
-  def uploadPom(version: VersionDescriptor, pomPath:Path):Try[URL]
+  def uploadPom(version: VersionDescriptor, pomPath:Path):Try[Unit]
   def downloadPom(version:VersionDescriptor):Try[Path]
   def publish(version: VersionDescriptor):Try[Unit]
 }

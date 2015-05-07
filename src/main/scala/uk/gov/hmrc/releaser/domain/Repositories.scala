@@ -55,7 +55,7 @@ class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoF
       metaDataGetter(repo.releaseCandidateRepo, artefactName).isSuccess
     } match {
       case Some(r) => Success(r)
-      case None => Failure(new Exception(s"Didn't find a release candidate repository for $artefactName"))
+      case None => Failure(new Exception(s"Didn't find a release candidate repository for '$artefactName' in repos ${repos.map(_.releaseCandidateRepo)}"))
     }
   }
 }

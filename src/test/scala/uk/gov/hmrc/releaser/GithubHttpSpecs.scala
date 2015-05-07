@@ -32,7 +32,7 @@ class GithubHttpSpecs extends WordSpec with Matchers with OptionValues{
       call.method shouldBe "POST"
       call.body should not be EmptyBody
       call.url shouldBe "http://example.com"
-      call.auth.value shouldBe ("Charles", "123", WSAuthScheme.BASIC)
+      call.auth.value shouldBe (("Charles", "123", WSAuthScheme.BASIC))
     }
   }
 

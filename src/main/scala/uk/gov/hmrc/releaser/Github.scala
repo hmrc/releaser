@@ -143,7 +143,7 @@ class GithubHttp(cred:ServiceCredentials){
   def get(url:String): Try[Unit] = {
     val result = callAndWait(buildCall("GET", url))
     result.status match {
-      case s if s >= 200 && s < 300 => Success()
+      case s if s >= 200 && s < 300 => Success(Unit)
       case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: ${result.body}"))
     }
   }

@@ -33,7 +33,7 @@ class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
   def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]={
     val url = BintrayPaths.metadata(repoName, artefactName)
-    bintrayHttp.get(url).map { _ => url }
+    bintrayHttp.get(url).map { _ => Unit}
   }
 
   def publish(version: VersionDescriptor):Try[Unit]={
@@ -53,12 +53,12 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
 
   val log = new Logger()
 
-  def uploadPom(version: VersionDescriptor, pomFile:Path):Try[URL] ={
+  def uploadPom(version: VersionDescriptor, pomFile:Path):Try[Unit] ={
     val url = bintrayPaths.pomUploadFor(version)
     bintrayHttp.putFile(version, pomFile, url)
   }
 
-  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[URL] = {
+  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[Unit] = {
     val url = bintrayPaths.jarUploadFor(version)
     bintrayHttp.putFile(version, jarFile, url)
   }
@@ -134,7 +134,7 @@ class BintrayHttp(creds:ServiceCredentials){
     }
   }
 
-  def putFile(version: VersionDescriptor, file: Path, url: String): Try[URL] = {
+  def putFile(version: VersionDescriptor, file: Path, url: String): Try[Unit] = {
     log.info(s"version $version")
     log.info(s"putting file to $url")
     log.info(s"bintray user ${System.getenv("BINTRAY_USER")}")
@@ -150,7 +150,7 @@ class BintrayHttp(creds:ServiceCredentials){
     log.info(s"result ${result.status} - ${result.statusText}")
 
     result.status match {
-      case s if s >= 200 && s < 300 => Success(new URL(url))
+      case s if s >= 200 && s < 300 => Success(Unit)
       case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
     }
   }

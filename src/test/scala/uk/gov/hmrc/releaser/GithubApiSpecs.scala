@@ -41,8 +41,8 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
     }
 
     "verify the commit" in {
-      val getResult: Try[Unit] = GithubApi.verifyCommit((s) => Success())("myArtefact", "thesha")
-      getResult shouldBe Success()
+      val getResult: Try[Unit] = GithubApi.verifyCommit((s) => Success(()))("myArtefact", "thesha")
+      getResult shouldBe Success(())
     }
 
     "create the corect message for a tag" in {

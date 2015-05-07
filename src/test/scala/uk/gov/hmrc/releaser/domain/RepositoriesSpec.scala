@@ -16,34 +16,31 @@
 
 package uk.gov.hmrc.releaser.domain
 
-import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import uk.gov.hmrc.releaser.BintrayMetaConnector
 
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
-class RepositoriesSpec extends WordSpec with Matchers with OptionValues with MockitoSugar{
+class RepositoriesSpec extends WordSpec with Matchers with OptionValues with MockitoSugar {
 
   "Repositories" should {
     "find the release-candidate/release repository pair that contains a given artefact" in {
 
       val artefactName = "artefact"
 
-      val metaConnector = mock[BintrayMetaConnector]
-
-      when(metaConnector.getRepoMetaData("rc",  artefactName)).thenReturn(Failure(new Exception("fail")))
-      when(metaConnector.getRepoMetaData("rc1", artefactName)).thenReturn(Success())
-
+      val metaDataGetter:(String, String) => Try[Unit] = (reponame, _) =>  reponame match {
+        case "candidate-repo-1" => Success(Unit)
+        case _ => Failure(new Exception("fail"))
+      }
 
       val repos = Seq(
-        new BintrayRepository("rc", "r") with IvyRepo,
-        new BintrayRepository("rc1", "r1") with MavenRepo
+        new BintrayRepository("candidate-repo-1", "release-repo-1") with IvyRepo,
+        new BintrayRepository("candidate-repo-1", "release-repo-2") with MavenRepo
       )
 
-      val respositories = new Repositories(metaConnector.getRepoMetaData)(repos)
+      val respositories = new Repositories(metaDataGetter)(repos)
 
-      respositories.findReposOfArtefact(artefactName).get.releaseCandidateRepo shouldBe "rc1"
+      respositories.findReposOfArtefact(artefactName).get.releaseCandidateRepo shouldBe "candidate-repo-1"
     }
   }
 }

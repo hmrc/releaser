@@ -53,7 +53,7 @@ class Logger{
 
 object ReleaserMain {
   def main(args: Array[String]):Unit= {
-    val result = Releaser.main(args)
+    val result = Releaser(args)
     System.exit(result)
   }
 
@@ -73,7 +73,7 @@ object Releaser {
 
   val log = new Logger()
 
-  def main(args: Array[String]):Int= {
+  def apply(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
       case Some(config) => start(config.artefactName, config.rcVersion, config.releaseType)
       case None => -1

@@ -43,11 +43,11 @@ object Builders {
   }
   
   val successfulGithubVerifier:(String, String) => Try[Unit] ={
-    (a, b) => Success()
+    (a, b) => Success(Unit)
   }
 
   val successfulGithubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] ={
-    (a, b) => Success()
+    (a, b) => Success(Unit)
   }
 
   def successfulRepoFinder(repo: RepoFlavour):((String) => Try[RepoFlavour])={
@@ -101,14 +101,14 @@ object Builders {
         Paths.get(this.getClass.getResource(jarResoure).toURI) }
     }
 
-    override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[URL] = {
+    override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[Unit] = {
       lastUploadedJar = Some(version -> jarFile)
-      Success(new URL("http://the-url-we-uploaded-to.org"))
+      Success(Unit)
     }
 
-    override def uploadPom(version: VersionDescriptor, file: Path): Try[URL] = {
+    override def uploadPom(version: VersionDescriptor, file: Path): Try[Unit] = {
       lastUploadedPom = Some(version -> file)
-      Success(new URL("http://the-url-we-uploaded-to.org"))
+      Success(Unit)
     }
 
     override def downloadPom(version: VersionDescriptor): Try[Path] = {
