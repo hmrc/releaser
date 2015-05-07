@@ -16,31 +16,42 @@
 
 package uk.gov.hmrc.releaser.domain
 
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{Matchers, OptionValues, WordSpec}
+import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
 
 import scala.util.{Failure, Success, Try}
 
-class RepositoriesSpec extends WordSpec with Matchers with OptionValues with MockitoSugar {
+class RepositoriesSpec extends WordSpec with Matchers with OptionValues with TryValues {
 
   "Repositories" should {
-    "find the release-candidate/release repository pair that contains a given artefact" in {
 
-      val artefactName = "artefact"
+    val repos = Seq(
+      new BintrayRepository("candidate-repo-1", "release-repo-1") with IvyRepo,
+      new BintrayRepository("candidate-repo-1", "release-repo-2") with MavenRepo
+    )
+
+    val artefactName = "artefact"
+
+    "find the release-candidate/release repository pair that contains a given artefact" in {
 
       val metaDataGetter:(String, String) => Try[Unit] = (reponame, _) =>  reponame match {
         case "candidate-repo-1" => Success(Unit)
         case _ => Failure(new Exception("fail"))
       }
 
-      val repos = Seq(
-        new BintrayRepository("candidate-repo-1", "release-repo-1") with IvyRepo,
-        new BintrayRepository("candidate-repo-1", "release-repo-2") with MavenRepo
-      )
-
       val respositories = new Repositories(metaDataGetter)(repos)
 
       respositories.findReposOfArtefact(artefactName).get.releaseCandidateRepo shouldBe "candidate-repo-1"
+    }
+
+    "return exception when the candidate repo isn't found" in {
+
+      val metaDataGetter:(String, String) => Try[Unit] = (reponame, _) =>  reponame match {
+        case _ => Failure(new Exception("fail"))
+      }
+
+      val respositories = new Repositories(metaDataGetter)(repos)
+
+      respositories.findReposOfArtefact(artefactName).failure.exception.getMessage.length should be > 1
     }
   }
 }
