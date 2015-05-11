@@ -75,15 +75,29 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
 
     "fail when given the sha in the pom does not exist" in {
+      val expectedException = new scala.Exception("no commit message")
+
       val releaser = buildDefaultReleaser(
-        githubRepoGetter = (a, b) => Failure(new Exception("no commit message"))
+        githubRepoGetter = (a, b) => Failure(expectedException)
       )
 
-      releaser.start("a", "b", "c").failure.exception.getMessage shouldBe "no commit message"
+      releaser.start("a", "b", "c") match {
+        case Failure(e) => e shouldBe expectedException
+        case Success(s) => fail(s"Should have failed with $expectedException")
+      }
     }
 
-    "fail when given an incorrect version" ignore {
+    "fail when the repository of an artefact isn't found" in {
+      val expectedException = new scala.Exception("repo fail")
 
+      val releaser = buildDefaultReleaser(
+        repositoryFinder = (a) => Failure(expectedException)
+      )
+
+      releaser.start("a", "b", "c") match {
+        case Failure(e) => e shouldBe expectedException
+        case Success(s) => fail(s"Should have failed with $expectedException")
+      }
     }
 
     class GithubTagPublisherBuilder{

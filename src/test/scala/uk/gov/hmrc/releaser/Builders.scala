@@ -22,7 +22,7 @@ import java.nio.file.{Files, Paths, Path}
 import org.joda.time.DateTime
 import uk.gov.hmrc.releaser.domain._
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 object Builders {
 
@@ -48,6 +48,10 @@ object Builders {
 
   val successfulGithubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] ={
     (a, b) => Success(Unit)
+  }
+
+  def failingRepoFinder(e:Exception):((String) => Try[RepoFlavour])={
+    (a) => Failure(e)
   }
 
   def successfulRepoFinder(repo: RepoFlavour):((String) => Try[RepoFlavour])={
