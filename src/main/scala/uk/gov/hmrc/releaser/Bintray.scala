@@ -20,8 +20,8 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-import play.api.libs.ws.{WSResponse, WSAuthScheme, DefaultWSClientConfig}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
+import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
 import play.api.mvc.Results
 import uk.gov.hmrc.releaser.domain.{BintrayPaths, PathBuilder, VersionDescriptor}
 

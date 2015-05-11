@@ -19,12 +19,10 @@ package uk.gov.hmrc.releaser
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
-import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws._
-import uk.gov.hmrc.releaser.ArgParser._
+import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import uk.gov.hmrc.releaser.domain.{ArtefactMetaData, VersionMapping}
 
 import scala.concurrent.Await

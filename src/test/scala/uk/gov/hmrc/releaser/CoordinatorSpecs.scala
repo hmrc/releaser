@@ -22,8 +22,7 @@ import java.util.jar.Attributes
 import java.util.zip.ZipFile
 
 import org.joda.time.DateTime
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{TryValues, Matchers, OptionValues, WordSpec}
+import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
 import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.JavaConversions._

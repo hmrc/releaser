@@ -18,8 +18,6 @@ package uk.gov.hmrc.releaser.domain
 
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser._
-
 import scala.util.{Failure, Success, Try}
 
 trait RepoFlavour extends PathBuilder{

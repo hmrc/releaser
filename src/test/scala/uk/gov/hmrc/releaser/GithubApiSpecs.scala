@@ -25,8 +25,6 @@ import scala.util.{Success, Try}
 
 class GithubApiSpecs extends WordSpec with Matchers with TryValues{
 
-  import Builders._
-
   "GithubApiSpecs" should {
     "create the correct url for tagging" in {
       val url = GithubApi.buildTagPostUrl("myArtefact")

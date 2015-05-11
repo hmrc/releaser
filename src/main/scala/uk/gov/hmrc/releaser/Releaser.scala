@@ -33,18 +33,12 @@ package uk.gov.hmrc.releaser
  */
 
 import java.io.File
-import java.nio.file.{Paths, Files, Path}
-import java.util.jar.Manifest
-import java.util.zip.ZipFile
+import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import uk.gov.hmrc.releaser.domain._
 
-import scala.collection.JavaConversions._
 import scala.collection.immutable.SortedSet
-import scala.util.matching.Regex.Match
 import scala.util.{Failure, Success, Try}
 
 class Logger{

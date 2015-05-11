@@ -17,8 +17,7 @@
 package uk.gov.hmrc.releaser
 
 import java.io.File
-import java.net.URL
-import java.nio.file.{Files, Paths, Path}
+import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
 import uk.gov.hmrc.releaser.domain._
