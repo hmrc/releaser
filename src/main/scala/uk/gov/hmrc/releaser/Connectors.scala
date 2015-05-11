@@ -18,21 +18,11 @@ package uk.gov.hmrc.releaser
 
 import java.net.URL
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
-import play.api.libs.json.JsValue
-import play.api.libs.ws.{WSResponse, WSAuthScheme, DefaultWSClientConfig}
-import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-import play.api.mvc.Results
-import play.libs.Json
 import uk.gov.hmrc.releaser.domain.VersionDescriptor
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success, Try}
 import scala.sys.process._
-
-case class ServiceCredentials(user:String, pass:String)
+import scala.util.Try
 
 trait RepoConnector{
   def uploadJar(version: VersionDescriptor, jarFile:Path):Try[Unit]

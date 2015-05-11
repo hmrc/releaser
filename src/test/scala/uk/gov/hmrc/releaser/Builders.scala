@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.releaser
 
+import java.io.File
 import java.net.URL
 import java.nio.file.{Files, Paths, Path}
 
@@ -79,6 +80,9 @@ object Builders {
     new Releaser(stageDir, repositoryFinder, connectorBuilder, coord)
   }
 
+  def resource(path:String):Path={
+    new File(this.getClass.getClassLoader.getResource(path).toURI).toPath
+  }
 
   def tempDir() = Files.createTempDirectory("tmp")
 

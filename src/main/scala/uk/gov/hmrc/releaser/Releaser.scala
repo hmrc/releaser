@@ -32,7 +32,8 @@ package uk.gov.hmrc.releaser
  * limitations under the License.
  */
 
-import java.nio.file.{Files, Path}
+import java.io.File
+import java.nio.file.{Paths, Files, Path}
 import java.util.jar.Manifest
 import java.util.zip.ZipFile
 
@@ -80,18 +81,12 @@ object Releaser {
     }
   }
 
-  def credsFromEnv(userVar:String, passVar:String):Option[ServiceCredentials]={
-    for(
-      user <- Option(System.getenv(userVar));
-      pass <- Option(System.getenv(passVar))
-    ) yield ServiceCredentials(user, pass)
-  }
-
   def start(artefactName: String, rcVersion: String, releaseType: ReleaseType.Value):Int={
     val tmpDir = Files.createTempDirectory("releaser")
 
-    val githubCredsOpt  = credsFromEnv("GITHUB_USER", "GITHUB_PASS")
-    val bintrayCredsOpt = credsFromEnv("BINTRAY_USER", "BINTRAY_PASS")
+
+    val githubCredsOpt  = CredentialsFinder.findGithubCredsInFile(new File(System.getProperty("user.home") + "/.github/.credentials").toPath)
+    val bintrayCredsOpt = CredentialsFinder.findBintrayCredsInFile(new File(System.getProperty("user.home") + "/.bintray/.credentials").toPath)
 
     if(githubCredsOpt.isEmpty){
       log.info("Didn't find github credentials")
