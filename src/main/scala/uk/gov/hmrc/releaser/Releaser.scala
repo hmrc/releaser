@@ -79,14 +79,17 @@ object Releaser {
     val tmpDir = Files.createTempDirectory("releaser")
 
 
-    val githubCredsOpt  = CredentialsFinder.findGithubCredsInFile(new File(System.getProperty("user.home") + "/.github/.credentials").toPath)
-    val bintrayCredsOpt = CredentialsFinder.findBintrayCredsInFile(new File(System.getProperty("user.home") + "/.bintray/.credentials").toPath)
+    val githubCredsFile  = System.getProperty("user.home") + "/.github/.credentials"
+    val bintrayCredsFile = System.getProperty("user.home") + "/.bintray/.credentials"
+
+    val githubCredsOpt  = CredentialsFinder.findGithubCredsInFile(new File(githubCredsFile).toPath)
+    val bintrayCredsOpt = CredentialsFinder.findBintrayCredsInFile(new File(bintrayCredsFile).toPath)
 
     if(githubCredsOpt.isEmpty){
-      log.info("Didn't find github credentials")
+      log.info(s"Didn't find github credentials in $githubCredsFile")
       -1
     } else if(bintrayCredsOpt.isEmpty){
-      log.info("Didn't find Bintray credentials")
+      log.info(s"Didn't find Bintray credentials in $bintrayCredsFile")
       -1
     } else {
 
