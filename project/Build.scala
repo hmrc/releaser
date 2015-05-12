@@ -44,6 +44,7 @@ object HmrcBuild extends Build {
       targetJvm := "jvm-1.7",
       scalaVersion := "2.11.6",
       libraryDependencies ++= libraries,
+      resolvers += Resolver.typesafeRepo("releases"),
       BuildDescriptionSettings(),
       AssemblySettings(),
       addArtifact(artifact in (Compile, assembly), assembly)
