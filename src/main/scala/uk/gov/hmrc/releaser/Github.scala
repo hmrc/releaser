@@ -62,10 +62,7 @@ object GithubApi{
 
     val url = buildTagPostUrl(v.artefactName)
 
-    val message = buildMessage(
-      releaserVersion,
-      v.sourceVersion,
-      artefactMd)
+    val message = buildMessage(v.artefactName, v.targetVersion, releaserVersion, v.sourceVersion, artefactMd)
 
     val body = buildTagBody(message, v.targetVersion, artefactMd)
 
@@ -82,20 +79,23 @@ object GithubApi{
       GitRelease(targetVersion, tagName, message, artefactMd.sha, draft = false, prerelease = false))
   }
 
-  def buildMessage(
-                    releaserVersion:String,
-                    sourceVersion:String,
-                    artefactMetaData: ArtefactMetaData)={
+  def buildMessage(name:String,
+                   version:String,
+                   releaserVersion:String,
+                   sourceVersion:String,
+                   artefactMetaData: ArtefactMetaData)={
 
 
     s"""
-        |Release and tag created by [Releaser](https://github.com/hmrc/releaser) version $releaserVersion.
-        |
-        |Release candidate  : $sourceVersion
+        |Release            : $name $version
+        |Release candidate  : $name $sourceVersion
         |
         |Last commit sha    : ${artefactMetaData.sha}
         |Last commit author : ${artefactMetaData.commitAuthor}
-        |Last commit time   : ${DateTimeFormat.longDateTime().print(artefactMetaData.commitDate)}""".stripMargin
+        |Last commit time   : ${DateTimeFormat.longDateTime().print(artefactMetaData.commitDate)}
+        |
+        |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion""".stripMargin
+
   }
 
   def buildCommitGetUrl(artefactName:String, sha:String)={

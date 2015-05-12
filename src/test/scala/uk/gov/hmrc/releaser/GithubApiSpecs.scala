@@ -54,15 +54,17 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
 
       val expectedMessage =
         s"""
-          |Release and tag created by [Releaser](https://github.com/hmrc/releaser) version 6.6.6.
-          |
-          |Release candidate  : 1.0.0-abcd
+          |Release            : myArtefact 1.0.0
+          |Release candidate  : myArtefact 1.0.0-abcd
           |
           |Last commit sha    : c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c
           |Last commit author : charleskubicek
-          |Last commit time   : ${GithubApi.releaseMessageDateTimeFormat.print(commitDate)}""".stripMargin
+          |Last commit time   : ${GithubApi.releaseMessageDateTimeFormat.print(commitDate)}
+          |
+          |Release and tag created by [Releaser](https://github.com/hmrc/releaser) 6.6.6""".stripMargin
 
-      GithubApi.buildMessage("6.6.6", sourceVersion, artefactMetaData) shouldBe expectedMessage
+
+        GithubApi.buildMessage("myArtefact", "1.0.0", "6.6.6", sourceVersion, artefactMetaData) shouldBe expectedMessage
 
     }
 
