@@ -103,8 +103,8 @@ object Releaser {
         }
         result
       } match {
-        case Failure(e) => log.info(s"Releaser failed to release '$artefactName' '$rcVersion' with error '${e.getMessage}'"); 1
-        case Success(_) => log.info(s"Releaser successfully released '$artefactName' '$targetVersion'"); 0;
+        case Failure(e) => log.info(s"Releaser failed to release $artefactName $rcVersion with error '${e.getMessage}'"); 1
+        case Success(_) => log.info(s"Releaser successfully released $artefactName $targetVersion"); 0;
       }
     }
   }
