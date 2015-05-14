@@ -99,12 +99,12 @@ object Releaser {
       targetVersion.flatMap { tv =>
         val result: Try[Unit] = releaser.start(artefactName, rcVersion, tv)
         Try {
-          log.info(s"deleting $tmpDir"); FileUtils.forceDelete(tmpDir.toFile)
+          FileUtils.forceDelete(tmpDir.toFile)
         }
         result
       } match {
-        case Failure(e) => log.info(s"failed with error '${e.getMessage}'"); 1
-        case Success(_) => 0;
+        case Failure(e) => log.info(s"Releaser failed to release '$artefactName' '$rcVersion' with error '${e.getMessage}'"); 1
+        case Success(_) => log.info(s"Releaser successfully released '$artefactName' '$targetVersion'"); 0;
       }
     }
   }
