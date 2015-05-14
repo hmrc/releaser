@@ -20,12 +20,12 @@ import sbtassembly.AssemblyKeys._
 import sbtassembly._
 import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.DefaultBuildSettings._
+import uk.gov.hmrc.versioning.SbtGitVersioning
 
 
 object HmrcBuild extends Build {
 
   val appName = "releaser"
-  val appVersion = "0.4.0"
 
   val libraries = Seq(
     "com.typesafe.play" %% "play-ws" % "2.3.8",
@@ -38,9 +38,8 @@ object HmrcBuild extends Build {
   )
 
   lazy val releaser = Project(appName, file("."))
-    .enablePlugins(SbtAutoBuildPlugin)
+    .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
     .settings(
-      version := appVersion,
       targetJvm := "jvm-1.7",
       scalaVersion := "2.11.6",
       libraryDependencies ++= libraries,

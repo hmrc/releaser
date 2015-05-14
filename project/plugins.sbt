@@ -5,4 +5,6 @@ resolvers += Resolver.url("hmrc-sbt-plugin-releases",
 
 addSbtPlugin("uk.gov.hmrc" % "sbt-auto-build" % "0.1.5")
 
+addSbtPlugin("uk.gov.hmrc" % "sbt-git-versioning" % "0.4.0")
+
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.13.0")
