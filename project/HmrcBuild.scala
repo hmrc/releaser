@@ -25,7 +25,7 @@ import uk.gov.hmrc.DefaultBuildSettings._
 object HmrcBuild extends Build {
 
   val appName = "releaser"
-  val appVersion = "0.3.0"
+  val appVersion = "0.4.0-SNAPSHOT"
 
   val libraries = Seq(
     "com.typesafe.play" %% "play-ws" % "2.3.8",
