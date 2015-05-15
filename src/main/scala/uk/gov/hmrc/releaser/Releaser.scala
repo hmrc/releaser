@@ -37,6 +37,7 @@ import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
 import play.api.libs.json.JsValue
+import uk.gov.hmrc.releaser.GithubApi.TagRefResponse
 import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.immutable.SortedSet
@@ -131,6 +132,7 @@ object Releaser {
     val releaserVersion = getClass.getPackage.getImplementationVersion
 
     val emptyGitPoster: (String, JsValue) => Try[Unit] = (a, b) => { println("Github emptyPost DRY_RUN"); Success() }
+    val emptyGitPosteAndGetter: (String, JsValue) => Try[CommitSha] = (a, b) => { println("Github emptyPost DRY_RUN"); Success("a-fake-tag-sha") }
 
     val workDir = Files.createDirectories(tmpDir.resolve("work"))
     val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
@@ -138,12 +140,13 @@ object Releaser {
     val metaDataGetter = new BintrayMetaConnector(EmptyBintrayConnector).getRepoMetaData _
     val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, EmptyBintrayConnector) _
     val githubReleaseCreator = GithubApi.createRelease(emptyGitPoster)(releaserVersion) _
-    val githubTagCreator = GithubApi.createAnnotatedTag(emptyGitPoster)(releaserVersion) _
+    val githubTagObjectCreator = GithubApi.createAnnotatedTagObject(emptyGitPosteAndGetter)(releaserVersion) _
+    val githubTagRefCreator = GithubApi.createAnnotatedTagRef(emptyGitPoster)(releaserVersion) _
     val verifyGithubCommit = GithubApi.verifyCommit(githubConnector.get) _
 
     val artefactBuilder = ArtefactMetaData.fromFile _
 
-    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, githubReleaseCreator, githubTagCreator)
+    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, githubReleaseCreator, githubTagObjectCreator, githubTagRefCreator)
     val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
     new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
@@ -163,13 +166,14 @@ object Releaser {
 
     val metaDataGetter = new BintrayMetaConnector(bintrayConnector).getRepoMetaData _
     val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, bintrayConnector) _
-    val githubReleaseCreator = GithubApi.createRelease(githubConnector.post)(releaserVersion) _
-    val githubTagCreator = GithubApi.createAnnotatedTag(githubConnector.post)(releaserVersion) _
+    val githubReleaseCreator = GithubApi.createRelease(githubConnector.postUnit)(releaserVersion) _
+    val githubTagObjectCreator = GithubApi.createAnnotatedTagObject(githubConnector.post[CommitSha](GithubApi.shaFromResponse))(releaserVersion) _
+    val githubTagRefCreator = GithubApi.createAnnotatedTagRef(githubConnector.postUnit)(releaserVersion) _
     val verifyGithubCommit = GithubApi.verifyCommit(githubConnector.get) _
 
     val artefactBuilder = ArtefactMetaData.fromFile _
 
-    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, githubReleaseCreator, githubTagCreator)
+    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, githubReleaseCreator, githubTagObjectCreator, githubTagRefCreator)
     val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
     new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
@@ -195,7 +199,8 @@ class Coordinator(
                    artefactBuilder:(Path) => Try[ArtefactMetaData],
                    verifyGithubTagExists:(CommitSha, String) => Try[Unit],
                    createGitHubRelease:(ArtefactMetaData, VersionMapping) => Try[Unit],
-                   createGitHubAnnotatedTag:(CommitSha, String) => Try[Unit]){
+                   createGitHubAnnotatedTagObject:(String, String, CommitSha) => Try[CommitSha],
+                   createGitHubAnnotatedTagRef:(String, String, CommitSha) => Try[Unit]){
 
   val logger = new Logger()
 
@@ -210,8 +215,9 @@ class Coordinator(
       _         <- connector.uploadJar(map.targetArtefact, path);
       _         <- uploadNewPom(map, connector);
       _         <- publish(map, connector);
-      _         <- createGitHubRelease(metaData, map);
-      _         <- createGitHubAnnotatedTag(metaData.sha, map.targetVersion)
+      tagSha    <- createGitHubAnnotatedTagObject(map.artefactName, map.targetVersion, metaData.sha);
+      _         <- createGitHubAnnotatedTagRef(map.artefactName, map.targetVersion, tagSha);
+      _         <- createGitHubRelease(metaData, map)
     ) yield ()
   }
 

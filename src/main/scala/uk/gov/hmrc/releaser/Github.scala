@@ -42,12 +42,14 @@ object GithubApi{
 
   case class Tagger(name:String, email:String, date:String)
   case class TagObject(tag:String, message:String, `object`:String, tagger: Tagger, `type`:String = "commit")
+  case class TagRef(ref:String, sha:String)
+  case class TagRefResponse(sha:String)
 
   case class GitRelease(
                          name:String,
                          tag_name:String,
                          body:String,
-                         target_commitish:String,
+                         //target_commitish:String,
                          draft:Boolean,
                          prerelease:Boolean)
 
@@ -59,10 +61,19 @@ object GithubApi{
     implicit val formats = Json.format[TagObject]
   }
 
+  object TagRef{
+    implicit val formats = Json.format[TagRef]
+  }
+
+  object TagRefResponse{
+    implicit val formats = Json.format[TagRefResponse]
+  }
+
   object GitRelease{
     implicit val formats = Json.format[GitRelease]
   }
 
+  val shaFromResponse = (r:WSResponse) => Success(r.json.as[TagRefResponse].sha)
 
   val logger = new Logger()
 
@@ -70,10 +81,23 @@ object GithubApi{
     getter(buildCommitGetUrl(repo, sha))
   }
 
-  def createAnnotatedTag(tagger: (String, JsValue) => Try[Unit])(releaserVersion:String)(commitSha:CommitSha, targetVersion:String): Try[Unit] = {
-    logger.debug("creating annotated tag from " + targetVersion + " version mapping " + targetVersion)
+  def createAnnotatedTagRef(tagger: (String, JsValue) => Try[Unit])(releaserVersion:String)(repo:String, targetVersion:String, commitSha:CommitSha): Try[Unit] = {
+    logger.debug("creating annotated tag ref from " + targetVersion + " version mapping " + targetVersion)
 
-    val url = buildAnnotatedTagPostUrl(targetVersion)
+    val url = buildAnnotatedTagRefPostUrl(repo)
+
+    val body = buildTagRefBody(targetVersion, commitSha)
+
+    logger.debug("github url: " + url)
+    logger.debug("github body: " + body)
+
+    tagger(url, body)
+  }
+  
+  def createAnnotatedTagObject(tagger: (String, JsValue) => Try[CommitSha])(releaserVersion:String)(repo:String, targetVersion:String, commitSha:CommitSha): Try[CommitSha] = {
+    logger.debug("creating annotated tag object from " + targetVersion + " version mapping " + targetVersion)
+
+    val url = buildAnnotatedTagObjectPostUrl(repo)
 
     val body = buildTagObjectBody("tag of " + targetVersion, targetVersion, new DateTime(), commitSha)
 
@@ -98,7 +122,12 @@ object GithubApi{
     tagger(url, body)
   }
 
-  def buildTagObjectBody(message: String, targetVersion: String, date:DateTime, commitSha: String): JsValue = {
+  def buildTagRefBody(targetVersion: String, commitSha: CommitSha): JsValue = {
+    val tagName = "refs/tags/v" + targetVersion
+    Json.toJson(TagRef(tagName, commitSha))
+  }
+
+  def buildTagObjectBody(message: String, targetVersion: String, date:DateTime, commitSha: CommitSha): JsValue = {
     val tagName = "v" + targetVersion
     Json.toJson(TagObject(tagName, message, commitSha, Tagger(taggerName, taggerEmail, githubTagDateTimeFormatter.print(date))))
   }
@@ -107,7 +136,7 @@ object GithubApi{
     val tagName = "v" + targetVersion
 
     Json.toJson(
-      GitRelease(targetVersion, tagName, message, commitSha, draft = false, prerelease = false))
+      GitRelease(targetVersion, tagName, message, /*commitSha,*/ draft = false, prerelease = false))
   }
 
   def buildMessage(name:String,
@@ -133,7 +162,11 @@ object GithubApi{
     s"https://api.github.com/repos/hmrc/$artefactName/git/commits/$sha"
   }
   
-  def buildAnnotatedTagPostUrl(artefactName:String)={
+  def buildAnnotatedTagRefPostUrl(artefactName:String)={
+    s"https://api.github.com/repos/hmrc/$artefactName/git/refs"
+  }
+
+  def buildAnnotatedTagObjectPostUrl(artefactName:String)={
     s"https://api.github.com/repos/hmrc/$artefactName/git/tags"
   }
   
@@ -181,11 +214,15 @@ class GithubHttp(cred:ServiceCredentials){
     }
   }
 
-  def post(url:String, body:JsValue): Try[Unit] = {
+  def post[A](responseBuilder:(WSResponse) => Try[A])(url:String, body:JsValue): Try[A] = {
     val result = callAndWait(buildCall("POST", url, Some(body)))
     result.status match {
-      case s if s >= 200 && s < 300 => Success(new URL(url))
+      case s if s >= 200 && s < 300 => responseBuilder(result)
       case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Github. Got status ${result.status}: ${result.body}"))
     }
+  }
+  
+  def postUnit(url:String, body:JsValue): Try[Unit] = {
+    post[Unit](_ => Success(Unit))(url, body)
   }
 }

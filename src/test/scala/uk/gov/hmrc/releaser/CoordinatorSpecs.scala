@@ -99,11 +99,10 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
-    class GithubReleasePublisherBuilder{
+    class MockFunction2[A, B]{
+      var params:Option[(A, B)] = None
 
-      var params:Option[(ArtefactMetaData, VersionMapping)] = None
-
-      def build:(ArtefactMetaData, VersionMapping) => Try[Unit] ={
+      def build:(A, B) => Try[Unit] ={
         (a, b) => {
           params = Some((a, b))
           Success(Unit)
@@ -111,22 +110,22 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
-    class GithubTagObjectPublisherBuilder{
+    class MockFunction3[A, B, C, R]{
+      var params:Option[(A, B, C)] = None
 
-      var params:Option[(CommitSha, String)] = None
-
-      def build:(CommitSha, String) => Try[Unit] ={
-        (a, b) => {
-          params = Some((a, b))
-          Success(Unit)
+      def build[R](r:R):(A, B, C) => Try[R] ={
+        (a, b, c) => {
+          params = Some((a, b, c))
+          Success(r)
         }
       }
     }
 
     "release version 0.1.1 when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
 
-      val githubReleaseBuilder = new GithubReleasePublisherBuilder()
-      val githubTagObjBuilder = new GithubTagObjectPublisherBuilder()
+      val githubReleaseBuilder = new MockFunction2[ArtefactMetaData, VersionMapping]()
+      val githubTagObjBuilder = new MockFunction3[String, String, CommitSha, CommitSha]()
+      val githubTagRefBuilder = new MockFunction3[String, String, CommitSha, Unit]()
 
       val fakeRepoConnector = Builders.buildConnector(
         "/sbt-bobby/sbt-bobby.jar",
@@ -139,8 +138,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           repositoryFinder = successfulRepoFinder(ivyRepository),
           connectorBuilder = fakeRepoConnectorBuilder,
           artefactMetaData = ArtefactMetaData("gitsha", "sbt-bobby", DateTime.now()),
-          githubTagPublisher = githubTagObjBuilder.build,
-          githubReleasePublisher = githubReleaseBuilder.build
+          githubReleasePublisher = githubReleaseBuilder.build,
+          githubTagObjPublisher = githubTagObjBuilder.build[CommitSha]("the-tag-sha"),
+          githubTagRefPublisher = githubTagRefBuilder.build[Unit](Unit)
       )
 
         releaser.start("sbt-bobby", "0.8.1-4-ge733d26", "0.1.1") match {
@@ -170,9 +170,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       md.sha shouldBe "gitsha"
       ver.sourceVersion shouldBe "0.8.1-4-ge733d26"
 
-      val(commit, targetVersion) = githubTagObjBuilder.params.value
-      commit shouldBe "gitsha"
-      targetVersion shouldBe "0.1.1"
+      githubTagObjBuilder.params.value shouldBe ("sbt-bobby", "0.1.1", "gitsha")
+      githubTagRefBuilder.params.value shouldBe ("sbt-bobby", "0.1.1", "the-tag-sha")
     }
   }
 

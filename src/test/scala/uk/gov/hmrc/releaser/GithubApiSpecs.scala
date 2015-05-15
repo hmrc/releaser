@@ -34,10 +34,16 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
     }
 
 
-    "create the correct url for creating an annotated tag" in {
-      val url = GithubApi.buildAnnotatedTagPostUrl("myArtefact")
+    "create the correct url for creating an annotated tag object" in {
+      val url = GithubApi.buildAnnotatedTagObjectPostUrl("myArtefact")
 
       url shouldBe "https://api.github.com/repos/hmrc/myArtefact/git/tags"
+    }
+
+    "create the correct url for creating an annotated tag reference" in {
+      val url = GithubApi.buildAnnotatedTagRefPostUrl("myArtefact")
+
+      url shouldBe "https://api.github.com/repos/hmrc/myArtefact/git/refs"
     }
 
     "create the correct url for getting a commit" in {
@@ -96,6 +102,21 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
         """.stripMargin
 
       val bodyJson: JsValue = GithubApi.buildTagObjectBody("creating an annotated tag", "1.0.1", tagDate, "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
+
+
+      Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))
+    }
+    "create the correct body for creating an annotated tag reference" in {
+
+      val expectedBody =
+        s"""
+           |{
+           |  "ref": "refs/tags/v1.0.1",
+           |  "sha": "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c"
+           |}
+        """.stripMargin
+
+      val bodyJson: JsValue = GithubApi.buildTagRefBody("1.0.1", "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
 
 
       Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))
