@@ -36,6 +36,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.immutable.SortedSet
@@ -70,12 +71,12 @@ object Releaser {
 
   def apply(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
-      case Some(config) => start(config.artefactName, config.rcVersion, config.releaseType)
+      case Some(config) => start(config.artefactName, config.rcVersion, config.releaseType, config.dryRun)
       case None => -1
     }
   }
 
-  def start(artefactName: String, rcVersion: String, releaseType: ReleaseType.Value):Int={
+  def start(artefactName: String, rcVersion: String, releaseType: ReleaseType.Value, dryRun:Boolean = false):Int={
     val tmpDir = Files.createTempDirectory("releaser")
 
 
@@ -93,7 +94,13 @@ object Releaser {
       -1
     } else {
 
-      val releaser = buildReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get)
+      val releaser = if (dryRun) {
+        log.info("starting in dry run mode")
+        buildDryRunReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get)
+      } else {
+        buildReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get)
+      }
+
       val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
 
       targetVersion.flatMap { tv =>
@@ -107,6 +114,38 @@ object Releaser {
         case Success(_) => log.info(s"Releaser successfully released $artefactName ${targetVersion.getOrElse("")}"); 0;
       }
     }
+  }
+
+  //TODO not tested
+  def buildDryRunReleaser(
+                     tmpDir:Path,
+                     githubCreds: ServiceCredentials,
+                     bintrayCreds: ServiceCredentials): Releaser = {
+
+    val githubConnector = new GithubHttp(githubCreds)
+    val EmptyBintrayConnector = new BintrayHttp(bintrayCreds){
+      override def emptyPost(url:String): Try[Unit] = { println("BintrayHttp emptyPost DRY_RUN");Success()}
+      override def putFile(version: VersionDescriptor, file: Path, url: String): Try[Unit] = { println("BintrayHttp putFile DRY_RUN");Success() }
+    }
+
+    val releaserVersion = getClass.getPackage.getImplementationVersion
+
+    val emptyGitPoster: (String, JsValue) => Try[Unit] = (a, b) => { println("Github emptyPost DRY_RUN"); Success() }
+
+    val workDir = Files.createDirectories(tmpDir.resolve("work"))
+    val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
+
+    val metaDataGetter = new BintrayMetaConnector(EmptyBintrayConnector).getRepoMetaData _
+    val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, EmptyBintrayConnector) _
+    val githubReleaseCreator = GithubApi.createRelease(emptyGitPoster)(releaserVersion) _
+    val githubTagCreator = GithubApi.createAnnotatedTag(emptyGitPoster)(releaserVersion) _
+    val verifyGithubCommit = GithubApi.verifyCommit(githubConnector.get) _
+
+    val artefactBuilder = ArtefactMetaData.fromFile _
+
+    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, githubReleaseCreator, githubTagCreator)
+    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
+    new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
 
   //TODO not tested

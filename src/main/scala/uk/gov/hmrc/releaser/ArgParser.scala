@@ -44,8 +44,8 @@ object ArgParser{
       c.copy(tag = x) } text "tag in github"
     opt[Boolean]('v', "verbose") action { (x, c) =>
       c.copy(verbose = x) } text "verbose mode (not implemented)"
-    opt[Boolean]('d', "dryRun") action { (x, c) =>
-      c.copy(dryRun = x) } text "dry run"
+    opt[Unit]('d', "dryRun") action { (_, c) =>
+      c.copy(dryRun = true) } text "dry run"
   }
 
   def releaseTypeErrorMessage(givenReleaseType:String):String={
