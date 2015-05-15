@@ -19,11 +19,12 @@ package uk.gov.hmrc.releaser
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
+import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws._
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-import uk.gov.hmrc.releaser.domain.{ArtefactMetaData, VersionMapping}
+import uk.gov.hmrc.releaser.domain.{CommitSha, ArtefactMetaData, VersionMapping}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -32,11 +33,15 @@ import scala.util.{Failure, Success, Try}
 object GithubApi{
 
   val githubDateTimeFormatter = org.joda.time.format.ISODateTimeFormat.dateTime
+  val githubTagDateTimeFormatter = org.joda.time.format.ISODateTimeFormat.dateTimeNoMillis
   val releaseMessageDateTimeFormat = DateTimeFormat.longDateTime()
 
 
   val taggerName  = "hmrc-web-operations"
   val taggerEmail = "hmrc-web-operations@digital.hmrc.gov.uk"
+
+  case class Tagger(name:String, email:String, date:String)
+  case class TagObject(tag:String, message:String, `object`:String, tagger: Tagger, `type`:String = "commit")
 
   case class GitRelease(
                          name:String,
@@ -46,6 +51,14 @@ object GithubApi{
                          draft:Boolean,
                          prerelease:Boolean)
 
+  object Tagger{
+    implicit val formats = Json.format[Tagger]
+  }
+
+  object TagObject{
+    implicit val formats = Json.format[TagObject]
+  }
+
   object GitRelease{
     implicit val formats = Json.format[GitRelease]
   }
@@ -53,18 +66,16 @@ object GithubApi{
 
   val logger = new Logger()
 
-  def verifyCommit(getter:(String) => Try[Unit])(repo:String, sha:String): Try[Unit] ={
+  def verifyCommit(getter:(String) => Try[Unit])(repo:String, sha:CommitSha): Try[Unit] ={
     getter(buildCommitGetUrl(repo, sha))
   }
 
-  def postTag(tagger: (String, JsValue) => Try[Unit])(releaserVersion:String)(artefactMd: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
-    logger.debug("publishing meta data " + artefactMd + " version mapping " + v)
+  def createAnnotatedTag(tagger: (String, JsValue) => Try[Unit])(releaserVersion:String)(commitSha:CommitSha, targetVersion:String): Try[Unit] = {
+    logger.debug("creating annotated tag from " + targetVersion + " version mapping " + targetVersion)
 
-    val url = buildTagPostUrl(v.artefactName)
+    val url = buildAnnotatedTagPostUrl(targetVersion)
 
-    val message = buildMessage(v.artefactName, v.targetVersion, releaserVersion, v.sourceVersion, artefactMd)
-
-    val body = buildTagBody(message, v.targetVersion, artefactMd)
+    val body = buildTagObjectBody("tag of " + targetVersion, targetVersion, new DateTime(), commitSha)
 
     logger.debug("github url: " + url)
     logger.debug("github body: " + body)
@@ -72,11 +83,31 @@ object GithubApi{
     tagger(url, body)
   }
 
-  def buildTagBody(message:String, targetVersion:String, artefactMd:ArtefactMetaData):JsValue={
+  def createRelease(tagger: (String, JsValue) => Try[Unit])(releaserVersion:String)(artefactMd: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
+    logger.debug("creating release from " + artefactMd + " version mapping " + v)
+
+    val url = buildReleasePostUrl(v.artefactName)
+
+    val message = buildMessage(v.artefactName, v.targetVersion, releaserVersion, v.sourceVersion, artefactMd)
+
+    val body = buildReleaseBody(message, v.targetVersion, artefactMd.sha)
+
+    logger.debug("github url: " + url)
+    logger.debug("github body: " + body)
+
+    tagger(url, body)
+  }
+
+  def buildTagObjectBody(message: String, targetVersion: String, date:DateTime, commitSha: String): JsValue = {
+    val tagName = "v" + targetVersion
+    Json.toJson(TagObject(tagName, message, commitSha, Tagger(taggerName, taggerEmail, githubTagDateTimeFormatter.print(date))))
+  }
+
+  def buildReleaseBody(message:String, targetVersion:String, commitSha:String):JsValue={
     val tagName = "v" + targetVersion
 
     Json.toJson(
-      GitRelease(targetVersion, tagName, message, artefactMd.sha, draft = false, prerelease = false))
+      GitRelease(targetVersion, tagName, message, commitSha, draft = false, prerelease = false))
   }
 
   def buildMessage(name:String,
@@ -102,7 +133,11 @@ object GithubApi{
     s"https://api.github.com/repos/hmrc/$artefactName/git/commits/$sha"
   }
   
-  def buildTagPostUrl(artefactName:String)={
+  def buildAnnotatedTagPostUrl(artefactName:String)={
+    s"https://api.github.com/repos/hmrc/$artefactName/git/tags"
+  }
+  
+  def buildReleasePostUrl(artefactName:String)={
     s"https://api.github.com/repos/hmrc/$artefactName/releases"
   }
 }

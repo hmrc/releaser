@@ -43,7 +43,7 @@ import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 
-case class ArtefactMetaData(sha:String, commitAuthor:String, commitDate:DateTime)
+case class ArtefactMetaData(sha:CommitSha, commitAuthor:String, commitDate:DateTime)
 
 
 object ArtefactMetaData{

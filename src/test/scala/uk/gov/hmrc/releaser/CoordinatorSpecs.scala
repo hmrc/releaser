@@ -99,7 +99,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
-    class GithubTagPublisherBuilder{
+    class GithubReleasePublisherBuilder{
 
       var params:Option[(ArtefactMetaData, VersionMapping)] = None
 
@@ -111,9 +111,22 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
+    class GithubTagObjectPublisherBuilder{
+
+      var params:Option[(CommitSha, String)] = None
+
+      def build:(CommitSha, String) => Try[Unit] ={
+        (a, b) => {
+          params = Some((a, b))
+          Success(Unit)
+        }
+      }
+    }
+
     "release version 0.1.1 when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
 
-      val githubBuilder = new GithubTagPublisherBuilder()
+      val githubReleaseBuilder = new GithubReleasePublisherBuilder()
+      val githubTagObjBuilder = new GithubTagObjectPublisherBuilder()
 
       val fakeRepoConnector = Builders.buildConnector(
         "/sbt-bobby/sbt-bobby.jar",
@@ -126,7 +139,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           repositoryFinder = successfulRepoFinder(ivyRepository),
           connectorBuilder = fakeRepoConnectorBuilder,
           artefactMetaData = ArtefactMetaData("gitsha", "sbt-bobby", DateTime.now()),
-          githubTagPublisher = githubBuilder.build
+          githubTagPublisher = githubTagObjBuilder.build,
+          githubReleasePublisher = githubReleaseBuilder.build
       )
 
         releaser.start("sbt-bobby", "0.8.1-4-ge733d26", "0.1.1") match {
@@ -152,9 +166,13 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val ivyVersionText = (XML.loadFile(ivyFile.toFile) \ "info" \ "@revision").text
       ivyVersionText shouldBe "0.1.1"
 
-      val(md, ver) = githubBuilder.params.value
+      val(md, ver) = githubReleaseBuilder.params.value
       md.sha shouldBe "gitsha"
       ver.sourceVersion shouldBe "0.8.1-4-ge733d26"
+
+      val(commit, targetVersion) = githubTagObjBuilder.params.value
+      commit shouldBe "gitsha"
+      targetVersion shouldBe "0.1.1"
     }
   }
 

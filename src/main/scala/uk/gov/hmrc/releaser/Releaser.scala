@@ -124,12 +124,13 @@ object Releaser {
 
     val metaDataGetter = new BintrayMetaConnector(bintrayConnector).getRepoMetaData _
     val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, bintrayConnector) _
-    val githubPublisher = GithubApi.postTag(githubConnector.post)(releaserVersion) _
+    val githubReleaseCreator = GithubApi.createRelease(githubConnector.post)(releaserVersion) _
+    val githubTagCreator = GithubApi.createAnnotatedTag(githubConnector.post)(releaserVersion) _
     val verifyGithubCommit = GithubApi.verifyCommit(githubConnector.get) _
 
     val artefactBuilder = ArtefactMetaData.fromFile _
 
-    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, githubPublisher)
+    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, githubReleaseCreator, githubTagCreator)
     val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
     new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
@@ -153,8 +154,9 @@ class Releaser(stageDir:Path,
 class Coordinator(
                    stageDir:Path,
                    artefactBuilder:(Path) => Try[ArtefactMetaData],
-                   verifyGithubTagExists:(String, String) => Try[Unit],
-                   githubTagPublisher:(ArtefactMetaData, VersionMapping) => Try[Unit]){
+                   verifyGithubTagExists:(CommitSha, String) => Try[Unit],
+                   createGitHubRelease:(ArtefactMetaData, VersionMapping) => Try[Unit],
+                   createGitHubAnnotatedTag:(CommitSha, String) => Try[Unit]){
 
   val logger = new Logger()
 
@@ -169,7 +171,8 @@ class Coordinator(
       _         <- connector.uploadJar(map.targetArtefact, path);
       _         <- uploadNewPom(map, connector);
       _         <- publish(map, connector);
-      _         <- githubTagPublisher(metaData, map)
+      _         <- createGitHubRelease(metaData, map);
+      _         <- createGitHubAnnotatedTag(metaData.sha, map.targetVersion)
     ) yield ()
   }
 

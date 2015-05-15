@@ -26,10 +26,18 @@ import scala.util.{Success, Try}
 class GithubApiSpecs extends WordSpec with Matchers with TryValues{
 
   "GithubApiSpecs" should {
-    "create the correct url for tagging" in {
-      val url = GithubApi.buildTagPostUrl("myArtefact")
+
+    "create the correct url for creating a release" in {
+      val url = GithubApi.buildReleasePostUrl("myArtefact")
 
       url shouldBe "https://api.github.com/repos/hmrc/myArtefact/releases"
+    }
+
+
+    "create the correct url for creating an annotated tag" in {
+      val url = GithubApi.buildAnnotatedTagPostUrl("myArtefact")
+
+      url shouldBe "https://api.github.com/repos/hmrc/myArtefact/git/tags"
     }
 
     "create the correct url for getting a commit" in {
@@ -43,7 +51,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
       getResult shouldBe Success(())
     }
 
-    "create the corect message for a tag" in {
+    "create the correct message for a release" in {
       val commitDate = DateTime.now().minusDays(4)
 
       val sourceVersion = "1.0.0-abcd"
@@ -68,7 +76,32 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
 
     }
 
-    "create the correct body for posting a tag" in {
+    "create the correct body for creating an annotated tag object" in {
+
+      val tagDate = new DateTime(2011, 6, 17, 14, 53, 35)
+
+      val expectedBody =
+        s"""
+           |{
+           |  "tag": "v1.0.1",
+           |  "message": "creating an annotated tag",
+           |  "object": "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
+           |  "tagger": {
+           |    "name": "hmrc-web-operations",
+           |    "email": "hmrc-web-operations@digital.hmrc.gov.uk",
+           |    "date": "2011-06-17T14:53:35+01:00"
+           |  },
+           |  "type": "commit"
+           |}
+        """.stripMargin
+
+      val bodyJson: JsValue = GithubApi.buildTagObjectBody("creating an annotated tag", "1.0.1", tagDate, "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
+
+
+      Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))
+    }
+
+    "create the correct body for creating a release" in {
 
       val commitDate = DateTime.now().minusDays(4)
 
@@ -84,13 +117,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
           |}
         """.stripMargin
 
-
-      val artefactMetaData = ArtefactMetaData(
-        "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
-        "charleskubicek",
-        commitDate)
-
-      val bodyJson: JsValue = GithubApi.buildTagBody("the message", "1.0.1", artefactMetaData)
+      val bodyJson: JsValue = GithubApi.buildReleaseBody("the message", "1.0.1", "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
 
 
       Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))
