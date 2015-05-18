@@ -27,7 +27,7 @@ trait BintrayPaths{
   }
 
   def publishUrlFor(v: VersionDescriptor): String = {
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/${v.artefactName}/${v.version}/publish"
+    s"$bintrayApiRoot/content/hmrc/${v.repo}/${v.artefactName}/${v.version.value}/publish"
   }
 }
 
@@ -59,22 +59,22 @@ trait BintrayIvyPaths extends PathBuilder {
 
   override def jarDownloadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version}/jars/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/jars/$fileName"
   }
 
   override def pomDownloadUrlFor(v: VersionDescriptor): String = {
     val fileName = pomFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version}/ivys/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/ivys/$fileName"
   }
 
   override def jarUploadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version}/jars/$fileName"
+    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/jars/$fileName"
   }
 
   override def pomUploadFor(v: VersionDescriptor): String = {
     val fileName = pomFilenameFor(v)
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version}/ivys/$fileName"
+    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/ivys/$fileName"
   }
 
   override def pomFilenameFor(v: VersionDescriptor): String = "ivy.xml"
@@ -86,29 +86,29 @@ trait BintrayMavenPaths extends PathBuilder{
   def scalaVersion:String
 
   def jarFilenameFor(v:VersionDescriptor):String={
-    s"${v.artefactName}_$scalaVersion-${v.version}.jar"
+    s"${v.artefactName}_$scalaVersion-${v.version.value}.jar"
   }
 
   def jarDownloadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version}/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
   def pomDownloadUrlFor(v: VersionDescriptor): String = {
     val fileName = pomFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version}/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
   def jarUploadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version}/$fileName"
+    s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
-  def pomFilenameFor(v: VersionDescriptor) = s"${v.artefactName}_$scalaVersion-${v.version}.pom"
+  def pomFilenameFor(v: VersionDescriptor) = s"${v.artefactName}_$scalaVersion-${v.version.value}.pom"
 
   def pomUploadFor(v: VersionDescriptor): String={
     val fileName = pomFilenameFor(v)
-    s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version}/$fileName"
+    s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
 }

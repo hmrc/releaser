@@ -50,11 +50,11 @@ object Builders {
     (a, b) => Success()
   }
 
-  val successfulGithubTagObjectPublisher:(String, String, CommitSha) => Try[CommitSha] ={
+  val successfulGithubTagObjectPublisher:(String, ReleaseVersion, CommitSha) => Try[CommitSha] ={
     (a, b, c) => Success("some-tag-sha")
   }
 
-  val successfulGithubTagRefPublisher:(String, String, CommitSha) => Try[Unit] ={
+  val successfulGithubTagRefPublisher:(String, ReleaseVersion, CommitSha) => Try[Unit] ={
     (a, b, c) => Success(Unit)
   }
 
@@ -75,6 +75,9 @@ object Builders {
     "/time/time_2.11-1.3.0-1-g21312cc.pom"
   )
 
+  val aReleaseCandidateVersion = ReleaseCandidateVersion("1.3.0-1-g21312cc")
+  val aReleaseVersion = ReleaseVersion("1.3.1")
+
   def buildDefaultReleaser(
                         stageDir:Path = tempDir(),
                         repositoryFinder:(String) => Try[RepoFlavour] = successfulRepoFinder,
@@ -82,8 +85,8 @@ object Builders {
                         artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
                         githubRepoGetter:(String, String) => Try[Unit] = successfulGithubVerifier,
                         githubReleasePublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] = successfulGithubReleasePublisher,
-                        githubTagObjPublisher:(String, String, CommitSha) => Try[CommitSha] = successfulGithubTagObjectPublisher,
-                        githubTagRefPublisher:(String, String, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
+                        githubTagObjPublisher:(String, ReleaseVersion, CommitSha) => Try[CommitSha] = successfulGithubTagObjectPublisher,
+                        githubTagRefPublisher:(String, ReleaseVersion, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
                           ): Releaser ={
     val coord = buildDefaultCoordinator(stageDir, artefactMetaData, githubRepoGetter, githubReleasePublisher, githubTagObjPublisher, githubTagRefPublisher)
     new Releaser(stageDir, repositoryFinder, connectorBuilder, coord)
@@ -101,8 +104,8 @@ object Builders {
                                artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
                                githubRepoGetter:(String, String) => Try[Unit] = successfulGithubVerifier,
                                githubReleasePublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] = successfulGithubReleasePublisher,
-                               githubTagObjectPublisher:(String, String, CommitSha) => Try[CommitSha] = successfulGithubTagObjectPublisher,
-                               githubTagRefPublisher:(String, String, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
+                               githubTagObjectPublisher:(String, ReleaseVersion, CommitSha) => Try[CommitSha] = successfulGithubTagObjectPublisher,
+                               githubTagRefPublisher:(String, ReleaseVersion, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
                                )={
 
     val taggerAndReleaser = Releaser.createGitHubTagAndRelease(githubTagObjectPublisher, githubTagRefPublisher, githubReleasePublisher) _

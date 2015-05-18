@@ -37,7 +37,7 @@ class PomTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach
 
     "re-write the pom with a new version 1.4.0" in {
 
-      val outFile = transformer(timePomFile, "1.4.0", "time-1.4.0.pom").success.get
+      val outFile = transformer(timePomFile, ReleaseVersion("1.4.0"), "time-1.4.0.pom").success.get
 
       val pomVersionText = (XML.loadFile(outFile.toFile) \ "version").text
 

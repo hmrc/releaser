@@ -20,14 +20,28 @@ import uk.gov.hmrc.releaser.ReleaseType
 
 import scala.util.Try
 
+trait Version {
+  def value:String
+}
+case class ReleaseVersion(major: Int, minor: Int, revision: Int) extends Version{
+  val value = s"$major.$minor.$revision"
+}
 
-case class VersionDescriptor(repo:String, artefactName:String, version:String)
+object ReleaseVersion{
+  def apply(st:String):ReleaseVersion = {
+    val parts = st.split('.').map(_.toInt)
+    ReleaseVersion(parts.head, parts(1), parts(2))
+  }
+}
+case class ReleaseCandidateVersion(value:String) extends Version
+
+case class VersionDescriptor(repo:String, artefactName:String, version:Version)
 
 case class VersionMapping (
                             repo:RepoFlavour,
                             artefactName:String,
-                            sourceVersion:String,
-                            targetVersion:String
+                            sourceVersion:ReleaseCandidateVersion,
+                            targetVersion:ReleaseVersion
                             ) {
 
   def targetArtefact = VersionDescriptor(repo.releaseRepo, artefactName, targetVersion)
@@ -37,21 +51,21 @@ case class VersionMapping (
 
 object VersionNumberCalculator{
 
-  val Version = """(\d+)\.(\d+)\.(\d+)-.*-g.*""".r
+  val VersionRegex = """(\d+)\.(\d+)\.(\d+)-.*-g.*""".r
 
-  def calculateTarget(rcVersion:String, releaseType: ReleaseType.Value): Try[String] = Try {
-    groups(rcVersion).toList.map(_.toInt) match {
+  def calculateTarget(rcVersion:ReleaseCandidateVersion, releaseType: ReleaseType.Value): Try[ReleaseVersion] = Try {
+    groups(rcVersion.value).toList.map(_.toInt) match {
       case List(major, minor, patch) => releaseType match {
-        case ReleaseType.PATCH => List(major, minor, patch + 1).mkString(".")
-        case ReleaseType.MINOR => List(major, minor+1, 0).mkString(".")
-        case ReleaseType.MAJOR => List(major+1, 0, 0).mkString(".")
+        case ReleaseType.PATCH => ReleaseVersion(major, minor, patch + 1)
+        case ReleaseType.MINOR => ReleaseVersion(major, minor+1, 0)
+        case ReleaseType.MAJOR => ReleaseVersion(major+1, 0, 0)
       }
       case _ => throw new IllegalArgumentException("invalid release candidate version " + rcVersion)
     }
   }
 
   def groups(rcVersion: String): Iterator[String] = {
-    for (m <- Version.findAllIn(rcVersion).matchData;
+    for (m <- VersionRegex.findAllIn(rcVersion).matchData;
          e <- m.subgroups) yield e
   }
 }

@@ -35,7 +35,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
       val repoName = "sbt-plugin-release-candidates"
       val artefactName = "sbt-bobby"
-      val releaseCandidateVersion = "0.8.1-4-ge733d26"
+      val releaseCandidateVersion = ReleaseCandidateVersion("0.8.1-4-ge733d26")
 
       val version = VersionDescriptor(repoName, artefactName, releaseCandidateVersion)
 
@@ -52,9 +52,8 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
       val repoName = "sbt-plugin-release-candidates"
       val artefactName = "sbt-bobby"
-      val versionString = "0.9.0"
 
-      val version = VersionDescriptor(repoName, artefactName, versionString)
+      val version = VersionDescriptor(repoName, artefactName, ReleaseVersion("0.9.0"))
 
       ivyPaths.jarUploadFor(version) shouldBe expectedJarUrl
       ivyPaths.pomUploadFor(version) shouldBe expectedIvyUrl

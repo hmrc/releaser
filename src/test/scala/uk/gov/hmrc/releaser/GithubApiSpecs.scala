@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 import org.scalatest.{Matchers, TryValues, WordSpec}
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.releaser.domain.ArtefactMetaData
+import uk.gov.hmrc.releaser.domain.{ReleaseVersion, ReleaseCandidateVersion, ArtefactMetaData}
 
 import scala.util.{Success, Try}
 
@@ -61,7 +61,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
     "create the correct message for a release" in {
       val commitDate = DateTime.now().minusDays(4)
 
-      val sourceVersion = "1.0.0-abcd"
+      val sourceVersion = ReleaseCandidateVersion("1.0.0-abcd")
       val artefactMetaData = ArtefactMetaData(
         "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
         "charleskubicek",
@@ -79,7 +79,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
           |Release and tag created by [Releaser](https://github.com/hmrc/releaser) 6.6.6""".stripMargin
 
 
-        GithubApi.buildMessage("myArtefact", "1.0.0", "6.6.6", sourceVersion, artefactMetaData) shouldBe expectedMessage
+        GithubApi.buildMessage("myArtefact", ReleaseVersion("1.0.0"), "6.6.6", sourceVersion, artefactMetaData) shouldBe expectedMessage
 
     }
 
@@ -102,7 +102,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
            |}
         """.stripMargin
 
-      val bodyJson: JsValue = GithubApi.buildTagObjectBody("creating an annotated tag", "1.0.1", tagDate, "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
+      val bodyJson: JsValue = GithubApi.buildTagObjectBody("creating an annotated tag", ReleaseVersion("1.0.1"), tagDate, "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
 
 
       Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))
@@ -117,7 +117,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
            |}
         """.stripMargin
 
-      val bodyJson: JsValue = GithubApi.buildTagRefBody("1.0.1", "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
+      val bodyJson: JsValue = GithubApi.buildTagRefBody(ReleaseVersion("1.0.1"), "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
 
 
       Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))
@@ -138,7 +138,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
           |}
         """.stripMargin
 
-      val bodyJson: JsValue = GithubApi.buildReleaseBody("the message", "1.0.1")
+      val bodyJson: JsValue = GithubApi.buildReleaseBody("the message", ReleaseVersion("1.0.1"))
 
 
       Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))

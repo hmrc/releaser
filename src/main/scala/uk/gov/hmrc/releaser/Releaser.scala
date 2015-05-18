@@ -72,12 +72,12 @@ object Releaser {
 
   def apply(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
-      case Some(config) => start(config.artefactName, config.rcVersion, config.releaseType, config.dryRun)
+      case Some(config) => start(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, config.dryRun)
       case None => -1
     }
   }
 
-  def start(artefactName: String, rcVersion: String, releaseType: ReleaseType.Value, dryRun:Boolean = false):Int={
+  def start(artefactName: String, rcVersion: ReleaseCandidateVersion, releaseType: ReleaseType.Value, dryRun:Boolean = false):Int={
     val tmpDir = Files.createTempDirectory("releaser")
 
 
@@ -153,8 +153,8 @@ object Releaser {
   }
 
   def createGitHubTagAndRelease(
-                                  githubTagObjectCreator: (Repo, String, CommitSha) => Try[CommitSha],
-                                  githubTagRefCreator: (Repo, String, CommitSha) => Try[Unit],
+                                  githubTagObjectCreator: (Repo, ReleaseVersion, CommitSha) => Try[CommitSha],
+                                  githubTagRefCreator: (Repo, ReleaseVersion, CommitSha) => Try[Unit],
                                   githubReleaseCreator: (ArtefactMetaData, VersionMapping) => Try[Unit])
                                 (metaData: ArtefactMetaData, map: VersionMapping):Try[Unit]={
     for(
@@ -199,7 +199,7 @@ class Releaser(stageDir:Path,
                connectorBuilder:(RepoFlavour) => RepoConnector,
                coordinator:Coordinator){
 
-  def start(artefactName: String, rcVersion: Version, targetVersionString: Version): Try[Unit] = {
+  def start(artefactName: String, rcVersion: ReleaseCandidateVersion, targetVersionString: ReleaseVersion): Try[Unit] = {
 
     repositoryFinder(artefactName) flatMap { repo =>
       val ver = VersionMapping(repo, artefactName, rcVersion, targetVersionString)

@@ -36,7 +36,7 @@ class IvyTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach
   "the ivy transformer" should {
 
     "re-write the ivy with a new version 1.4.0" in {
-      val outFile = transformer(bobbyIvyFile, "1.4.0", "ivy.xml").success.get
+      val outFile = transformer(bobbyIvyFile, ReleaseVersion("1.4.0"), "ivy.xml").success.get
 
       val ivyVersionText = (XML.loadFile(outFile.toFile) \ "info" \ "@revision").text
 

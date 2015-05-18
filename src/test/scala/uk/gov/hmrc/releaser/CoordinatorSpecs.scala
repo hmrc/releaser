@@ -50,7 +50,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         connectorBuilder = fakeRepoConnectorBuilder,
         artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now()))
 
-      releaser.start("time", "1.3.0-1-g21312cc", "0.9.9") match {
+      releaser.start("time", ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -63,7 +63,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomFile.getFileName.toString should endWith(".pom")
       publishedDescriptor should not be None
 
-      jarVersion.version shouldBe "0.9.9"
+      jarVersion.version.value shouldBe "0.9.9"
 
       val manifest = manifestFromZipFile(jarFile)
 
@@ -80,7 +80,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         githubRepoGetter = (a, b) => Failure(expectedException)
       )
 
-      releaser.start("a", "b", "c") match {
+      releaser.start("a", aReleaseCandidateVersion, aReleaseVersion) match {
         case Failure(e) => e shouldBe expectedException
         case Success(s) => fail(s"Should have failed with $expectedException")
       }
@@ -93,7 +93,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         repositoryFinder = (a) => Failure(expectedException)
       )
 
-      releaser.start("a", "b", "c") match {
+      releaser.start("a", aReleaseCandidateVersion, aReleaseVersion) match {
         case Failure(e) => e shouldBe expectedException
         case Success(s) => fail(s"Should have failed with $expectedException")
       }
@@ -124,8 +124,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
     "release version 0.1.1 when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
 
       val githubReleaseBuilder = new MockFunction2[ArtefactMetaData, VersionMapping]()
-      val githubTagObjBuilder = new MockFunction3[String, String, CommitSha, CommitSha]()
-      val githubTagRefBuilder = new MockFunction3[String, String, CommitSha, Unit]()
+      val githubTagObjBuilder = new MockFunction3[String, ReleaseVersion, CommitSha, CommitSha]()
+      val githubTagRefBuilder = new MockFunction3[String, ReleaseVersion, CommitSha, Unit]()
 
       val fakeRepoConnector = Builders.buildConnector(
         "/sbt-bobby/sbt-bobby.jar",
@@ -143,7 +143,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           githubTagRefPublisher = githubTagRefBuilder.build[Unit](Unit)
       )
 
-        releaser.start("sbt-bobby", "0.8.1-4-ge733d26", "0.1.1") match {
+        releaser.start("sbt-bobby", ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseVersion("0.1.1")) match {
           case Failure(e) => fail(e)
           case _ =>
         }
@@ -157,7 +157,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       ivyFile.getFileName.toString should be("ivy.xml")
       publishedDescriptor should not be None
 
-      jarVersion.version shouldBe "0.1.1"
+      jarVersion.version.value shouldBe "0.1.1"
 
       val manifest = manifestFromZipFile(jarFile)
 
@@ -168,10 +168,10 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val(md, ver) = githubReleaseBuilder.params.value
       md.sha shouldBe "gitsha"
-      ver.sourceVersion shouldBe "0.8.1-4-ge733d26"
+      ver.sourceVersion.value shouldBe "0.8.1-4-ge733d26"
 
-      githubTagObjBuilder.params.value shouldBe ("sbt-bobby", "0.1.1", "gitsha")
-      githubTagRefBuilder.params.value shouldBe ("sbt-bobby", "0.1.1", "the-tag-sha")
+      githubTagObjBuilder.params.value shouldBe (("sbt-bobby", ReleaseVersion("0.1.1"), "gitsha"))
+      githubTagRefBuilder.params.value shouldBe (("sbt-bobby", ReleaseVersion("0.1.1"), "the-tag-sha"))
     }
   }
 

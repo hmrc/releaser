@@ -17,8 +17,12 @@
 package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, WordSpec}
+import uk.gov.hmrc.releaser.Builders
+import uk.gov.hmrc.releaser.domain.{ReleaseVersion, ReleaseCandidateVersion}
 
 class BintrayMavenPathsSpecs extends WordSpec with Matchers{
+
+  import Builders._
 
   "BintrayMavenPathsSpecs" should {
 
@@ -31,10 +35,9 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 
       val repoName = "release-candidates"
       val artefactName = "time"
-      val releaseCandidateVersion = "1.3.0-1-g21312cc"
-      val versionString = "1.3.0-1-g21312cc"
+      val releaseCandidateVersion = ReleaseCandidateVersion("1.3.0-1-g21312cc")
 
-      val version = VersionDescriptor(repoName, artefactName, versionString)
+      val version = VersionDescriptor(repoName, artefactName, releaseCandidateVersion)
 
       mavenPaths.jarFilenameFor(version) shouldBe "time_2.10-1.3.0-1-g21312cc.jar"
       mavenPaths.jarDownloadFor(version) shouldBe expectedJarUrl
@@ -45,9 +48,8 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 
       val repoName = "releases"
       val artefactName = "time"
-      val versionString = "1.4.0"
 
-      val version = VersionDescriptor(repoName, artefactName, versionString)
+      val version = VersionDescriptor(repoName, artefactName, ReleaseVersion("1.4.0"))
 
       mavenPaths.jarUploadFor(version) shouldBe expectedUrl
 
@@ -58,9 +60,7 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 
       val repoName = "releases"
       val artefactName = "time"
-      val versionString = "0.9.9"
-
-      val version = VersionDescriptor(repoName, artefactName,  versionString)
+      val version = VersionDescriptor(repoName, artefactName, ReleaseVersion("0.9.9"))
 
       mavenPaths.publishUrlFor(version) shouldBe expectedUrl
 

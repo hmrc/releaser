@@ -81,7 +81,7 @@ object GithubApi{
   }
 
   def createAnnotatedTagRef(tagger: (Url, JsValue) => Try[Unit])(releaserVersion:String)
-                           (repo:Repo, targetVersion:Version, commitSha:CommitSha): Try[Unit] = {
+                           (repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[Unit] = {
     logger.debug("creating annotated tag ref from " + targetVersion + " version mapping " + targetVersion)
 
     val url = buildAnnotatedTagRefPostUrl(repo)
@@ -95,7 +95,7 @@ object GithubApi{
   }
   
   def createAnnotatedTagObject(tagger: (Url, JsValue) => Try[CommitSha])(releaserVersion:String)
-                              (repo:Repo, targetVersion:Version, commitSha:CommitSha): Try[CommitSha] = {
+                              (repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[CommitSha] = {
     logger.debug("creating annotated tag object from " + targetVersion + " version mapping " + targetVersion)
 
     val url = buildAnnotatedTagObjectPostUrl(repo)
@@ -124,33 +124,33 @@ object GithubApi{
     tagger(url, body)
   }
 
-  def buildTagRefBody(targetVersion: Version, commitSha: CommitSha): JsValue = {
-    val tagName = "refs/tags/v" + targetVersion
+  def buildTagRefBody(targetVersion: ReleaseVersion, commitSha: CommitSha): JsValue = {
+    val tagName = "refs/tags/v" + targetVersion.value
     Json.toJson(TagRef(tagName, commitSha))
   }
 
-  def buildTagObjectBody(message: String, targetVersion: Version, date:DateTime, commitSha: CommitSha): JsValue = {
-    val tagName = "v" + targetVersion
+  def buildTagObjectBody(message: String, targetVersion: ReleaseVersion, date:DateTime, commitSha: CommitSha): JsValue = {
+    val tagName = "v" + targetVersion.value
     Json.toJson(TagObject(tagName, message, commitSha, Tagger(taggerName, taggerEmail, githubTagDateTimeFormatter.print(date))))
   }
 
-  def buildReleaseBody(message:String, targetVersion:Version):JsValue={
-    val tagName = "v" + targetVersion
+  def buildReleaseBody(message:String, targetVersion:ReleaseVersion):JsValue={
+    val tagName = "v" + targetVersion.value
 
     Json.toJson(
-      GitRelease(targetVersion, tagName, message, draft = false, prerelease = false))
+      GitRelease(targetVersion.value, tagName, message, draft = false, prerelease = false))
   }
 
   def buildMessage(name:String,
-                   version:Version,
+                   version:ReleaseVersion,
                    releaserVersion:String,
-                   sourceVersion:String,
+                   sourceVersion:ReleaseCandidateVersion,
                    artefactMetaData: ArtefactMetaData)={
 
 
     s"""
-        |Release            : $name $version
-        |Release candidate  : $name $sourceVersion
+        |Release            : $name ${version.value}
+        |Release candidate  : $name ${sourceVersion.value}
         |
         |Last commit sha    : ${artefactMetaData.sha}
         |Last commit author : ${artefactMetaData.commitAuthor}

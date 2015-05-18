@@ -35,20 +35,17 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
   val timeJarPath = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI).toPath
 
   var transformer:ManifestTransformer = _
+  val release_1_4_0 = ReleaseVersion("1.4.0")
 
   override def beforeEach(){
     transformer = new ManifestTransformer(Files.createTempDirectory("test-release"))
-  }
-
-  def version(versionString:String):VersionDescriptor={
-    VersionDescriptor(repo = "releases", "time", "2.10")
   }
 
   "the transformer" should {
 
     "not transform any file metadata other than the META-INF/MANIFEST.MF file" in {
 
-      val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar").success.get
+      val outFile = transformer(timeJarPath, release_1_4_0, "time-1.4.0.jar").success.get
 
       val inTimes = zipFileTimes(timeJarPath)
       val outTimes = zipFileTimes(outFile)
@@ -58,21 +55,21 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
 
     "not transform any timestamps including the META-INF/MANIFEST.MF file" in {
 
-      val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar").success
+      val outFile = transformer(timeJarPath, release_1_4_0, "time-1.4.0.jar").success
 
       zipFileTimes(outFile.get) shouldBe zipFileTimes(timeJarPath)
     }
 
     "not transform any files other than the META-INF/MANIFEST.MF file" in {
 
-      val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar").success
+      val outFile = transformer(timeJarPath, release_1_4_0, "time-1.4.0.jar").success
 
       md5OfJarEntries(outFile.get) - "META-INF/MANIFEST.MF" shouldBe md5OfJarEntries(timeJarPath) - "META-INF/MANIFEST.MF"
     }
 
     "transform the manifest of a zip file and name the generated jar file to time-1.4.0.jar" in {
 
-      val outFile = transformer(timeJarPath, "1.4.0", "time-1.4.0.jar") match {
+      val outFile = transformer(timeJarPath, release_1_4_0, "time-1.4.0.jar") match {
         case Success(f) => Success(f)
         case Failure(f) => println(f); Failure(f)
       }

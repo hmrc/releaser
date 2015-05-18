@@ -25,11 +25,13 @@ import scala.util.Success
 
 class ReleaserSpecs extends WordSpec with Matchers with TryValues with OptionValues {
 
+  import Builders._
+
   "createGitHubTagAndRelease" should {
     "create a function that calls github api in the correct order to create an annotated tag and release: create-tag-object -> create-tag-ref -> create-release" in {
 
       val artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now())
-      val ver = VersionMapping(RepoFlavours.mavenRepository, "a", "1", "2")
+      val ver = VersionMapping(RepoFlavours.mavenRepository, "a", aReleaseCandidateVersion, aReleaseVersion)
 
       val executedCalls = ListBuffer[String]()
 

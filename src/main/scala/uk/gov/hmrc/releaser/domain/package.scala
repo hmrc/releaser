@@ -21,6 +21,5 @@ package object domain {
   type CommitSha = String
   type Repo = String
   type ArtefactName = String
-  type Version = String
   type Url = String
 }

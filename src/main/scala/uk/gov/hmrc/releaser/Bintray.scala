@@ -142,7 +142,7 @@ class BintrayHttp(creds:ServiceCredentials){
     val call = apiWs(url)
       .withHeaders(
         "X-Bintray-Package" -> version.artefactName,
-        "X-Bintray-Version" -> version.version)
+        "X-Bintray-Version" -> version.version.value)
       .put(file.toFile)
 
     val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
