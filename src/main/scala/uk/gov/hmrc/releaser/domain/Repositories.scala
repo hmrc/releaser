@@ -48,7 +48,7 @@ case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)
 
 class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoFlavour]){
 
-  def findReposOfArtefact(artefactName: String): Try[RepoFlavour] = {
+  def findReposOfArtefact(artefactName: ArtefactName): Try[RepoFlavour] = {
     repos.find { repo =>
       metaDataGetter(repo.releaseCandidateRepo, artefactName).isSuccess
     } match {

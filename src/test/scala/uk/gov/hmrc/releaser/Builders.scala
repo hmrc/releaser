@@ -105,8 +105,9 @@ object Builders {
                                githubTagRefPublisher:(String, String, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
                                )={
 
+    val taggerAndReleaser = Releaser.createGitHubTagAndRelease(githubTagObjectPublisher, githubTagRefPublisher, githubReleasePublisher) _
     val artefactBuilder = successfulArtefactBulider(artefactMetaData)
-    new Coordinator(stageDir, artefactBuilder, githubRepoGetter, githubReleasePublisher, githubTagObjectPublisher, githubTagRefPublisher)
+    new Coordinator(stageDir, artefactBuilder, githubRepoGetter, taggerAndReleaser)
   }
 
   def buildConnector(jarResoure:String, pomResource:String) = new RepoConnector(){

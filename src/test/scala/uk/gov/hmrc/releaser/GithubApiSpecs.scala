@@ -132,13 +132,12 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
           |  "name": "1.0.1",
           |  "tag_name": "v1.0.1",
           |  "body": "the message",
-          |  "target_commitish": "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
           |  "draft" : false,
           |  "prerelease" : false
           |}
         """.stripMargin
 
-      val bodyJson: JsValue = GithubApi.buildReleaseBody("the message", "1.0.1", "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c")
+      val bodyJson: JsValue = GithubApi.buildReleaseBody("the message", "1.0.1")
 
 
       Json.prettyPrint(bodyJson) shouldBe Json.prettyPrint(Json.parse(expectedBody))
