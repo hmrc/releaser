@@ -17,6 +17,7 @@
 package uk.gov.hmrc.releaser
 
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone.UTC
 import org.scalatest.{Matchers, TryValues, WordSpec}
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.releaser.domain.ArtefactMetaData
@@ -84,7 +85,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
 
     "create the correct body for creating an annotated tag object" in {
 
-      val tagDate = new DateTime(2011, 6, 17, 14, 53, 35)
+      val tagDate = new DateTime(2011, 6, 17, 14, 53, 35, UTC)
 
       val expectedBody =
         s"""
@@ -95,7 +96,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues{
            |  "tagger": {
            |    "name": "hmrc-web-operations",
            |    "email": "hmrc-web-operations@digital.hmrc.gov.uk",
-           |    "date": "2011-06-17T14:53:35+01:00"
+           |    "date": "2011-06-17T14:53:35Z"
            |  },
            |  "type": "commit"
            |}
