@@ -19,7 +19,9 @@ package uk.gov.hmrc.releaser
 package object domain {
 
   type CommitSha = String
-  type Repo = String
+//  type Repo = String
   type ArtefactName = String
   type Url = String
+
+  case class Repo(value:String) extends AnyVal
 }

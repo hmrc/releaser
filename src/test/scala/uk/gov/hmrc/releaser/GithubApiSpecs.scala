@@ -18,43 +18,54 @@ package uk.gov.hmrc.releaser
 
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
-import org.scalatest.{Matchers, TryValues, WordSpec}
+import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.releaser.domain.{ReleaseVersion, ReleaseCandidateVersion, ArtefactMetaData}
+import uk.gov.hmrc.releaser.Builders._
+import uk.gov.hmrc.releaser.domain._
 
 import scala.util.{Success, Try}
 
-class GithubApiSpecs extends WordSpec with Matchers with TryValues{
+class GithubApiSpecs extends WordSpec with Matchers with TryValues with OptionValues{
+  
+  val repo = Repo("myRepo")
 
-  "GithubApiSpecs" should {
+  "GithubApi" should {
 
-    "create the correct url for creating a release" in {
-      val url = GithubApi.buildReleasePostUrl("myArtefact")
+    "post to the correct repo when artefact and repo names are different" in {
 
-      url shouldBe "https://api.github.com/repos/hmrc/myArtefact/releases"
+      var postUrl:Option[Url] = None
+      val poster: (Url, JsValue) => Try[Unit] = (u, _) => { postUrl = Some(u); Success() }
+
+      val md = anArtefactMetaData
+      val vm = VersionMapping(RepoFlavours.mavenRepository, "bintray-artefact", repo, aReleaseCandidateVersion, aReleaseVersion)
+
+      GithubApi.createRelease(poster)("0.1.0")(md, vm)
+
+      postUrl.value shouldBe "https://api.github.com/repos/hmrc/myRepo/releases"
     }
 
+    "create the correct url for creating a release" in {
+      val url = GithubApi.buildReleasePostUrl(repo)
+      url shouldBe "https://api.github.com/repos/hmrc/myRepo/releases"
+    }
 
     "create the correct url for creating an annotated tag object" in {
-      val url = GithubApi.buildAnnotatedTagObjectPostUrl("myArtefact")
-
-      url shouldBe "https://api.github.com/repos/hmrc/myArtefact/git/tags"
+      val url = GithubApi.buildAnnotatedTagObjectPostUrl(repo)
+      url shouldBe "https://api.github.com/repos/hmrc/myRepo/git/tags"
     }
 
     "create the correct url for creating an annotated tag reference" in {
-      val url = GithubApi.buildAnnotatedTagRefPostUrl("myArtefact")
-
-      url shouldBe "https://api.github.com/repos/hmrc/myArtefact/git/refs"
+      val url = GithubApi.buildAnnotatedTagRefPostUrl(repo)
+      url shouldBe "https://api.github.com/repos/hmrc/myRepo/git/refs"
     }
 
     "create the correct url for getting a commit" in {
-      val url = GithubApi.buildCommitGetUrl("myArtefact", "thesha")
-
-      url shouldBe "https://api.github.com/repos/hmrc/myArtefact/git/commits/thesha"
+      val url = GithubApi.buildCommitGetUrl(repo, "thesha")
+      url shouldBe "https://api.github.com/repos/hmrc/myRepo/git/commits/thesha"
     }
 
     "verify the commit" in {
-      val getResult: Try[Unit] = GithubApi.verifyCommit((s) => Success(()))("myArtefact", "thesha")
+      val getResult: Try[Unit] = GithubApi.verifyCommit((s) => Success(()))(repo, "thesha")
       getResult shouldBe Success(())
     }
 

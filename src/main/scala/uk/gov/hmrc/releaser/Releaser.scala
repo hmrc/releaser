@@ -72,12 +72,21 @@ object Releaser {
 
   def apply(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
-      case Some(config) => start(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, config.dryRun)
+      case Some(config) => {
+        val githubName = config.githubNameOverride.getOrElse(config.artefactName)
+        start(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.dryRun)
+      }
       case None => -1
     }
   }
 
-  def start(artefactName: String, rcVersion: ReleaseCandidateVersion, releaseType: ReleaseType.Value, dryRun:Boolean = false):Int={
+  def start(
+             artefactName: String,
+             rcVersion: ReleaseCandidateVersion,
+             releaseType: ReleaseType.Value,
+             gitHubName:String,
+             dryRun:Boolean = false
+             ):Int={
     val tmpDir = Files.createTempDirectory("releaser")
 
 
@@ -105,7 +114,7 @@ object Releaser {
       val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
 
       targetVersion.flatMap { tv =>
-        val result: Try[Unit] = releaser.start(artefactName, rcVersion, tv)
+        val result: Try[Unit] = releaser.start(artefactName, Repo(gitHubName), rcVersion, tv)
         Try {
           FileUtils.forceDelete(tmpDir.toFile)
         }
@@ -158,8 +167,8 @@ object Releaser {
                                   githubReleaseCreator: (ArtefactMetaData, VersionMapping) => Try[Unit])
                                 (metaData: ArtefactMetaData, map: VersionMapping):Try[Unit]={
     for(
-      tagSha <- githubTagObjectCreator(map.artefactName, map.targetVersion, metaData.sha);
-      _      <- githubTagRefCreator(map.artefactName, map.targetVersion, tagSha);
+      tagSha <- githubTagObjectCreator(map.gitRepo, map.targetVersion, metaData.sha);
+      _      <- githubTagRefCreator(map.gitRepo, map.targetVersion, tagSha);
       _      <- githubReleaseCreator(metaData, map))
       yield ()
   }
@@ -199,10 +208,10 @@ class Releaser(stageDir:Path,
                connectorBuilder:(RepoFlavour) => RepoConnector,
                coordinator:Coordinator){
 
-  def start(artefactName: String, rcVersion: ReleaseCandidateVersion, targetVersionString: ReleaseVersion): Try[Unit] = {
+  def start(artefactName: String, gitRepo:Repo, rcVersion: ReleaseCandidateVersion, targetVersionString: ReleaseVersion): Try[Unit] = {
 
     repositoryFinder(artefactName) flatMap { repo =>
-      val ver = VersionMapping(repo, artefactName, rcVersion, targetVersionString)
+      val ver = VersionMapping(repo, artefactName, gitRepo, rcVersion, targetVersionString)
       coordinator.start(ver, connectorBuilder(repo))
     }
   }
@@ -211,7 +220,7 @@ class Releaser(stageDir:Path,
 class Coordinator(
                    stageDir:Path,
                    artefactBuilder:(Path) => Try[ArtefactMetaData],
-                   verifyGithubTagExists:(CommitSha, String) => Try[Unit],
+                   verifyGithubTagExists:(Repo, CommitSha) => Try[Unit],
                    createGithubTagAndRelease:(ArtefactMetaData, VersionMapping) => Try[Unit]){
 
   val logger = new Logger()
@@ -222,7 +231,7 @@ class Coordinator(
     for(
       localFile <- connector.downloadJar(map.sourceArtefact);
       metaData  <- artefactBuilder(localFile);
-      _         <- verifyGithubTagExists(map.artefactName, metaData.sha);
+      _         <- verifyGithubTagExists(map.gitRepo, metaData.sha);
       path      <- manifestTransformer(localFile, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
       _         <- connector.uploadJar(map.targetArtefact, path);
       _         <- uploadNewPom(map, connector);

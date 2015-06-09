@@ -18,7 +18,7 @@ package uk.gov.hmrc.releaser
 
 import org.joda.time.DateTime
 import org.scalatest.{OptionValues, TryValues, Matchers, WordSpec}
-import uk.gov.hmrc.releaser.domain.{RepoFlavours, VersionMapping, ArtefactMetaData}
+import uk.gov.hmrc.releaser.domain.{Repo, RepoFlavours, VersionMapping, ArtefactMetaData}
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Success
@@ -31,7 +31,7 @@ class ReleaserSpecs extends WordSpec with Matchers with TryValues with OptionVal
     "create a function that calls github api in the correct order to create an annotated tag and release: create-tag-object -> create-tag-ref -> create-release" in {
 
       val artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now())
-      val ver = VersionMapping(RepoFlavours.mavenRepository, "a", aReleaseCandidateVersion, aReleaseVersion)
+      val ver = VersionMapping(RepoFlavours.mavenRepository, "a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion)
 
       val executedCalls = ListBuffer[String]()
 

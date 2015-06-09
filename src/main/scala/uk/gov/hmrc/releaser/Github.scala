@@ -39,6 +39,10 @@ object GithubApi{
 
   val taggerName  = "hmrc-web-operations"
   val taggerEmail = "hmrc-web-operations@digital.hmrc.gov.uk"
+  
+  type JsonGetReturnUnit  = (Url) => Try[Unit]
+  type JsonPostReturnUnit = (Url, JsValue) => Try[Unit]
+  type JsonPostReturnSha  = (Url, JsValue) => Try[CommitSha]
 
   case class Tagger(name:String, email:String, date:String)
   case class TagObject(tag:String, message:String, `object`:String, tagger: Tagger, `type`:String = "commit")
@@ -80,7 +84,7 @@ object GithubApi{
     getter(buildCommitGetUrl(repo, sha))
   }
 
-  def createAnnotatedTagRef(tagger: (Url, JsValue) => Try[Unit])(releaserVersion:String)
+  def createAnnotatedTagRef(tagger:JsonPostReturnUnit)(releaserVersion:String)
                            (repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[Unit] = {
     logger.debug("creating annotated tag ref from " + targetVersion + " version mapping " + targetVersion)
 
@@ -94,7 +98,7 @@ object GithubApi{
     tagger(url, body)
   }
   
-  def createAnnotatedTagObject(tagger: (Url, JsValue) => Try[CommitSha])(releaserVersion:String)
+  def createAnnotatedTagObject(tagger: JsonPostReturnSha)(releaserVersion:String)
                               (repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[CommitSha] = {
     logger.debug("creating annotated tag object from " + targetVersion + " version mapping " + targetVersion)
 
@@ -108,11 +112,11 @@ object GithubApi{
     tagger(url, body)
   }
 
-  def createRelease(tagger: (Url, JsValue) => Try[Unit])(releaserVersion:String)
+  def createRelease(tagger: JsonPostReturnUnit)(releaserVersion:String)
                    (artefactMd: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
     logger.debug("creating release from " + artefactMd + " version mapping " + v)
 
-    val url = buildReleasePostUrl(v.artefactName)
+    val url = buildReleasePostUrl(v.gitRepo)
 
     val message = buildMessage(v.artefactName, v.targetVersion, releaserVersion, v.sourceVersion, artefactMd)
 
@@ -161,19 +165,19 @@ object GithubApi{
   }
 
   def buildCommitGetUrl(repo:Repo, sha:CommitSha)={
-    s"https://api.github.com/repos/hmrc/$repo/git/commits/$sha"
+    s"https://api.github.com/repos/hmrc/${repo.value}/git/commits/$sha"
   }
   
   def buildAnnotatedTagRefPostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/$repo/git/refs"
+    s"https://api.github.com/repos/hmrc/${repo.value}/git/refs"
   }
 
   def buildAnnotatedTagObjectPostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/$repo/git/tags"
+    s"https://api.github.com/repos/hmrc/${repo.value}/git/tags"
   }
   
   def buildReleasePostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/$repo/releases"
+    s"https://api.github.com/repos/hmrc/${repo.value}/releases"
   }
 }
 

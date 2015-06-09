@@ -22,6 +22,7 @@ object ArgParser{
                      artefactName: String = "",
                      rcVersion:String = "",
                      releaseType:ReleaseType.Value = ReleaseType.PATCH,
+                     githubNameOverride:Option[String] = None,
                      tag:Boolean = true,
                      verbose:Boolean = false,
                      dryRun:Boolean = false)
@@ -42,6 +43,8 @@ object ArgParser{
     } text "the release type. Permitted values are: " + ReleaseType.stringValues.mkString(" ")
     opt[Boolean]("tag") action { (x, c) =>
       c.copy(tag = x) } text "tag in github"
+    opt[String]("github-name-override") action { (x, c) =>
+      c.copy(githubNameOverride = Option(x)) } text "provide a different github repository to the bintray package"
     opt[Boolean]('v', "verbose") action { (x, c) =>
       c.copy(verbose = x) } text "verbose mode (not implemented)"
     opt[Unit]('d', "dryRun") action { (_, c) =>

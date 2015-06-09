@@ -26,6 +26,10 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       override def scalaVersion: String = "2.10"
     }
 
+    val repoName = "sbt-plugin-release-candidates"
+    val artefactName = "sbt-bobby"
+    val repo = Repo("sbt-bobby")
+
     "Generate URL for files on Bintray" in {
       val expectedJarUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby.jar"
       val expectedPomUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/ivys/ivy.xml"
@@ -33,11 +37,9 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       val jarFile = "sbt-bobby.jar"
       val pomFile = "ivy.xml"
 
-      val repoName = "sbt-plugin-release-candidates"
-      val artefactName = "sbt-bobby"
       val releaseCandidateVersion = ReleaseCandidateVersion("0.8.1-4-ge733d26")
 
-      val version = VersionDescriptor(repoName, artefactName, releaseCandidateVersion)
+      val version = VersionDescriptor(repoName, artefactName, repo, releaseCandidateVersion)
 
       ivyPaths.jarFilenameFor(version) shouldBe jarFile
       ivyPaths.pomFilenameFor(version) shouldBe pomFile
@@ -50,10 +52,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       val expectedJarUrl = "https://bintray.com/api/v1/content/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/jars/sbt-bobby.jar"
       val expectedIvyUrl = "https://bintray.com/api/v1/content/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/ivys/ivy.xml"
 
-      val repoName = "sbt-plugin-release-candidates"
-      val artefactName = "sbt-bobby"
-
-      val version = VersionDescriptor(repoName, artefactName, ReleaseVersion("0.9.0"))
+      val version = VersionDescriptor(repoName, artefactName, repo, ReleaseVersion("0.9.0"))
 
       ivyPaths.jarUploadFor(version) shouldBe expectedJarUrl
       ivyPaths.pomUploadFor(version) shouldBe expectedIvyUrl

@@ -30,6 +30,9 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
       override def scalaVersion: String = "2.10"
     }
 
+    val artefactName = "time"
+    val repo = Repo("time")
+
     "Generate URL for a jar file on Bintray" in {
       val expectedJarUrl = "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/time_2.10/1.3.0-1-g21312cc/time_2.10-1.3.0-1-g21312cc.jar"
 
@@ -37,7 +40,7 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
       val artefactName = "time"
       val releaseCandidateVersion = ReleaseCandidateVersion("1.3.0-1-g21312cc")
 
-      val version = VersionDescriptor(repoName, artefactName, releaseCandidateVersion)
+      val version = VersionDescriptor(repoName, artefactName, repo, releaseCandidateVersion)
 
       mavenPaths.jarFilenameFor(version) shouldBe "time_2.10-1.3.0-1-g21312cc.jar"
       mavenPaths.jarDownloadFor(version) shouldBe expectedJarUrl
@@ -49,7 +52,7 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
       val repoName = "releases"
       val artefactName = "time"
 
-      val version = VersionDescriptor(repoName, artefactName, ReleaseVersion("1.4.0"))
+      val version = VersionDescriptor(repoName, artefactName, repo, ReleaseVersion("1.4.0"))
 
       mavenPaths.jarUploadFor(version) shouldBe expectedUrl
 
@@ -59,8 +62,7 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
       val expectedUrl = "https://bintray.com/api/v1/content/hmrc/releases/time/0.9.9/publish"
 
       val repoName = "releases"
-      val artefactName = "time"
-      val version = VersionDescriptor(repoName, artefactName, ReleaseVersion("0.9.9"))
+      val version = VersionDescriptor(repoName, artefactName, repo, ReleaseVersion("0.9.9"))
 
       mavenPaths.publishUrlFor(version) shouldBe expectedUrl
 
