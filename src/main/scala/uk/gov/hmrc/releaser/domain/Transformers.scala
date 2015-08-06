@@ -23,6 +23,7 @@ import java.util.zip.{ZipEntry, ZipFile, ZipOutputStream}
 
 import com.google.common.io.ByteStreams
 import resource._
+import uk.gov.hmrc.releaser.Logger
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
@@ -30,14 +31,16 @@ import scala.xml._
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 
 trait Transformer{
-  def apply(localFile: Path, targetVersion: ReleaseVersion, targetFileName: String): Try[Path]
+
+  val log = new Logger()
+
+  def apply(localFile: Path, targetVersion: ReleaseVersion, targetFileName: String,stagingDir:Path): Try[Path]
 }
 
 trait XmlTransformer extends Transformer{
 
-  def stagingDir:Path
-
-  def apply(localPomFile: Path, targetVersion: ReleaseVersion, targetFileName: String): Try[Path] =  {
+  def apply(localPomFile: Path, targetVersion: ReleaseVersion, targetFileName: String, stagingDir:Path): Try[Path] =  {
+    log.info(s"Updating POM file $localPomFile")
     val updatedT: Try[Node] = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion)
     updatedT.flatMap { updated => Try{
       val targetFile = stagingDir.resolve(targetFileName)
@@ -49,7 +52,7 @@ trait XmlTransformer extends Transformer{
 
 }
 
-class PomTransformer(val stagingDir:Path) extends XmlTransformer{
+class PomTransformer extends XmlTransformer {
 
   def updateVersion(node: Node, newVersion:ReleaseVersion): Try[Node] = {
     if((node \ "version").isEmpty){
@@ -67,7 +70,7 @@ class PomTransformer(val stagingDir:Path) extends XmlTransformer{
 }
 
 
-class IvyTransformer(val stagingDir:Path) extends XmlTransformer{
+class IvyTransformer extends XmlTransformer{
 
   def updateVersion(node: Node, newVersion:ReleaseVersion): Try[Node] = {
     if((node \ "info" \ "@revision").isEmpty){
@@ -87,7 +90,7 @@ class IvyTransformer(val stagingDir:Path) extends XmlTransformer{
   }
 }
 
-class ManifestTransformer(stagingDir:Path) extends Transformer{
+class ManifestTransformer extends Transformer{
 
   val versionNumberFields = Set("Git-Describe", "Implementation-Version", "Specification-Version")
 
@@ -103,7 +106,7 @@ class ManifestTransformer(stagingDir:Path) extends Transformer{
     }
   }
 
-  def apply(localJarFile:Path, targetVersion:ReleaseVersion, targetJarName:String):Try[Path] = Try {
+  def apply(localJarFile:Path, targetVersion:ReleaseVersion, targetJarName:String, stagingDir:Path):Try[Path] = Try {
 
     val targetFile = stagingDir.resolve(targetJarName)
 

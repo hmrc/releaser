@@ -17,12 +17,12 @@
 package uk.gov.hmrc.releaser.domain
 
 
-trait BintrayPaths{
+trait BintrayPaths {
 
   val bintrayRepoRoot = "https://bintray.com/artifact/download/hmrc"
   val bintrayApiRoot = "https://bintray.com/api/v1"
 
-  def metadata(repo:String, artefactName: String): String = {
+  def metadata(repo: String, artefactName: String): String = {
     s"$bintrayApiRoot/packages/hmrc/$repo/$artefactName"
   }
 
@@ -33,81 +33,69 @@ trait BintrayPaths{
 
 object BintrayPaths extends BintrayPaths
 
-trait PathBuilder extends BintrayPaths{
+trait PathBuilder extends BintrayPaths {
 
-  def jarFilenameFor(v: VersionDescriptor): String
+  def artifactFilenameFor(v: VersionDescriptor): String
 
-  def jarDownloadFor(v: VersionDescriptor): String
+  def artifactDownloadFor(v: VersionDescriptor): String
 
-  def jarUploadFor(v: VersionDescriptor): String
+  def artifactUploadFor(v: VersionDescriptor): String
 
-  def pomUploadFor(v: VersionDescriptor): String
-
-  def pomFilenameFor(v: VersionDescriptor): String
-
-  def pomDownloadUrlFor(v: VersionDescriptor): String
 }
 
 trait BintrayIvyPaths extends PathBuilder {
 
+  import uk.gov.hmrc.releaser.ArtifactType._
+
   val sbtVersion = "sbt_0.13"
-  def scalaVersion:String
 
-  override def jarFilenameFor(v:VersionDescriptor):String={
-    s"${v.artefactName}.jar"
+  def scalaVersion: String
+
+  override def artifactFilenameFor(v: VersionDescriptor): String = {
+    v.classifier.artifactType match {
+      case POM => "ivy.xml"
+      case _ => s"${v.artefactName}${v.classifier.suffix.getOrElse("")}.${v.classifier.extension}"
+    }
   }
 
-  override def jarDownloadFor(v:VersionDescriptor):String={
-    val fileName = jarFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/jars/$fileName"
+  override def artifactDownloadFor(v: VersionDescriptor): String = {
+    val fileName = artifactFilenameFor(v)
+    val folder = getIvyFolder(v)
+    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/$folder/$fileName"
   }
 
-  override def pomDownloadUrlFor(v: VersionDescriptor): String = {
-    val fileName = pomFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/ivys/$fileName"
+  override def artifactUploadFor(v: VersionDescriptor): String = {
+    val fileName = artifactFilenameFor(v)
+    val folder = getIvyFolder(v)
+    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/$folder/$fileName"
   }
 
-  override def jarUploadFor(v:VersionDescriptor):String={
-    val fileName = jarFilenameFor(v)
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/jars/$fileName"
+  private def getIvyFolder(v: VersionDescriptor) = {
+    v.classifier.artifactType match {
+      case JAR => "jars"
+      case POM => "ivys"
+      case SOURCE_JAR => "srcs"
+      case DOC_JAR => "docs"
+      case _ => throw new Exception(s"Unsupported artifact type")
+    }
   }
-
-  override def pomUploadFor(v: VersionDescriptor): String = {
-    val fileName = pomFilenameFor(v)
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/ivys/$fileName"
-  }
-
-  override def pomFilenameFor(v: VersionDescriptor): String = "ivy.xml"
-
 }
 
-trait BintrayMavenPaths extends PathBuilder{
+trait BintrayMavenPaths extends PathBuilder {
 
-  def scalaVersion:String
+  def scalaVersion: String
 
-  def jarFilenameFor(v:VersionDescriptor):String={
-    s"${v.artefactName}_$scalaVersion-${v.version.value}.jar"
+  override def artifactFilenameFor(v: VersionDescriptor): String = {
+    s"${v.artefactName}_$scalaVersion-${v.version.value}${v.classifier.suffix.getOrElse("")}.${v.classifier.extension}"
   }
 
-  def jarDownloadFor(v:VersionDescriptor):String={
-    val fileName = jarFilenameFor(v)
+  override def artifactDownloadFor(v: VersionDescriptor): String = {
+    val fileName = artifactFilenameFor(v)
     s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
-  def pomDownloadUrlFor(v: VersionDescriptor): String = {
-    val fileName = pomFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
-  }
-
-  def jarUploadFor(v:VersionDescriptor):String={
-    val fileName = jarFilenameFor(v)
-    s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
-  }
-
-  def pomFilenameFor(v: VersionDescriptor) = s"${v.artefactName}_$scalaVersion-${v.version.value}.pom"
-
-  def pomUploadFor(v: VersionDescriptor): String={
-    val fileName = pomFilenameFor(v)
+  override def artifactUploadFor(v: VersionDescriptor): String = {
+    val fileName = artifactFilenameFor(v)
     s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 

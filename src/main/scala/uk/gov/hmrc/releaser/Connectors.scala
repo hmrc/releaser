@@ -24,25 +24,25 @@ import uk.gov.hmrc.releaser.domain.VersionDescriptor
 import scala.sys.process._
 import scala.util.Try
 
-trait RepoConnector{
-  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[Unit]
-  def downloadJar(version:VersionDescriptor):Try[Path]
-  def uploadPom(version: VersionDescriptor, pomPath:Path):Try[Unit]
-  def downloadPom(version:VersionDescriptor):Try[Path]
-  def publish(version: VersionDescriptor):Try[Unit]
+trait RepoConnector {
+  def uploadArtifacts(versions: Seq[VersionDescriptor], localFiles: Map[ArtifactClassifier, Path]): Try[Unit]
+
+  def downloadArtifacts(versions: Seq[VersionDescriptor]): Try[Map[ArtifactClassifier, Path]]
+
+  def publish(version: VersionDescriptor): Try[Unit]
 }
 
 
-trait MetaConnector{
+trait MetaConnector {
 
-  def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]
+  def getRepoMetaData(repoName: String, artefactName: String): Try[Unit]
 
-  def publish(version: VersionDescriptor):Try[Unit]
+  def publish(version: VersionDescriptor): Try[Unit]
 
 }
 
 
-object Http{
+object Http {
 
   val log = new Logger()
 

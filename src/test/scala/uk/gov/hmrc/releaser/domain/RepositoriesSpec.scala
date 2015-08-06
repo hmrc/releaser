@@ -25,8 +25,8 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Try
   "Repositories" should {
 
     val repos = Seq(
-      new BintrayRepository("candidate-repo-1", "release-repo-1") with IvyRepo,
-      new BintrayRepository("candidate-repo-1", "release-repo-2") with MavenRepo
+      new BintrayRepository("candidate-repo-1", "release-repo-1") with IvyRepo { def workDir = ???},
+      new BintrayRepository("candidate-repo-1", "release-repo-2") with MavenRepo{ def workDir = ???}
     )
 
     val artefactName = "artefact"

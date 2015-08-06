@@ -20,23 +20,21 @@ import java.nio.file.{Files, Path}
 
 import scala.util.{Failure, Success, Try}
 
-trait RepoFlavour extends PathBuilder{
-  val workDir:Path = Files.createTempDirectory("releaser")
-
-  def scalaVersion:String
-  def releaseCandidateRepo:String
-  def releaseRepo:String
-  def pomTransformer:XmlTransformer
+trait RepoFlavour extends PathBuilder {
+  def scalaVersion: String
+  def releaseCandidateRepo: String
+  def releaseRepo: String
+  def pomTransformer: XmlTransformer
 }
 
-trait IvyRepo extends RepoFlavour with BintrayIvyPaths{
+trait IvyRepo extends RepoFlavour with BintrayIvyPaths {
   val scalaVersion = "2.10"
-  val pomTransformer = new IvyTransformer(workDir)
+  val pomTransformer = new IvyTransformer
 }
 
-trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
+trait MavenRepo extends RepoFlavour with BintrayMavenPaths {
   val scalaVersion = "2.11"
-  val pomTransformer = new PomTransformer(workDir)
+  val pomTransformer = new PomTransformer
 }
 
 object RepoFlavours {
@@ -44,9 +42,9 @@ object RepoFlavours {
   val ivyRepository: RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
 }
 
-case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)
+case class BintrayRepository(releaseCandidateRepo: String, releaseRepo: String)
 
-class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoFlavour]){
+class Repositories(metaDataGetter: (String, String) => Try[Unit])(repos: Seq[RepoFlavour]) {
 
   def findReposOfArtefact(artefactName: ArtefactName): Try[RepoFlavour] = {
     repos.find { repo =>

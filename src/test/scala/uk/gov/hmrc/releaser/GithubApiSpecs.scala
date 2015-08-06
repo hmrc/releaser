@@ -37,7 +37,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues with OptionVa
       val poster: (Url, JsValue) => Try[Unit] = (u, _) => { postUrl = Some(u); Success() }
 
       val md = anArtefactMetaData
-      val vm = VersionMapping(RepoFlavours.mavenRepository, "bintray-artefact", repo, aReleaseCandidateVersion, aReleaseVersion)
+      val vm = VersionMapping(RepoFlavours.mavenRepository, "bintray-artefact", artifactClassifiers, repo, aReleaseCandidateVersion, aReleaseVersion)
 
       GithubApi.createRelease(poster)("0.1.0")(md, vm)
 
