@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.releaser
 
+import java.io.FileOutputStream
 import java.net.URL
 import java.nio.file.Path
 
 import uk.gov.hmrc.releaser.domain.VersionDescriptor
 
-import scala.sys.process._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 trait RepoConnector {
   def uploadArtifacts(versions: Seq[VersionDescriptor], localFiles: Map[ArtifactClassifier, Path]): Try[Unit]
@@ -46,8 +46,26 @@ object Http {
 
   val log = new Logger()
 
-  def url2File(url: String, targetFile: Path): Try[Unit] = Try {
+  def url2File(url: String, targetFile: Path, mandatory: Boolean): Try[Option[Path]] = {
     log.info(s"downloading $url to $targetFile")
-    new URL(url) #> targetFile.toFile !!
+    try {
+
+      val connection = new URL(url).openConnection()
+      val input = connection.getInputStream
+      val buffer = new Array[Byte](4096)
+      var n = - 1
+      val output = new FileOutputStream(targetFile.toFile)
+
+      Stream.continually(input.read(buffer)).takeWhile(_ != -1).foreach(output.write(buffer, 0, _))
+
+      output.close()
+
+      Success(Some(targetFile))
+    } catch {
+      case e: Exception => if(mandatory) Failure(e) else {
+        log.info(s"Download od file $url failed, but it's not mandatory, so ignoring it"); Success(None)
+      }
+    }
   }
+
 }

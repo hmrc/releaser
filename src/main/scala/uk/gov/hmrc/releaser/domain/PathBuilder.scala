@@ -76,6 +76,7 @@ trait BintrayIvyPaths extends PathBuilder {
       case POM => "ivys"
       case SOURCE_JAR => "srcs"
       case DOC_JAR => "docs"
+      case TGZ => "tgzs"
       case _ => throw new Exception(s"Unsupported artifact type")
     }
   }

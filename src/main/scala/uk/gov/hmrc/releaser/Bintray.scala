@@ -55,20 +55,20 @@ class BintrayRepoConnector(workDir: Path, bintrayHttp: BintrayHttp, bintrayPaths
 
 
   override def uploadArtifacts(versions: Seq[VersionDescriptor], localFiles: Map[ArtifactClassifier, Path]): Try[Unit] = Try {
-      versions.map { version =>
-        localFiles.get(version.classifier).map {fileToUpload =>
-          val url = bintrayPaths.artifactUploadFor(version)
-          bintrayHttp.putFile(version, fileToUpload, url)
-        }
-      }.map(_.get)
-    }
+    versions.map { version =>
+      localFiles.get(version.classifier).map { fileToUpload =>
+        val url = bintrayPaths.artifactUploadFor(version)
+        bintrayHttp.putFile(version, fileToUpload, url)
+      }
+    }.flatten.map(_.get)
+  }
 
   override def downloadArtifacts(versions: Seq[VersionDescriptor]): Try[Map[ArtifactClassifier, Path]] = Try {
     val localPaths = versions.map { version =>
 
       val fileName = bintrayPaths.artifactFilenameFor(version)
       val url = bintrayPaths.artifactDownloadFor(version)
-      downloadFile(url, fileName, version.classifier.mandatory).map (df => df.map( f => version.classifier -> f) )
+      downloadFile(url, fileName, version.classifier.mandatory).map(df => df.map(f => version.classifier -> f))
     }.map(_.get).flatten
 
     localPaths.toMap
@@ -82,9 +82,7 @@ class BintrayRepoConnector(workDir: Path, bintrayHttp: BintrayHttp, bintrayPaths
   private def downloadFile(url: String, fileName: String, mandatory: Boolean): Try[Option[Path]] = {
     val targetFile = workDir.resolve(fileName)
 
-    Http.url2File(url, targetFile) map { unit => Some(targetFile)} recover {
-      case _ if !mandatory => None
-    }
+    Http.url2File(url, targetFile, mandatory)
   }
 }
 

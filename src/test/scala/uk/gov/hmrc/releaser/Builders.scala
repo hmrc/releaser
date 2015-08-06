@@ -116,7 +116,8 @@ object Builders {
     new Coordinator(stageDir, artefactBuilder, githubRepoGetter, taggerAndReleaser)
   }
 
-  def buildConnector(jarResource:String, pomResource:String, srcResource: Option[String] = None, docsResource: Option[String] = None) = new RepoConnector(){
+  def buildConnector(jarResource:String, pomResource:String, srcResource: Option[String] = None,
+                     docsResource: Option[String] = None, tgzResource: Option[String] = None) = new RepoConnector(){
 
     val lastUploadedArtifacts: mutable.Map[ArtifactType, (VersionDescriptor, Path)] = mutable.Map()
     var lastPublishDescriptor:Option[VersionDescriptor] = None
@@ -143,6 +144,7 @@ object Builders {
             case ArtifactType.POM => Some(pomResource)
             case ArtifactType.SOURCE_JAR => srcResource
             case ArtifactType.DOC_JAR => docsResource
+            case ArtifactType.TGZ => tgzResource
             case _ => throw new Exception("Unsupported artifact type")
           }
           filename.map( fn => v.classifier -> Paths.get(this.getClass.getResource(fn).toURI))

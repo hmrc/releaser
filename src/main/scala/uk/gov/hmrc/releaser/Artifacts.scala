@@ -22,7 +22,7 @@ import scala.util.Try
 
 object ArtifactType extends Enumeration {
   type ArtifactType = Value
-  val JAR, POM, SOURCE_JAR, DOC_JAR = Value
+  val JAR, POM, SOURCE_JAR, DOC_JAR, TGZ = Value
 }
 
 case class ArtifactClassifier(artifactType: ArtifactType, extension: String, suffix: Option[String], mandatory: Boolean, isMainArtifact: Boolean = false)
@@ -35,8 +35,8 @@ object Artifacts {
     ArtifactClassifier(artifactType = JAR,  extension = "jar", suffix = None, mandatory = true, isMainArtifact = true),
     ArtifactClassifier(artifactType = POM, extension = "pom", suffix = None, mandatory = true),
     ArtifactClassifier(artifactType = DOC_JAR, extension = "jar", suffix = Some("-javadoc"), mandatory = false),
-    ArtifactClassifier(artifactType = SOURCE_JAR, extension = "jar", suffix = Some("-sources"), mandatory = false)
-  //TODO add tgz
+    ArtifactClassifier(artifactType = SOURCE_JAR, extension = "jar", suffix = Some("-sources"), mandatory = false),
+    ArtifactClassifier(artifactType = TGZ, extension = "tgz", suffix = None, mandatory = false)
   )
 
   def findPomArtifact(artifacts: Seq[ArtifactClassifier]) : Try[ArtifactClassifier] = Try {

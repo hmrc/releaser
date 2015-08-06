@@ -72,13 +72,14 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "0.9.9"
     }
 
-    "release version 0.9.9 with docs and sources when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
+    "release version 0.9.9 with docs, sources and tgz when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = Builders.buildConnector(
         "/time/time_2.11-1.3.0-1-g21312cc.jar",
         "/time/time_2.11-1.3.0-1-g21312cc.pom",
         Some("/time/time_2.11-1.3.0-1-g21312cc-sources.jar"),
-        Some("/time/time_2.11-1.3.0-1-g21312cc-javadoc.jar")
+        Some("/time/time_2.11-1.3.0-1-g21312cc-javadoc.jar"),
+        Some("/time/time_2.11-1.3.0-1-g21312cc.tgz")
       )
 
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
@@ -97,12 +98,14 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val (pomVersion, pomFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.POM)
       val (docVersion, docFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.DOC_JAR)
       val (srcVersion, srcFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.SOURCE_JAR)
+      val (tgzVersion, tgzFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.TGZ)
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
       jarFile.getFileName.toString should endWith(".jar")
       pomFile.getFileName.toString should endWith(".pom")
       srcFile.getFileName.toString should endWith(".jar")
       docFile.getFileName.toString should endWith(".jar")
+      tgzFile.getFileName.toString should endWith(".tgz")
       publishedDescriptor should not be None
 
       jarVersion.version.value shouldBe "0.9.9"
