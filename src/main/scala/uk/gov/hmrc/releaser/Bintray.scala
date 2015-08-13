@@ -55,34 +55,42 @@ class BintrayRepoConnector(workDir: Path, bintrayHttp: BintrayHttp, bintrayPaths
 
 
   override def uploadArtifacts(versions: Seq[VersionDescriptor], localFiles: Map[ArtifactClassifier, Path]): Try[Unit] = Try {
-    versions.map { version =>
+    val uploadResults: Seq[Try[Unit]] = versions.flatMap { version =>
       localFiles.get(version.classifier).map { fileToUpload =>
         val url = bintrayPaths.artifactUploadFor(version)
         bintrayHttp.putFile(version, fileToUpload, url)
       }
-    }.flatten.map(_.get)
+    }
+    uploadResults.find(_.isFailure).getOrElse(Success(Unit))
   }
 
-  override def downloadArtifacts(versions: Seq[VersionDescriptor]): Try[Map[ArtifactClassifier, Path]] = Try {
-    val localPaths = versions.map { version =>
+  def sequence[A](trys:Seq[Try[A]]):Try[Seq[A]]={
+    trys.find(_.isFailure) match {
+      case Some(Failure(e)) => Failure[Seq[A]](e)
+      case None => Success(trys.map(_.get))
+    }
+  }
+
+  override def downloadArtifacts(versions: Seq[VersionDescriptor]): Try[Map[ArtifactClassifier, Path]] =  {
+    val localPaths: Seq[Try[(ArtifactClassifier, Path)]] = versions.map { version =>
 
       val fileName = bintrayPaths.artifactFilenameFor(version)
       val url = bintrayPaths.artifactDownloadFor(version)
-      downloadFile(url, fileName, version.classifier.mandatory).map(df => df.map(f => version.classifier -> f))
-    }.map(_.get).flatten
+      downloadFile(url, fileName).map(df => version.classifier -> df)
+    }
 
-    localPaths.toMap
+    sequence(localPaths).map(_.toMap)
   }
-
+  
   override def publish(version: VersionDescriptor): Try[Unit] = {
     val url = bintrayPaths.publishUrlFor(version)
     bintrayHttp.emptyPost(url)
   }
 
-  private def downloadFile(url: String, fileName: String, mandatory: Boolean): Try[Option[Path]] = {
+  private def downloadFile(url: String, fileName: String): Try[Path] = {
     val targetFile = workDir.resolve(fileName)
 
-    Http.url2File(url, targetFile, mandatory)
+    Http.url2File(url, targetFile)
   }
 }
 

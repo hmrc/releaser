@@ -46,7 +46,7 @@ object Http {
 
   val log = new Logger()
 
-  def url2File(url: String, targetFile: Path, mandatory: Boolean): Try[Option[Path]] = {
+  def url2File(url: String, targetFile: Path): Try[Path] = {
     log.info(s"downloading $url to $targetFile")
     try {
 
@@ -56,15 +56,13 @@ object Http {
       var n = - 1
       val output = new FileOutputStream(targetFile.toFile)
 
-      Stream.continually(input.read(buffer)).takeWhile(_ != -1).foreach(output.write(buffer, 0, _))
+      Iterator.continually(input.read(buffer)).takeWhile(_ != -1).foreach(output.write(buffer, 0, _))
 
       output.close()
 
-      Success(Some(targetFile))
+      Success(targetFile)
     } catch {
-      case e: Exception => if(mandatory) Failure(e) else {
-        log.info(s"Download od file $url failed, but it's not mandatory, so ignoring it"); Success(None)
-      }
+      case e: Exception => Failure(e)
     }
   }
 

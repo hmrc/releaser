@@ -21,11 +21,11 @@ import uk.gov.hmrc.releaser.{ArtifactType, ArtifactClassifier}
 
 class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
-  val jarClassifier = ArtifactClassifier(ArtifactType.JAR, "jar", None, true, true)
-  val pomClassifier = ArtifactClassifier(ArtifactType.POM, "pom", None, true)
-  val srcClassifier = ArtifactClassifier(ArtifactType.SOURCE_JAR, "jar", Some("-sources"), false)
-  val docClassifier = ArtifactClassifier(ArtifactType.DOC_JAR, "jar", Some("-javadoc"), false)
-  val tgzClassifier = ArtifactClassifier(ArtifactType.TGZ, "tgz", None, false)
+  val jarClassifier = ArtifactClassifier(ArtifactType.JAR, "jar", None, true)
+  val pomClassifier = ArtifactClassifier(ArtifactType.POM, "pom", None)
+  val srcClassifier = ArtifactClassifier(ArtifactType.SOURCE_JAR, "jar", Some("-sources"))
+  val docClassifier = ArtifactClassifier(ArtifactType.DOC_JAR, "jar", Some("-javadoc"))
+  val tgzClassifier = ArtifactClassifier(ArtifactType.TGZ, "tgz", None)
 
   "BintrayIvyPathsSpecs" should {
 

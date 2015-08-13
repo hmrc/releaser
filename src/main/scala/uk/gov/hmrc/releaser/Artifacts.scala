@@ -25,18 +25,18 @@ object ArtifactType extends Enumeration {
   val JAR, POM, SOURCE_JAR, DOC_JAR, TGZ = Value
 }
 
-case class ArtifactClassifier(artifactType: ArtifactType, extension: String, suffix: Option[String], mandatory: Boolean, isMainArtifact: Boolean = false)
+case class ArtifactClassifier(artifactType: ArtifactType, extension: String, suffix: Option[String], isMainArtifact: Boolean = false)
 
 object Artifacts {
 
   import ArtifactType._
 
   def buildSupportedArtifacts(): Seq[ArtifactClassifier] = Seq(
-    ArtifactClassifier(artifactType = JAR,  extension = "jar", suffix = None, mandatory = true, isMainArtifact = true),
-    ArtifactClassifier(artifactType = POM, extension = "pom", suffix = None, mandatory = true),
-    ArtifactClassifier(artifactType = DOC_JAR, extension = "jar", suffix = Some("-javadoc"), mandatory = false),
-    ArtifactClassifier(artifactType = SOURCE_JAR, extension = "jar", suffix = Some("-sources"), mandatory = false),
-    ArtifactClassifier(artifactType = TGZ, extension = "tgz", suffix = None, mandatory = false)
+    ArtifactClassifier(artifactType = JAR,  extension = "jar", suffix = None, isMainArtifact = true),
+    ArtifactClassifier(artifactType = POM, extension = "pom", suffix = None),
+    ArtifactClassifier(artifactType = DOC_JAR, extension = "jar", suffix = Some("-javadoc")),
+    ArtifactClassifier(artifactType = SOURCE_JAR, extension = "jar", suffix = Some("-sources")),
+    ArtifactClassifier(artifactType = TGZ, extension = "tgz", suffix = None)
   )
 
   def findPomArtifact(artifacts: Seq[ArtifactClassifier]) : Try[ArtifactClassifier] = Try {
