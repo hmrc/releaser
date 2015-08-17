@@ -30,13 +30,13 @@ class IvyTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach
   var transformer: IvyTransformer = _
 
   override def beforeEach() {
-    transformer = new IvyTransformer(Files.createTempDirectory("test-release"))
+    transformer = new IvyTransformer
   }
   
   "the ivy transformer" should {
 
     "re-write the ivy with a new version 1.4.0" in {
-      val outFile = transformer(bobbyIvyFile, ReleaseVersion("1.4.0"), "ivy.xml").success.get
+      val outFile = transformer(bobbyIvyFile, ReleaseVersion("1.4.0"), "ivy.xml", Files.createTempDirectory("test-release")).success.get
 
       val ivyVersionText = (XML.loadFile(outFile.toFile) \ "info" \ "@revision").text
 

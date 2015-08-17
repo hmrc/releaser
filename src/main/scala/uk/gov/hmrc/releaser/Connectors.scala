@@ -16,38 +16,54 @@
 
 package uk.gov.hmrc.releaser
 
+import java.io.FileOutputStream
 import java.net.URL
 import java.nio.file.Path
 
 import uk.gov.hmrc.releaser.domain.VersionDescriptor
 
-import scala.sys.process._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
-trait RepoConnector{
-  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[Unit]
-  def downloadJar(version:VersionDescriptor):Try[Path]
-  def uploadPom(version: VersionDescriptor, pomPath:Path):Try[Unit]
-  def downloadPom(version:VersionDescriptor):Try[Path]
-  def publish(version: VersionDescriptor):Try[Unit]
+trait RepoConnector {
+  def uploadArtifacts(versions: Seq[VersionDescriptor], localFiles: Map[ArtifactClassifier, Path]): Try[Unit]
+
+  def downloadArtifacts(versions: Seq[VersionDescriptor]): Try[Map[ArtifactClassifier, Path]]
+
+  def publish(version: VersionDescriptor): Try[Unit]
 }
 
 
-trait MetaConnector{
+trait MetaConnector {
 
-  def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]
+  def getRepoMetaData(repoName: String, artefactName: String): Try[Unit]
 
-  def publish(version: VersionDescriptor):Try[Unit]
+  def publish(version: VersionDescriptor): Try[Unit]
 
 }
 
 
-object Http{
+object Http {
 
   val log = new Logger()
 
-  def url2File(url: String, targetFile: Path): Try[Unit] = Try {
+  def url2File(url: String, targetFile: Path): Try[Path] = {
     log.info(s"downloading $url to $targetFile")
-    new URL(url) #> targetFile.toFile !!
+    try {
+
+      val connection = new URL(url).openConnection()
+      val input = connection.getInputStream
+      val buffer = new Array[Byte](4096)
+      var n = - 1
+      val output = new FileOutputStream(targetFile.toFile)
+
+      Iterator.continually(input.read(buffer)).takeWhile(_ != -1).foreach(output.write(buffer, 0, _))
+
+      output.close()
+
+      Success(targetFile)
+    } catch {
+      case e: Exception => Failure(e)
+    }
   }
+
 }
