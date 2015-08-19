@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.releaser
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.util.jar
 import java.util.jar.Attributes
 import java.util.zip.ZipFile
@@ -31,7 +31,8 @@ import scala.xml.XML
 
 class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with TryValues {
 
-  import uk.gov.hmrc.releaser.Builders._
+  import Builders._
+  import RepoFlavours._
 
   "the coordinator" should {
 
@@ -45,7 +46,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(RepoFlavours.mavenRepository),
+        repositoryFinder = successfulRepoFinder(mavenRepository),
         connectorBuilder = fakeRepoConnectorBuilder,
         artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now()))
 
@@ -54,9 +55,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case _ =>
       }
 
-      val (jarVersion, jarFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.JAR)
-      val (pomVersion, pomFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.POM)
-
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
+      val Some((pomVersion, pomFile)) = fakeRepoConnector.lastUploadedPom
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
       jarFile.getFileName.toString should endWith(".jar")
@@ -72,50 +72,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "0.9.9"
     }
 
-    "release version 0.9.9 with docs, sources and tgz when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
-
-      val fakeRepoConnector = Builders.buildConnector(
-        "/time/time_2.11-1.3.0-1-g21312cc.jar",
-        "/time/time_2.11-1.3.0-1-g21312cc.pom",
-        Some("/time/time_2.11-1.3.0-1-g21312cc-sources.jar"),
-        Some("/time/time_2.11-1.3.0-1-g21312cc-javadoc.jar"),
-        Some("/time/time_2.11-1.3.0-1-g21312cc.tgz")
-      )
-
-      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
-
-      val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(RepoFlavours.mavenRepository),
-        connectorBuilder = fakeRepoConnectorBuilder,
-        artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now()))
-
-      releaser.start("time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
-        case Failure(e) => fail(e)
-        case _ =>
-      }
-
-      val (jarVersion, jarFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.JAR)
-      val (pomVersion, pomFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.POM)
-      val (docVersion, docFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.DOC_JAR)
-      val (srcVersion, srcFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.SOURCE_JAR)
-      val (tgzVersion, tgzFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.TGZ)
-      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
-
-      jarFile.getFileName.toString should endWith(".jar")
-      pomFile.getFileName.toString should endWith(".pom")
-      srcFile.getFileName.toString should endWith(".jar")
-      docFile.getFileName.toString should endWith(".jar")
-      tgzFile.getFileName.toString should endWith(".tgz")
-      publishedDescriptor should not be None
-
-      jarVersion.version.value shouldBe "0.9.9"
-
-      val manifest = manifestFromZipFile(jarFile)
-
-      manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
-      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
-      pomVersionText shouldBe "0.9.9"
-    }
 
     "fail when given the sha in the pom does not exist" in {
       val expectedException = new scala.Exception("no commit message")
@@ -179,7 +135,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
-          repositoryFinder = successfulRepoFinder(RepoFlavours.ivyRepository),
+          repositoryFinder = successfulRepoFinder(ivyRepository),
           connectorBuilder = fakeRepoConnectorBuilder,
           artefactMetaData = ArtefactMetaData("gitsha", "sbt-bobby", DateTime.now()),
           githubReleasePublisher = githubReleaseBuilder.build,
@@ -192,9 +148,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           case _ =>
         }
 
-      val (jarVersion, jarFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.JAR)
-      val (ivyVersion, ivyFile) = fakeRepoConnector.lastUploadedArtifacts(ArtifactType.POM)
 
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
+      val Some((ivyVersion, ivyFile)) = fakeRepoConnector.lastUploadedPom
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
       jarFile.getFileName.toString should be("sbt-bobby.jar")
@@ -218,6 +174,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       githubTagRefBuilder.params.value shouldBe ((Repo("sbt-bobby"), ReleaseVersion("0.1.1"), "the-tag-sha"))
     }
   }
+
+  def tmpDir: Path = Files.createTempDirectory("test-release")
 
   def manifestFromZipFile(file: Path): Option[Attributes] = {
     val zipFile: ZipFile = new ZipFile(file.toFile)
