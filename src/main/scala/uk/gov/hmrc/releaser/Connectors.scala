@@ -16,22 +16,15 @@
 
 package uk.gov.hmrc.releaser
 
-import java.io.FileOutputStream
 import java.net.URL
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
-import com.google.common.io.ByteStreams
 import uk.gov.hmrc.releaser.domain.VersionDescriptor
 
-import scala.io.Source
-import scala.sys.process._
 import scala.util.{Failure, Success, Try}
 
 trait RepoConnector{
-  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[Unit]
   def downloadJar(version:VersionDescriptor):Try[Path]
-  //def uploadPom(version: VersionDescriptor, pomPath:Path):Try[Unit]
-//  def downloadPom(version:VersionDescriptor):Try[Path]
   def publish(version: VersionDescriptor):Try[Unit]
   def findFiles(version: VersionDescriptor):Try[List[String]]
   def downloadFile(version:VersionDescriptor, fileName:String):Try[Path]
@@ -52,17 +45,14 @@ object Http{
 
   val log = new Logger()
 
+  import resource._
+
   def url2File(url: String, targetFile: Path): Try[Path] = {
     log.info(s"downloading $url to $targetFile")
     try {
-
-      val connection = new URL(url).openConnection()
-      val output = new FileOutputStream(targetFile.toFile)
-
-      ByteStreams.copy(connection.getInputStream, output)
-
-      output.flush()
-      output.close()
+      managed(new URL(url).openConnection().getInputStream).foreach { in =>
+        Files.copy(in, targetFile)
+      }
 
       Success(targetFile)
     } catch {

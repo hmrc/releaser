@@ -34,29 +34,33 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       val expectedJarUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby.jar"
       val expectedPomUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/ivys/ivy.xml"
 
-      val jarFile = "sbt-bobby.jar"
-      val pomFile = "ivy.xml"
-
       val releaseCandidateVersion = ReleaseCandidateVersion("0.8.1-4-ge733d26")
 
       val version = VersionDescriptor(repoName, artefactName, repo, releaseCandidateVersion)
 
-      ivyPaths.jarFilenameFor(version) shouldBe jarFile
-      ivyPaths.pomFilenameFor(version) shouldBe pomFile
+      ivyPaths.jarFilenameFor(version) shouldBe "sbt-bobby.jar"
+      ivyPaths.filenameFor(version, "sbt-bobby.jar") shouldBe "sbt-bobby.jar"
 
       ivyPaths.jarDownloadFor(version) shouldBe expectedJarUrl
       ivyPaths.fileDownloadFor(version, "ivy.xml") shouldBe expectedPomUrl
     }
 
-    "Generate correct URL for uploading a jar file to Bintray" in {
+    "Generate correct URL for uploading files to Bintray" in {
       val expectedJarUrl = "https://bintray.com/api/v1/content/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/jars/sbt-bobby.jar"
       val expectedIvyUrl = "https://bintray.com/api/v1/content/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/ivys/ivy.xml"
+      val expectedSrcUrl = "https://bintray.com/api/v1/content/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/srcs/sbt-bobby-sources.jar"
+      val expectedDocUrl = "https://bintray.com/api/v1/content/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/docs/sbt-bobby-javadoc.jar"
 
       val version = VersionDescriptor(repoName, artefactName, repo, ReleaseVersion("0.9.0"))
 
       ivyPaths.jarUploadFor(version) shouldBe expectedJarUrl
-      ivyPaths.pomUploadFor(version) shouldBe expectedIvyUrl
+      ivyPaths.fileUploadFor(version, "ivy.xml") shouldBe expectedIvyUrl
+      ivyPaths.fileUploadFor(version, "sbt-bobby-sources.jar") shouldBe expectedSrcUrl
+      ivyPaths.fileUploadFor(version, "sbt-bobby-javadoc.jar") shouldBe expectedDocUrl
 
+      intercept[IllegalArgumentException] {
+       ivyPaths.fileUploadFor(version, "sbt-bobby.exe")
+      }
     }
   }
 }

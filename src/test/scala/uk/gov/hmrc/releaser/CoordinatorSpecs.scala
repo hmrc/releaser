@@ -56,17 +56,16 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case _ =>
       }
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 2
+      fakeRepoConnector.uploadedFiles.size shouldBe 3
 
       fakeRepoConnector.uploadedFiles foreach println
 
       val Some((assemblyVersion, assemblyFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-assembly.jar"))
       val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
 
-      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
-      jarFile.getFileName.toString should endWith(".jar")
       publishedDescriptor should not be None
 
       jarVersion.version.value shouldBe "0.9.9"
@@ -108,14 +107,14 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       fakeRepoConnector.uploadedFiles.foreach { println }
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 3
+      fakeRepoConnector.uploadedFiles.size shouldBe 4
 
       val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
 
-      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
+
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
-      jarFile.getFileName.toString should endWith(".jar")
       publishedDescriptor should not be None
 
       jarVersion.version.value shouldBe "0.9.9"
@@ -147,11 +146,11 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
 
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 1
+      fakeRepoConnector.uploadedFiles.size shouldBe 2
 
-      val (pomVersion, pomFile) = fakeRepoConnector.uploadedFiles.head
+      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
 
-      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
       jarFile.getFileName.toString should endWith(".jar")
@@ -193,28 +192,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
-    class MockFunction2[A, B]{
-      var params:Option[(A, B)] = None
-
-      def build:(A, B) => Try[Unit] ={
-        (a, b) => {
-          params = Some((a, b))
-          Success(Unit)
-        }
-      }
-    }
-
-    class MockFunction3[A, B, C, R]{
-      var params:Option[(A, B, C)] = None
-
-      def build[R](r:R):(A, B, C) => Try[R] ={
-        (a, b, c) => {
-          params = Some((a, b, c))
-          Success(r)
-        }
-      }
-    }
-
     "release version 0.1.1 of an ivy-based SBT plugin when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
 
       val githubReleaseBuilder = new MockFunction2[ArtefactMetaData, VersionMapping]()
@@ -243,11 +220,13 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           case _ =>
         }
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 1
+      fakeRepoConnector.uploadedFiles.size shouldBe 2
 
-      val (ivyVersion, ivyFile) = fakeRepoConnector.uploadedFiles.head
+      fakeRepoConnector.uploadedFiles foreach println
 
-      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
+      val Some((_, ivyFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("ivy.xml"))
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("sbt-bobby.jar"))
+
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
       jarFile.getFileName.toString should be("sbt-bobby.jar")
@@ -269,6 +248,39 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       githubTagObjBuilder.params.value shouldBe ((Repo("sbt-bobby"), ReleaseVersion("0.1.1"), "gitsha"))
       githubTagRefBuilder.params.value shouldBe ((Repo("sbt-bobby"), ReleaseVersion("0.1.1"), "the-tag-sha"))
+    }
+  }
+
+  "buildTargetFileName" should {
+    "buildTargetFileName" in {
+      val coord = buildDefaultCoordinator()
+      val remotePath = "/time/time_2.11-1.3.0-1-g21312cc.jar"
+      val versionMapping: VersionMapping = mavenVersionMapping(artefactName = "time", releaseVersion = "1.0.0")
+      val targetFileName = coord.buildTargetFileName(versionMapping, remotePath, "time_2.11-1.3.0-1-g21312cc")
+
+      targetFileName shouldBe "time_2.11-1.0.0.jar"
+    }
+  }
+
+  class MockFunction2[A, B]{
+    var params:Option[(A, B)] = None
+
+    def build:(A, B) => Try[Unit] ={
+      (a, b) => {
+        params = Some((a, b))
+        Success(Unit)
+      }
+    }
+  }
+
+  class MockFunction3[A, B, C, R]{
+    var params:Option[(A, B, C)] = None
+
+    def build[R](r:R):(A, B, C) => Try[R] ={
+      (a, b, c) => {
+        params = Some((a, b, c))
+        Success(r)
+      }
     }
   }
 

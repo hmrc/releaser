@@ -29,8 +29,17 @@ object Builders {
 
   import RepoFlavours._
 
-  def mavenVersionMapping(artefactName:String = "a", repoName:String = "a") ={
-    VersionMapping(RepoFlavours.mavenRepository, artefactName, Repo(repoName), aReleaseCandidateVersion, aReleaseVersion)
+  def mavenVersionMapping(
+                           artefactName:String = "a",
+                           repoName:String = "a",
+                           rcVersion:String = aReleaseCandidateVersion.value,
+                           releaseVersion:String = aReleaseVersion.value) ={
+    VersionMapping(
+      RepoFlavours.mavenRepository,
+      artefactName,
+      Repo(repoName),
+      ReleaseCandidateVersion(rcVersion),
+      ReleaseVersion(releaseVersion))
   }
 
   def buildMetaConnector() = new MetaConnector(){
@@ -107,7 +116,7 @@ object Builders {
 
 
   def buildDefaultCoordinator(
-                               stageDir:Path,
+                               stageDir:Path = tempDir(),
                                artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
                                githubRepoGetter:(Repo, CommitSha) => Try[Unit] = successfulGithubVerifier,
                                githubReleasePublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] = successfulGithubReleasePublisher,
@@ -122,7 +131,7 @@ object Builders {
 
   def buildConnector(filesuffix:String, jarResoure:String, bintrayFiles:Set[String]) = new RepoConnector(){
 
-    var lastUploadedJar:Option[(VersionDescriptor, Path)] = None
+//    var lastUploadedJar:Option[(VersionDescriptor, Path)] = None
 //    var lastUploadedPom:Option[(VersionDescriptor, Path)] = None
 
     val uploadedFiles = mutable.Set[(VersionDescriptor, Path)]()
@@ -134,10 +143,10 @@ object Builders {
         Paths.get(this.getClass.getResource(filesuffix + jarResoure).toURI) }
     }
 
-    override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[Unit] = {
-      lastUploadedJar = Some(version -> jarFile)
-      Success(Unit)
-    }
+//    override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[Unit] = {
+//      lastUploadedJar = Some(version -> jarFile)
+//      Success(Unit)
+//    }
 
     override def publish(version: VersionDescriptor): Try[Unit] = {
       lastPublishDescriptor = Some(version)

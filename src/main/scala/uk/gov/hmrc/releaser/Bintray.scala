@@ -41,7 +41,6 @@ class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
     val url = BintrayPaths.publishUrlFor(version)
     bintrayHttp.emptyPost(url)
   }
-
 }
 
 object BintrayRepoConnector{
@@ -54,28 +53,10 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
 
   val log = new Logger()
 
-//  def uploadPom(version: VersionDescriptor, pomFile:Path):Try[Unit] ={
-//    val url = bintrayPaths.pomUploadFor(version)
-//    bintrayHttp.putFile(version, pomFile, url)
-//  }
-
-  def uploadJar(version: VersionDescriptor, jarFile:Path):Try[Unit] = {
-    val url = bintrayPaths.jarUploadFor(version)
-    bintrayHttp.putFile(version, jarFile, url)
-  }
-
   def publish(version: VersionDescriptor):Try[Unit]={
     val url = bintrayPaths.publishUrlFor(version)
     bintrayHttp.emptyPost(url)
   }
-
-//  def downloadPom(version:VersionDescriptor):Try[Path]={
-//
-//    val fileName = bintrayPaths.pomFilenameFor(version)
-//    val pomUrl = bintrayPaths.pomDownloadUrlFor(version)
-//
-//    downloadFile(pomUrl, fileName)
-//  }
 
   def downloadJar(version:VersionDescriptor):Try[Path] = {
 
@@ -96,8 +77,7 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
     bintrayHttp.putFile(version, filePath, url)
   }
 
-
-  def downloadFile(url:String, fileName:String):Try[Path]={
+  private def downloadFile(url:String, fileName:String):Try[Path]={
     val targetFile = workDir.resolve(fileName)
 
     Http.url2File(url, targetFile) map { unit => targetFile }

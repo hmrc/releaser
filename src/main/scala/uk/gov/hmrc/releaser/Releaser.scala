@@ -225,11 +225,8 @@ class Coordinator(
                    createGithubTagAndRelease:(ArtefactMetaData, VersionMapping) => Try[Unit]){
 
   val logger = new Logger()
-  val manifestTransformer = new JarManifestTransformer(stageDir)
-
 
   def start(map: VersionMapping, connector:RepoConnector): Try[Unit] ={
-    println("files json " + connector.findFiles(map.sourceArtefact))
     val artefacts = map.repo.artefactBuilder(map, stageDir)
 
     for(
@@ -237,18 +234,13 @@ class Coordinator(
       remotes    = artefacts.transformersForSupportedFiles(files);
       localJar  <- connector.downloadJar(map.sourceArtefact);
       metaData  <- artefactBuilder(localJar);
-      newJar    <- manifestTransformer(localJar, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
       _         <- verifyGithubTagExists(map.gitRepo, metaData.sha);
-      toTrans    = remotes.filterNot { case(f, _) => artefacts.isTheJarFile(f) };
-      transd    <- transformFiles(map, toTrans, connector, artefacts.filePrefix);
+      transd    <- transformFiles(map, remotes, connector, artefacts.filePrefix);
       _         <- uploadFiles(map.targetArtefact, transd, connector);
-      _         <- connector.uploadJar(map.targetArtefact, newJar);
       _         <- connector.publish(map.targetArtefact);
       _         <- createGithubTagAndRelease(metaData, map))
      yield ()
   }
-
-
 
 
   def uploadFiles(target:VersionDescriptor, files:List[Path], connector: RepoConnector):Try[Unit]={
@@ -260,22 +252,27 @@ class Coordinator(
     sequence(res).map { _ => Unit }
   }
 
-  def transformFiles(map: VersionMapping, files:List[(String, Option[Transformer])], connector:RepoConnector, prefix:String):Try[List[Path]]={
-    val res: List[Try[Path]] = files.map { case(file, transO) =>
-      connector.downloadFile(map.sourceArtefact, file).flatMap { localPath =>
-        Logger.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $file")
-        val fileName = file.split("/").last.stripPrefix(prefix)
-        val targetFileName = map.repo.filenameFor(map.targetArtefact, fileName)
-        transO.map { trans =>
-          trans.apply(localPath, map.targetVersion, targetFileName = targetFileName)
-        }.getOrElse { Try {
-          Files.copy(localPath, stageDir.resolve(targetFileName))
-          stageDir.resolve(targetFileName)
-        }}
-      }
+  def transformFile(map: VersionMapping, remotePath:String, transO:Option[Transformer], connector:RepoConnector, prefix:String):Try[Path]={
+    connector.downloadFile(map.sourceArtefact, remotePath).flatMap { localPath =>
+      Logger.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $remotePath")
+      val targetFileName = buildTargetFileName(map, remotePath, prefix)
+      transO.map { trans =>
+        trans.apply(localPath, map.targetVersion, targetFileName = targetFileName)
+      }.getOrElse { Try {
+        Files.copy(localPath, stageDir.resolve(targetFileName))
+      }}
     }
+  }
 
-    sequence(res)
+  def buildTargetFileName(map: VersionMapping, remotePath: String, prefix: String): String = {
+    val fileName = remotePath.split("/").last.stripPrefix(prefix)
+    map.repo.filenameFor(map.targetArtefact, fileName)
+  }
+
+  def transformFiles(map: VersionMapping, files:List[(String, Option[Transformer])], connector:RepoConnector, prefix:String):Try[List[Path]]={
+    sequence{
+      files.map { case(file, transO) => transformFile(map, file, transO, connector, prefix) }
+    }
   }
 
   def publish(map: VersionMapping, connector:RepoConnector): Try[Unit] = {
