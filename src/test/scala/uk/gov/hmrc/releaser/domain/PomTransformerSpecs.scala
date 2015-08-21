@@ -29,17 +29,15 @@ class PomTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach
 
   var transformer: PomTransformer = _
 
-  val stageDir = Files.createTempDirectory("test-release")
-
   override def beforeEach() {
-    transformer = new PomTransformer()
+    transformer = new PomTransformer(Files.createTempDirectory("test-release"))
   }
 
   "the pom transformer" should {
 
     "re-write the pom with a new version 1.4.0" in {
 
-      val outFile = transformer(timePomFile, ReleaseVersion("1.4.0"), "time-1.4.0.pom", stageDir).success.get
+      val outFile = transformer(timePomFile, ReleaseVersion("1.4.0"), "time-1.4.0.pom").success.get
 
       val pomVersionText = (XML.loadFile(outFile.toFile) \ "version").text
 

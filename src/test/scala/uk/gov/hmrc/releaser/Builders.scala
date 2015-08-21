@@ -20,13 +20,13 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.releaser.ArtifactType.ArtifactType
 import uk.gov.hmrc.releaser.domain._
 
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 object Builders {
+
+  import RepoFlavours._
 
   def buildMetaConnector() = new MetaConnector(){
     override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
@@ -67,7 +67,7 @@ object Builders {
   }
 
   val successfulRepoFinder:((String) => Try[RepoFlavour])={
-    (a) => Success(RepoFlavours.mavenRepository)
+    (a) => Success(mavenRepository)
   }
 
   val successfulConnectorBuilder:(RepoFlavour) => RepoConnector = (r) => Builders.buildConnector(
@@ -78,8 +78,6 @@ object Builders {
   val aReleaseCandidateVersion = ReleaseCandidateVersion("1.3.0-1-g21312cc")
   val aReleaseVersion = ReleaseVersion("1.3.1")
   val anArtefactMetaData = new ArtefactMetaData("803749", "ck", DateTime.now())
-
-  val artifactClassifiers = Artifacts.buildSupportedArtifacts()
 
   def buildDefaultReleaser(
                         stageDir:Path = tempDir(),
@@ -92,8 +90,7 @@ object Builders {
                         githubTagRefPublisher:(Repo, ReleaseVersion, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
                           ): Releaser ={
     val coord = buildDefaultCoordinator(stageDir, artefactMetaData, githubRepoGetter, githubReleasePublisher, githubTagObjPublisher, githubTagRefPublisher)
-    val classifiersBuilder = Artifacts.buildSupportedArtifacts _
-    new Releaser(stageDir, repositoryFinder, connectorBuilder, classifiersBuilder, coord)
+    new Releaser(stageDir, repositoryFinder, connectorBuilder, coord)
   }
 
   def resource(path:String):Path={
@@ -101,6 +98,7 @@ object Builders {
   }
 
   def tempDir() = Files.createTempDirectory("tmp")
+
 
   def buildDefaultCoordinator(
                                stageDir:Path,
@@ -116,42 +114,36 @@ object Builders {
     new Coordinator(stageDir, artefactBuilder, githubRepoGetter, taggerAndReleaser)
   }
 
-  def buildConnector(jarResource:String, pomResource:String, srcResource: Option[String] = None,
-                     docsResource: Option[String] = None, tgzResource: Option[String] = None) = new RepoConnector(){
+  def buildConnector(jarResoure:String, pomResource:String) = new RepoConnector(){
 
-    val lastUploadedArtifacts: mutable.Map[ArtifactType, (VersionDescriptor, Path)] = mutable.Map()
+    var lastUploadedJar:Option[(VersionDescriptor, Path)] = None
+    var lastUploadedPom:Option[(VersionDescriptor, Path)] = None
     var lastPublishDescriptor:Option[VersionDescriptor] = None
+
+    override def downloadJar(version: VersionDescriptor): Try[Path] = {
+      Success {
+        Paths.get(this.getClass.getResource(jarResoure).toURI) }
+    }
+
+    override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[Unit] = {
+      lastUploadedJar = Some(version -> jarFile)
+      Success(Unit)
+    }
+
+    override def uploadPom(version: VersionDescriptor, file: Path): Try[Unit] = {
+      lastUploadedPom = Some(version -> file)
+      Success(Unit)
+    }
+
+    override def downloadPom(version: VersionDescriptor): Try[Path] = {
+      Success {
+        Paths.get(this.getClass.getResource(pomResource).toURI) }
+    }
 
     override def publish(version: VersionDescriptor): Try[Unit] = {
       lastPublishDescriptor = Some(version)
       Success(Unit)
     }
-
-    override def uploadArtifacts(versions: Seq[VersionDescriptor], localFiles: Map[ArtifactClassifier, Path]): Try[Unit] = {
-      versions.foreach { v =>
-        localFiles.get(v.classifier).map { localFile =>
-          lastUploadedArtifacts += v.classifier.artifactType -> (v -> localFile)
-        }
-      }
-      Success(Unit)
-    }
-
-    override def downloadArtifacts(versions: Seq[VersionDescriptor]): Try[Map[ArtifactClassifier, Path]] = {
-      Success {
-        versions.map { v =>
-          val filename = v.classifier.artifactType match {
-            case ArtifactType.JAR => Some(jarResource)
-            case ArtifactType.POM => Some(pomResource)
-            case ArtifactType.SOURCE_JAR => srcResource
-            case ArtifactType.DOC_JAR => docsResource
-            case ArtifactType.TGZ => tgzResource
-            case _ => throw new Exception("Unsupported artifact type")
-          }
-          filename.map( fn => v.classifier -> Paths.get(this.getClass.getResource(fn).toURI))
-        }.flatten.toMap
-      }
-    }
-    
   }
 
 }

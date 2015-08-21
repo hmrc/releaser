@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.releaser.domain
 
-import uk.gov.hmrc.releaser.{ArtifactClassifier, ReleaseType}
+import uk.gov.hmrc.releaser.ReleaseType
 
 import scala.util.Try
 
@@ -38,22 +38,19 @@ case class ReleaseCandidateVersion(value:String) extends Version
 case class VersionDescriptor(
                               repo:String,
                               artefactName:String,
-                              classifier: ArtifactClassifier,
                               gitHubName:Repo,
                               version:Version)
 
 case class VersionMapping (
                             repo:RepoFlavour,
                             artefactName:String,
-                            classifiers: Seq[ArtifactClassifier],
                             gitRepo:Repo,
                             sourceVersion:ReleaseCandidateVersion,
                             targetVersion:ReleaseVersion
                             ) {
 
-  def targetArtefacts = classifiers.map( classifier => VersionDescriptor(repo.releaseRepo, artefactName, classifier, gitRepo, targetVersion) )
-  def sourceArtefacts = classifiers.map( classifier => VersionDescriptor(repo.releaseCandidateRepo, artefactName, classifier, gitRepo, sourceVersion) )
-  def mainTargetArtefact = targetArtefacts.find( a => a.classifier.isMainArtifact ).getOrElse(throw new Exception("There is no main artifact specified"))
+  def targetArtefact = VersionDescriptor(repo.releaseRepo, artefactName, gitRepo, targetVersion)
+  def sourceArtefact = VersionDescriptor(repo.releaseCandidateRepo, artefactName, gitRepo, sourceVersion)
 
 }
 
