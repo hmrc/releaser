@@ -31,7 +31,7 @@ class ReleaserSpecs extends WordSpec with Matchers with TryValues with OptionVal
     "create a function that calls github api in the correct order to create an annotated tag and release: create-tag-object -> create-tag-ref -> create-release" in {
 
       val artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now())
-      val ver = VersionMapping(RepoFlavours.mavenRepository, "a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion)
+      val ver = mavenVersionMapping()
 
       val executedCalls = ListBuffer[String]()
 

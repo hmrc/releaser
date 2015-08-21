@@ -52,6 +52,7 @@ case class VersionMapping (
   def targetArtefact = VersionDescriptor(repo.releaseRepo, artefactName, gitRepo, targetVersion)
   def sourceArtefact = VersionDescriptor(repo.releaseCandidateRepo, artefactName, gitRepo, sourceVersion)
 
+  //val mavenFilePrefix = s"${artefactName}_${repo.scalaVersion}-${sourceVersion.value}"
 }
 
 object VersionNumberCalculator{

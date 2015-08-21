@@ -87,7 +87,7 @@ class IvyTransformer(val stagingDir:Path) extends XmlTransformer{
   }
 }
 
-class ManifestTransformer(stagingDir:Path) extends Transformer{
+class JarManifestTransformer(stagingDir:Path) extends Transformer{
 
   val versionNumberFields = Set("Git-Describe", "Implementation-Version", "Specification-Version")
 

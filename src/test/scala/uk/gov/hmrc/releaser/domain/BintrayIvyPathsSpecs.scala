@@ -45,7 +45,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       ivyPaths.pomFilenameFor(version) shouldBe pomFile
 
       ivyPaths.jarDownloadFor(version) shouldBe expectedJarUrl
-      ivyPaths.pomDownloadUrlFor(version) shouldBe expectedPomUrl
+      ivyPaths.fileDownloadFor(version, "ivy.xml") shouldBe expectedPomUrl
     }
 
     "Generate correct URL for uploading a jar file to Bintray" in {

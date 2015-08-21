@@ -36,12 +36,103 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
   "the coordinator" should {
 
-
-    "release version 0.9.9 when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
+    "release version 0.9.9 of a library with an assembly, not modifying the assembly manifest, when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = Builders.buildConnector(
+        "",
+        "/lib/lib_2.11-1.3.0-1-g21312cc.jar",
+        Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom", "/lib/lib_2.11-1.3.0-1-g21312cc-assembly.jar")
+      )
+
+      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+
+      val releaser = buildDefaultReleaser(
+        repositoryFinder = successfulRepoFinder(mavenRepository),
+        connectorBuilder = fakeRepoConnectorBuilder,
+        artefactMetaData = ArtefactMetaData("sha", "lib", DateTime.now()))
+
+      releaser.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
+        case Failure(e) => fail(e)
+        case _ =>
+      }
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 2
+
+      fakeRepoConnector.uploadedFiles foreach println
+
+      val Some((assemblyVersion, assemblyFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-assembly.jar"))
+      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
+      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
+
+      jarFile.getFileName.toString should endWith(".jar")
+      publishedDescriptor should not be None
+
+      jarVersion.version.value shouldBe "0.9.9"
+
+      val jarManifest = manifestFromZipFile(jarFile)
+      val assemblyManifest = manifestFromZipFile(assemblyFile)
+
+      jarManifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
+
+      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
+      pomVersionText shouldBe "0.9.9"
+    }
+
+    "release version 2.0.0 of a maven-based service when given the inputs 'help-frontend', '1.26.0-3-gd7ed03c' and 'patch' as the artefact, release candidate and release type" in {
+
+      val fakeRepoConnector = Builders.buildConnector(
+        "",
+        "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.jar",
+        Set(
+          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.pom",
+          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz",
+          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc",
+          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc.md5",
+          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c-sources.jar"
+        ))
+
+      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+
+      val releaser = buildDefaultReleaser(
+        repositoryFinder = successfulRepoFinder(mavenRepository),
+        connectorBuilder = fakeRepoConnectorBuilder,
+        artefactMetaData = ArtefactMetaData("sha", "help-frontend", DateTime.now()))
+
+      releaser.start("help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseVersion("0.9.9")) match {
+        case Failure(e) => fail(e)
+        case _ =>
+      }
+
+
+      fakeRepoConnector.uploadedFiles.foreach { println }
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 3
+
+      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
+      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
+
+      jarFile.getFileName.toString should endWith(".jar")
+      publishedDescriptor should not be None
+
+      jarVersion.version.value shouldBe "0.9.9"
+
+      val manifest = manifestFromZipFile(jarFile)
+
+      manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
+      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
+      pomVersionText shouldBe "0.9.9"
+    }
+
+    "release version 0.9.9 of a maven-based library when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
+
+      val fakeRepoConnector = Builders.buildConnector(
+        "",
         "/time/time_2.11-1.3.0-1-g21312cc.jar",
-        "/time/time_2.11-1.3.0-1-g21312cc.pom")
+        Set("/time/time_2.11-1.3.0-1-g21312cc.pom"))
 
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
@@ -55,12 +146,15 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case _ =>
       }
 
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 1
+
+      val (pomVersion, pomFile) = fakeRepoConnector.uploadedFiles.head
+
       val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
-      val Some((pomVersion, pomFile)) = fakeRepoConnector.lastUploadedPom
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
       jarFile.getFileName.toString should endWith(".jar")
-      pomFile.getFileName.toString should endWith(".pom")
       publishedDescriptor should not be None
 
       jarVersion.version.value shouldBe "0.9.9"
@@ -121,15 +215,16 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
-    "release version 0.1.1 when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
+    "release version 0.1.1 of an ivy-based SBT plugin when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
 
       val githubReleaseBuilder = new MockFunction2[ArtefactMetaData, VersionMapping]()
       val githubTagObjBuilder = new MockFunction3[Repo, ReleaseVersion, CommitSha, CommitSha]()
       val githubTagRefBuilder = new MockFunction3[Repo, ReleaseVersion, CommitSha, Unit]()
 
       val fakeRepoConnector = Builders.buildConnector(
-        "/sbt-bobby/sbt-bobby.jar",
-        "/sbt-bobby/ivy.xml"
+        filesuffix = "/sbt-bobby/",
+        "sbt-bobby.jar",
+        Set("ivy.xml")
       )
 
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
@@ -148,9 +243,11 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           case _ =>
         }
 
+      fakeRepoConnector.uploadedFiles.size shouldBe 1
+
+      val (ivyVersion, ivyFile) = fakeRepoConnector.uploadedFiles.head
 
       val Some((jarVersion, jarFile)) = fakeRepoConnector.lastUploadedJar
-      val Some((ivyVersion, ivyFile)) = fakeRepoConnector.lastUploadedPom
       val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 
       jarFile.getFileName.toString should be("sbt-bobby.jar")

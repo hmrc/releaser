@@ -34,11 +34,11 @@ class ManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfter
 
   val timeJarPath = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI).toPath
 
-  var transformer:ManifestTransformer = _
+  var transformer:JarManifestTransformer = _
   val release_1_4_0 = ReleaseVersion("1.4.0")
 
   override def beforeEach(){
-    transformer = new ManifestTransformer(Files.createTempDirectory("test-release"))
+    transformer = new JarManifestTransformer(Files.createTempDirectory("test-release"))
   }
 
   "the transformer" should {

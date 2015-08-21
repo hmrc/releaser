@@ -22,11 +22,16 @@ import java.nio.file.{Files, Path, Paths}
 import org.joda.time.DateTime
 import uk.gov.hmrc.releaser.domain._
 
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 object Builders {
 
   import RepoFlavours._
+
+  def mavenVersionMapping(artefactName:String = "a", repoName:String = "a") ={
+    VersionMapping(RepoFlavours.mavenRepository, artefactName, Repo(repoName), aReleaseCandidateVersion, aReleaseVersion)
+  }
 
   def buildMetaConnector() = new MetaConnector(){
     override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
@@ -71,8 +76,9 @@ object Builders {
   }
 
   val successfulConnectorBuilder:(RepoFlavour) => RepoConnector = (r) => Builders.buildConnector(
+    filesuffix = "",
     "/time/time_2.11-1.3.0-1-g21312cc.jar",
-    "/time/time_2.11-1.3.0-1-g21312cc.pom"
+    Set("/time/time_2.11-1.3.0-1-g21312cc.pom")
   )
 
   val aReleaseCandidateVersion = ReleaseCandidateVersion("1.3.0-1-g21312cc")
@@ -114,15 +120,18 @@ object Builders {
     new Coordinator(stageDir, artefactBuilder, githubRepoGetter, taggerAndReleaser)
   }
 
-  def buildConnector(jarResoure:String, pomResource:String) = new RepoConnector(){
+  def buildConnector(filesuffix:String, jarResoure:String, bintrayFiles:Set[String]) = new RepoConnector(){
 
     var lastUploadedJar:Option[(VersionDescriptor, Path)] = None
-    var lastUploadedPom:Option[(VersionDescriptor, Path)] = None
+//    var lastUploadedPom:Option[(VersionDescriptor, Path)] = None
+
+    val uploadedFiles = mutable.Set[(VersionDescriptor, Path)]()
+
     var lastPublishDescriptor:Option[VersionDescriptor] = None
 
     override def downloadJar(version: VersionDescriptor): Try[Path] = {
       Success {
-        Paths.get(this.getClass.getResource(jarResoure).toURI) }
+        Paths.get(this.getClass.getResource(filesuffix + jarResoure).toURI) }
     }
 
     override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[Unit] = {
@@ -130,18 +139,21 @@ object Builders {
       Success(Unit)
     }
 
-    override def uploadPom(version: VersionDescriptor, file: Path): Try[Unit] = {
-      lastUploadedPom = Some(version -> file)
+    override def publish(version: VersionDescriptor): Try[Unit] = {
+      lastPublishDescriptor = Some(version)
       Success(Unit)
     }
 
-    override def downloadPom(version: VersionDescriptor): Try[Path] = {
+    override def findFiles(version: VersionDescriptor): Try[List[String]] = Success(bintrayFiles.toList :+ jarResoure)
+
+    override def downloadFile(version: VersionDescriptor, fileName: String): Try[Path] = {
       Success {
-        Paths.get(this.getClass.getResource(pomResource).toURI) }
+        Paths.get(this.getClass.getResource(filesuffix + fileName).toURI)
+      }
     }
 
-    override def publish(version: VersionDescriptor): Try[Unit] = {
-      lastPublishDescriptor = Some(version)
+    override def uploadFile(version: VersionDescriptor, filePath: Path): Try[Unit] = {
+      uploadedFiles.add((version, filePath))
       Success(Unit)
     }
   }

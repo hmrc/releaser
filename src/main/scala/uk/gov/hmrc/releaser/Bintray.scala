@@ -20,6 +20,7 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
+import play.api.libs.json.{JsValue, JsPath, Json}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
 import play.api.mvc.Results
@@ -53,10 +54,10 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
 
   val log = new Logger()
 
-  def uploadPom(version: VersionDescriptor, pomFile:Path):Try[Unit] ={
-    val url = bintrayPaths.pomUploadFor(version)
-    bintrayHttp.putFile(version, pomFile, url)
-  }
+//  def uploadPom(version: VersionDescriptor, pomFile:Path):Try[Unit] ={
+//    val url = bintrayPaths.pomUploadFor(version)
+//    bintrayHttp.putFile(version, pomFile, url)
+//  }
 
   def uploadJar(version: VersionDescriptor, jarFile:Path):Try[Unit] = {
     val url = bintrayPaths.jarUploadFor(version)
@@ -68,13 +69,13 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
     bintrayHttp.emptyPost(url)
   }
 
-  def downloadPom(version:VersionDescriptor):Try[Path]={
-
-    val fileName = bintrayPaths.pomFilenameFor(version)
-    val pomUrl = bintrayPaths.pomDownloadUrlFor(version)
-
-    downloadFile(pomUrl, fileName)
-  }
+//  def downloadPom(version:VersionDescriptor):Try[Path]={
+//
+//    val fileName = bintrayPaths.pomFilenameFor(version)
+//    val pomUrl = bintrayPaths.pomDownloadUrlFor(version)
+//
+//    downloadFile(pomUrl, fileName)
+//  }
 
   def downloadJar(version:VersionDescriptor):Try[Path] = {
 
@@ -84,13 +85,34 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
     downloadFile(artefactUrl, fileName)
   }
 
+  def downloadFile(version:VersionDescriptor, fileName:String):Try[Path] = {
+
+    val artefactUrl = bintrayPaths.fileDownloadFor(version, fileName)
+    downloadFile(artefactUrl, fileName)
+  }
+
+  def uploadFile(version:VersionDescriptor, filePath:Path):Try[Unit]={
+    val url = bintrayPaths.fileUploadFor(version, filePath.getFileName.toString)
+    bintrayHttp.putFile(version, filePath, url)
+  }
+
+
   def downloadFile(url:String, fileName:String):Try[Path]={
     val targetFile = workDir.resolve(fileName)
 
     Http.url2File(url, targetFile) map { unit => targetFile }
   }
 
+  override def findFiles(version: VersionDescriptor): Try[List[String]] = {
+
+    val url = bintrayPaths.fileListUrlFor(version)
+    bintrayHttp.get(url).map { st =>
+      val fileNames: Seq[JsValue] = Json.parse(st).\\("name")
+      fileNames.map(_.as[String]).toList
+    }
+  }
 }
+
 
 class BintrayHttp(creds:ServiceCredentials){
 

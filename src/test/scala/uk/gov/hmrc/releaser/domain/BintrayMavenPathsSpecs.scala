@@ -33,8 +33,9 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
     val artefactName = "time"
     val repo = Repo("time")
 
-    "Generate URL for a jar file on Bintray" in {
+    "Generate URL for a jar and pom file on Bintray" in {
       val expectedJarUrl = "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/time_2.10/1.3.0-1-g21312cc/time_2.10-1.3.0-1-g21312cc.jar"
+      val expectedPomUrl = "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/time_2.10/1.3.0-1-g21312cc/time_2.10-1.3.0-1-g21312cc.pom"
 
       val repoName = "release-candidates"
       val artefactName = "time"
@@ -44,6 +45,9 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 
       mavenPaths.jarFilenameFor(version) shouldBe "time_2.10-1.3.0-1-g21312cc.jar"
       mavenPaths.jarDownloadFor(version) shouldBe expectedJarUrl
+
+      mavenPaths.filenameFor(version, ".pom") shouldBe "time_2.10-1.3.0-1-g21312cc.pom"
+      mavenPaths.fileDownloadFor(version, "time_2.10-1.3.0-1-g21312cc.pom") shouldBe expectedPomUrl
     }
 
     "Generate correct URL for uploading a jar file to Bintray" in {

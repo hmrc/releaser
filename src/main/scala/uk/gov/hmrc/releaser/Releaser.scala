@@ -33,9 +33,10 @@ package uk.gov.hmrc.releaser
  */
 
 import java.io.File
-import java.nio.file.{Files, Path}
+import java.nio.file.{Paths, Files, Path}
 
 import org.apache.commons.io.FileUtils
+import play.api.Logger
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.releaser.GithubApi.TagRefResponse
 import uk.gov.hmrc.releaser.domain._
@@ -120,7 +121,7 @@ object Releaser {
         }
         result
       } match {
-        case Failure(e) => log.info(s"Releaser failed to release $artefactName $rcVersion with error '${e.getMessage}'"); 1
+        case Failure(e) => {e.printStackTrace(); log.info(s"Releaser failed to release $artefactName $rcVersion with error '${e.getMessage}'")}; 1
         case Success(_) => log.info(s"Releaser successfully released $artefactName ${targetVersion.getOrElse("")}"); 0;
       }
     }
@@ -224,33 +225,70 @@ class Coordinator(
                    createGithubTagAndRelease:(ArtefactMetaData, VersionMapping) => Try[Unit]){
 
   val logger = new Logger()
+  val manifestTransformer = new JarManifestTransformer(stageDir)
 
-  val manifestTransformer = new ManifestTransformer(stageDir)
 
   def start(map: VersionMapping, connector:RepoConnector): Try[Unit] ={
+    println("files json " + connector.findFiles(map.sourceArtefact))
+    val artefacts = map.repo.artefactBuilder(map, stageDir)
+
     for(
-      localFile <- connector.downloadJar(map.sourceArtefact);
-      metaData  <- artefactBuilder(localFile);
+      files     <- connector.findFiles(map.sourceArtefact);
+      remotes    = artefacts.transformersForSupportedFiles(files);
+      localJar  <- connector.downloadJar(map.sourceArtefact);
+      metaData  <- artefactBuilder(localJar);
+      newJar    <- manifestTransformer(localJar, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
       _         <- verifyGithubTagExists(map.gitRepo, metaData.sha);
-      path      <- manifestTransformer(localFile, map.targetVersion, map.repo.jarFilenameFor(map.targetArtefact));
-      _         <- connector.uploadJar(map.targetArtefact, path);
-      _         <- uploadNewPom(map, connector);
-      _         <- publish(map, connector);
+      toTrans    = remotes.filterNot { case(f, _) => artefacts.isTheJarFile(f) };
+      transd    <- transformFiles(map, toTrans, connector, artefacts.filePrefix);
+      _         <- uploadFiles(map.targetArtefact, transd, connector);
+      _         <- connector.uploadJar(map.targetArtefact, newJar);
+      _         <- connector.publish(map.targetArtefact);
       _         <- createGithubTagAndRelease(metaData, map))
      yield ()
   }
 
-  def uploadNewPom(map:VersionMapping, connector:RepoConnector): Try[Unit] = {
 
-    for(
-      localFile   <- connector.downloadPom(map.sourceArtefact);
-      transformed <- map.repo.pomTransformer.apply(localFile, map.targetVersion, map.repo.pomFilenameFor(map.targetArtefact));
-      _           <- connector.uploadPom(map.targetArtefact, transformed)
-    ) yield ()
+
+
+  def uploadFiles(target:VersionDescriptor, files:List[Path], connector: RepoConnector):Try[Unit]={
+
+    val res = files.map { localFile =>
+      connector.uploadFile(target, localFile)
+    }
+
+    sequence(res).map { _ => Unit }
+  }
+
+  def transformFiles(map: VersionMapping, files:List[(String, Option[Transformer])], connector:RepoConnector, prefix:String):Try[List[Path]]={
+    val res: List[Try[Path]] = files.map { case(file, transO) =>
+      connector.downloadFile(map.sourceArtefact, file).flatMap { localPath =>
+        Logger.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $file")
+        val fileName = file.split("/").last.stripPrefix(prefix)
+        val targetFileName = map.repo.filenameFor(map.targetArtefact, fileName)
+        transO.map { trans =>
+          trans.apply(localPath, map.targetVersion, targetFileName = targetFileName)
+        }.getOrElse { Try {
+          Files.copy(localPath, stageDir.resolve(targetFileName))
+          stageDir.resolve(targetFileName)
+        }}
+      }
+    }
+
+    sequence(res)
   }
 
   def publish(map: VersionMapping, connector:RepoConnector): Try[Unit] = {
     connector.publish(map.targetArtefact)
   }
+
+  def sequence[A](l:Iterable[Try[A]]):Try[List[A]]={
+    l.find(_.isFailure) match {
+      case None => Success(l.map(_.get).toList)
+      case Some(f) => Failure[List[A]](f.failed.get)
+    }
+  }
 }
+
+
 

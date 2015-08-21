@@ -84,7 +84,8 @@ object GithubApi{
     getter(buildCommitGetUrl(repo, sha))
   }
 
-  def createAnnotatedTagRef(tagger:JsonPostReturnUnit)(releaserVersion:String)
+  def createAnnotatedTagRef(tagger:JsonPostReturnUnit)
+                           (releaserVersion:String)
                            (repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[Unit] = {
     logger.debug("creating annotated tag ref from " + targetVersion + " version mapping " + targetVersion)
 
@@ -98,7 +99,8 @@ object GithubApi{
     tagger(url, body)
   }
   
-  def createAnnotatedTagObject(tagger: JsonPostReturnSha)(releaserVersion:String)
+  def createAnnotatedTagObject(tagger: JsonPostReturnSha)
+                              (releaserVersion:String)
                               (repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[CommitSha] = {
     logger.debug("creating annotated tag object from " + targetVersion + " version mapping " + targetVersion)
 

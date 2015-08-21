@@ -18,6 +18,8 @@ package uk.gov.hmrc.releaser.domain
 
 import java.nio.file.{Files, Path}
 
+import uk.gov.hmrc.releaser.{MavenArtefacts, TransformerProvider, IvyArtefacts}
+
 import scala.util.{Failure, Success, Try}
 
 trait RepoFlavour extends PathBuilder{
@@ -26,17 +28,20 @@ trait RepoFlavour extends PathBuilder{
   def scalaVersion:String
   def releaseCandidateRepo:String
   def releaseRepo:String
-  def pomTransformer:XmlTransformer
+  //def pomTransformer:XmlTransformer
+  val artefactBuilder:(VersionMapping, Path) => TransformerProvider
 }
 
 trait IvyRepo extends RepoFlavour with BintrayIvyPaths{
   val scalaVersion = "2.10"
-  val pomTransformer = new IvyTransformer(workDir)
+  //val pomTransformer = new IvyTransformer(workDir)
+  val artefactBuilder = IvyArtefacts.apply _
 }
 
 trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
   val scalaVersion = "2.11"
-  val pomTransformer = new PomTransformer(workDir)
+  //val pomTransformer = new PomTransformer(workDir)
+  val artefactBuilder = MavenArtefacts.apply _
 }
 
 object RepoFlavours {
