@@ -254,13 +254,21 @@ class Coordinator(
 
   def transformFile(map: VersionMapping, remotePath:String, transO:Option[Transformer], connector:RepoConnector, prefix:String):Try[Path]={
     connector.downloadFile(map.sourceArtefact, remotePath).flatMap { localPath =>
-      Logger.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $remotePath")
       val targetFileName = buildTargetFileName(map, remotePath, prefix)
-      transO.map { trans =>
-        trans.apply(localPath, map.targetVersion, targetFileName = targetFileName)
-      }.getOrElse { Try {
-        Files.copy(localPath, stageDir.resolve(targetFileName))
-      }}
+      val targetPath = stageDir.resolve(targetFileName)
+      Logger.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $remotePath writing to file ${targetPath}")
+      if(targetPath.toFile.exists()){
+        Logger.info(s"already have $targetPath, not updating")
+        Success(targetPath)
+      } else {
+        transO.map { trans =>
+          trans.apply(localPath, map.targetVersion, targetPath)
+        }.getOrElse {
+          Try {
+            Files.copy(localPath, targetPath)
+          }
+        }
+      }
     }
   }
 

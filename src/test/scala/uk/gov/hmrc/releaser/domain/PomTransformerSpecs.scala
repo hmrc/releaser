@@ -17,9 +17,9 @@
 package uk.gov.hmrc.releaser.domain
 
 import java.io.File
-import java.nio.file.Files
 
 import org.scalatest._
+import uk.gov.hmrc.releaser.Builders._
 
 import scala.xml.XML
 
@@ -30,14 +30,13 @@ class PomTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach
   var transformer: PomTransformer = _
 
   override def beforeEach() {
-    transformer = new PomTransformer(Files.createTempDirectory("test-release"))
+    transformer = new PomTransformer()
   }
 
   "the pom transformer" should {
 
     "re-write the pom with a new version 1.4.0" in {
-
-      val outFile = transformer(timePomFile, ReleaseVersion("1.4.0"), "time-1.4.0.pom").success.get
+      val outFile = transformer(timePomFile, ReleaseVersion("1.4.0"), tempDir().resolve("time-1.4.0.pom")).success.get
 
       val pomVersionText = (XML.loadFile(outFile.toFile) \ "version").text
 

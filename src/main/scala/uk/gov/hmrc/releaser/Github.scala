@@ -209,7 +209,7 @@ class GithubHttp(cred:ServiceCredentials){
 
     val result: WSResponse = Await.result(req.execute(), Duration.apply(1, TimeUnit.MINUTES))
 
-    log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
+    log.info(s"${req.method} with ${req.url} result ${result.status} - ${result.statusText}")
 
     result
   }

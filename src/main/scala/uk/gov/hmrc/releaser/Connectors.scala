@@ -48,15 +48,21 @@ object Http{
   import resource._
 
   def url2File(url: String, targetFile: Path): Try[Path] = {
-    log.info(s"downloading $url to $targetFile")
-    try {
-      managed(new URL(url).openConnection().getInputStream).foreach { in =>
-        Files.copy(in, targetFile)
-      }
-
+    if(targetFile.toFile.exists()){
+      log.info(s"not downloading from $url as file already exists")
       Success(targetFile)
-    } catch {
-      case e: Exception => Failure(e)
+    } else {
+      log.info(s"downloading $url to $targetFile")
+
+      try {
+        managed(new URL(url).openConnection().getInputStream).foreach { in =>
+          Files.copy(in, targetFile)
+        }
+
+        Success(targetFile)
+      } catch {
+        case e: Exception => Failure(e)
+      }
     }
   }
 }

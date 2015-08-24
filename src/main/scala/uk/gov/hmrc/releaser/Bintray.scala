@@ -113,7 +113,7 @@ class BintrayHttp(creds:ServiceCredentials){
 
     val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
 
-    log.info(s"result ${result.status} - ${result.statusText}")
+    //log.info(s"result ${result.status} - ${result.statusText}")
 
     result.status match {
       case s if s >= 200 && s < 300 => Success(new URL(url))
@@ -128,7 +128,7 @@ class BintrayHttp(creds:ServiceCredentials){
 
     val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
 
-    log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
+    //log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
 
     result.status match {
       case s if s >= 200 && s < 300 => Success(result.body)
@@ -149,7 +149,7 @@ class BintrayHttp(creds:ServiceCredentials){
 
     val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
 
-    log.info(s"result ${result.status} - ${result.statusText}")
+    //log.info(s"result ${result.status} - ${result.statusText}")
 
     result.status match {
       case s if s >= 200 && s < 300 => Success(Unit)

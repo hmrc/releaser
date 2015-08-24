@@ -30,17 +30,16 @@ import scala.xml._
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 
 trait Transformer{
-  def apply(localFile: Path, targetVersion: ReleaseVersion, targetFileName: String): Try[Path]
+  def apply(localFile: Path, targetVersion: ReleaseVersion, targetFile:Path): Try[Path]
 }
 
 trait XmlTransformer extends Transformer{
 
-  def stagingDir:Path
+//  def stagingDir:Path
 
-  def apply(localPomFile: Path, targetVersion: ReleaseVersion, targetFileName: String): Try[Path] =  {
+  def apply(localPomFile: Path, targetVersion: ReleaseVersion, targetFile:Path): Try[Path] =  {
     val updatedT: Try[Node] = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion)
     updatedT.flatMap { updated => Try{
-      val targetFile = stagingDir.resolve(targetFileName)
       Files.write(targetFile, updated.mkString.getBytes)
     }}
   }
@@ -49,7 +48,7 @@ trait XmlTransformer extends Transformer{
 
 }
 
-class PomTransformer(val stagingDir:Path) extends XmlTransformer{
+class PomTransformer extends XmlTransformer{
 
   def updateVersion(node: Node, newVersion:ReleaseVersion): Try[Node] = {
     if((node \ "version").isEmpty){
@@ -67,7 +66,7 @@ class PomTransformer(val stagingDir:Path) extends XmlTransformer{
 }
 
 
-class IvyTransformer(val stagingDir:Path) extends XmlTransformer{
+class IvyTransformer extends XmlTransformer{
 
   def updateVersion(node: Node, newVersion:ReleaseVersion): Try[Node] = {
     if((node \ "info" \ "@revision").isEmpty){
@@ -87,7 +86,7 @@ class IvyTransformer(val stagingDir:Path) extends XmlTransformer{
   }
 }
 
-class JarManifestTransformer(stagingDir:Path) extends Transformer{
+class JarManifestTransformer extends Transformer{
 
   val versionNumberFields = Set("Git-Describe", "Implementation-Version", "Specification-Version")
 
@@ -103,13 +102,11 @@ class JarManifestTransformer(stagingDir:Path) extends Transformer{
     }
   }
 
-  def apply(localJarFile:Path, targetVersion:ReleaseVersion, targetJarName:String):Try[Path] = Try {
-
-    val targetFile = stagingDir.resolve(targetJarName)
+  def apply(localJarFile:Path, targetVersion:ReleaseVersion, target:Path):Try[Path] = Try {
 
     for {
       jarFile <- managed(new ZipFile(localJarFile.toFile))
-      zout <- managed(new ZipOutputStream(new FileOutputStream(targetFile.toFile)))
+      zout    <- managed(new ZipOutputStream(new FileOutputStream(target.toFile)))
     } {
 
       jarFile.entries().foreach { ze =>
@@ -127,6 +124,6 @@ class JarManifestTransformer(stagingDir:Path) extends Transformer{
       }
     }
 
-    targetFile
+    target
   }
 }
