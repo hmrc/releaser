@@ -12,6 +12,19 @@ There are release and release candidate repositories in Bintray HMRC for standar
 ### Running
 `java -jar target/scala-2.11/releaser-assembly-x.x.x.jar` artifact release-candidate-version release-version
 
+##### Extra flags
+- `-d | --dryRun`: perform a dry run of a relase. Downloads files and transforms but does not upload or create releases on github.com. Useful during development
+- `--github-name-override`: provide a different github repository to the bintray package. The default is to assume the github repository has the same name as the Bintry repository and this flag allows the user to provide a differnt github.com repository name.
+
+### Supported Artifacts
+Releaser will release:
+- Maven based libraries and services found in https://bintray.com/hmrc/release-candidates
+- Ivy based libraries for SBT plugins found in https://bintray.com/hmrc/sbt-plugin-release-candidates
+
+### Coding in the Open
+Release is an integral part of how we release code in the open, more information can be found in the [Coding in the Open Manual](http://hmrc.github.io/coding-in-the-open-manual.html)
+
+
 ### License
  
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
