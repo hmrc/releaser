@@ -111,7 +111,7 @@ class BintrayHttp(creds:ServiceCredentials){
 
     val call = apiWs(url).post(Results.EmptyContent())
 
-    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+    val result: WSResponse = Await.result(call, Duration.apply(5, TimeUnit.MINUTES))
 
     //log.info(s"result ${result.status} - ${result.statusText}")
 
@@ -126,7 +126,7 @@ class BintrayHttp(creds:ServiceCredentials){
 
     val call = apiWs(url).get()
 
-    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+    val result: WSResponse = Await.result(call, Duration.apply(5, TimeUnit.MINUTES))
 
     //log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
 
@@ -147,7 +147,7 @@ class BintrayHttp(creds:ServiceCredentials){
         "X-Bintray-Version" -> version.version.value)
       .put(file.toFile)
 
-    val result: WSResponse = Await.result(call, Duration.apply(1, TimeUnit.MINUTES))
+    val result: WSResponse = Await.result(call, Duration.apply(5, TimeUnit.MINUTES))
 
     //log.info(s"result ${result.status} - ${result.statusText}")
 
