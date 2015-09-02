@@ -37,7 +37,7 @@ class IvyTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach
 
     "re-write the ivy with a new version 1.4.0" in {
       val dir = Files.createTempDirectory("test-release")
-      val outFile = transformer(bobbyIvyFile, ReleaseVersion("1.4.0"), dir.resolve("ivy.xml")).success.get
+      val outFile = transformer(bobbyIvyFile, "artefact", ReleaseCandidateVersion("1.3.0-1-234235"), ReleaseVersion("1.4.0"), dir.resolve("ivy.xml")).success.get
 
       val ivyVersionText = (XML.loadFile(outFile.toFile) \ "info" \ "@revision").text
 

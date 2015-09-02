@@ -16,12 +16,15 @@
 
 package uk.gov.hmrc.releaser.domain
 
-import java.io.FileOutputStream
+import java.io._
 import java.nio.file.{Files, Path}
 import java.util.jar._
 import java.util.zip.{ZipEntry, ZipFile, ZipOutputStream}
 
 import com.google.common.io.ByteStreams
+import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream, TarArchiveOutputStream}
+import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
+import org.apache.commons.io.{FileUtils, IOUtils}
 import resource._
 
 import scala.collection.JavaConversions._
@@ -30,14 +33,14 @@ import scala.xml._
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 
 trait Transformer{
-  def apply(localFile: Path, targetVersion: ReleaseVersion, targetFile:Path): Try[Path]
+  def apply(localFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile:Path): Try[Path]
 }
 
 trait XmlTransformer extends Transformer{
 
 //  def stagingDir:Path
 
-  def apply(localPomFile: Path, targetVersion: ReleaseVersion, targetFile:Path): Try[Path] =  {
+  def apply(localPomFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile:Path): Try[Path] =  {
     val updatedT: Try[Node] = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion)
     updatedT.flatMap { updated => Try{
       Files.write(targetFile, updated.mkString.getBytes)
@@ -102,7 +105,7 @@ class JarManifestTransformer extends Transformer{
     }
   }
 
-  def apply(localJarFile:Path, targetVersion:ReleaseVersion, target:Path):Try[Path] = Try {
+  def apply(localJarFile:Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion:ReleaseVersion, target:Path):Try[Path] = Try {
 
     for {
       jarFile <- managed(new ZipFile(localJarFile.toFile))
@@ -126,4 +129,88 @@ class JarManifestTransformer extends Transformer{
 
     target
   }
+}
+
+class TgzTransformer extends Transformer {
+
+  override def apply(localTgzFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path] = Try {
+    val decompressedArchivePath = decompressTgz(localTgzFile)
+    renameFolder(decompressedArchivePath, artefactName, sourceVersion, targetVersion)
+    compressTgz(decompressedArchivePath, targetFile)
+    targetFile
+  }
+
+  private def decompressTgz(localTgzFile: Path) : Path =  {
+    val bytes = new Array[Byte](2048)
+    val fin = new BufferedInputStream(new FileInputStream(localTgzFile.toFile))
+    val gzIn = new GzipCompressorInputStream(fin)
+    val tarIn = new TarArchiveInputStream(gzIn)
+
+    val targetDecompressPath = localTgzFile.getParent.resolve("tmp_tgz")
+    targetDecompressPath.toFile.mkdirs()
+    Iterator continually tarIn.getNextEntry takeWhile (null !=) foreach { tarEntry =>
+      val targetEntryFile = new File(targetDecompressPath.toFile, tarEntry.getName)
+      if (tarEntry.isDirectory) {
+        targetEntryFile.mkdirs()
+      } else {
+        targetEntryFile.getParentFile.mkdirs()
+        val fos = new BufferedOutputStream(new FileOutputStream(targetEntryFile), 2048)
+        Iterator continually tarIn.read(bytes) takeWhile (-1 != ) foreach ( read => fos.write(bytes,0,read) )
+        fos.close()
+      }
+    }
+
+    tarIn.close()
+
+    targetDecompressPath
+  }
+
+  private def renameFolder(decompressedArchivePath: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion): Try[Path] = Try {
+    val folderToRename = decompressedArchivePath.resolve(s"$artefactName-${sourceVersion.value}")
+    val targetFolder = folderToRename.resolveSibling(s"$artefactName-${targetVersion.value}")
+    FileUtils.moveDirectory(folderToRename.toFile, targetFolder.toFile)
+    targetFolder
+  }
+
+  private def compressTgz(expandedFolder: Path, targetFile: Path): Try[Path] = Try {
+    import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream.LONGFILE_GNU
+
+    val outputStream = new TarArchiveOutputStream(new GzipCompressorOutputStream(new BufferedOutputStream(new FileOutputStream(targetFile.toFile))))
+    outputStream.setLongFileMode(LONGFILE_GNU)
+
+    val mainEntry = new TarArchiveEntry(expandedFolder.toFile, ".")
+
+    addFolderToTarGz(outputStream, mainEntry)
+
+    outputStream.finish()
+    outputStream.close()
+
+    targetFile
+  }
+
+  private def addFolderToTarGz(tOut: TarArchiveOutputStream, tarEntry: TarArchiveEntry): Try[Unit] = Try {
+    val f = tarEntry.getFile
+    tOut.putArchiveEntry(tarEntry)
+    tOut.closeArchiveEntry()
+
+    val children = f.listFiles()
+    if (children != null) {
+      for ( child <- children) {
+        addEntryToTarGz(tOut, new TarArchiveEntry(child, tarEntry.getName + child.getName ))
+      }
+    }
+
+  }
+
+  private def addEntryToTarGz(tOut: TarArchiveOutputStream, tarEntry: TarArchiveEntry): Try[Unit] = Try {
+    val f = tarEntry.getFile
+    if (f.isFile) {
+      tOut.putArchiveEntry(tarEntry)
+      IOUtils.copy(new FileInputStream(f), tOut)
+      tOut.closeArchiveEntry()
+    } else {
+      addFolderToTarGz(tOut, tarEntry)
+    }
+  }
+
 }

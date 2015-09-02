@@ -17,12 +17,8 @@
 package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.releaser.Builders
-import uk.gov.hmrc.releaser.domain.{ReleaseVersion, ReleaseCandidateVersion}
 
 class BintrayMavenPathsSpecs extends WordSpec with Matchers{
-
-  import Builders._
 
   "BintrayMavenPathsSpecs" should {
 
