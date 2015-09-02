@@ -22,6 +22,8 @@ import scala.util.Try
 
 trait Version {
   def value:String
+
+  override def toString = value
 }
 case class ReleaseVersion(major: Int, minor: Int, revision: Int) extends Version{
   val value = s"$major.$minor.$revision"
