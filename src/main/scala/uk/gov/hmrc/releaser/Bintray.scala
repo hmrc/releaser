@@ -139,7 +139,6 @@ class BintrayHttp(creds:ServiceCredentials){
   def putFile(version: VersionDescriptor, file: Path, url: String): Try[Unit] = {
     log.info(s"version $version")
     log.info(s"putting file to $url")
-    log.info(s"bintray user ${System.getenv("BINTRAY_USER")}")
 
     val call = apiWs(url)
       .withHeaders(
