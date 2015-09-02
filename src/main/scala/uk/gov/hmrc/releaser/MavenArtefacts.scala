@@ -65,7 +65,7 @@ class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvi
     "-assembly.jar" -> None,
     ".jar" -> Some(new JarManifestTransformer),
     ".pom" -> Some(new PomTransformer),
-    ".tgz" -> None
+    ".tgz" -> Some(new TgzTransformer)
   )
 
   def filePrefix = s"${map.artefactName}_${map.repo.scalaVersion}-${map.sourceVersion.value}"

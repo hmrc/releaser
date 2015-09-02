@@ -33,12 +33,11 @@ package uk.gov.hmrc.releaser
  */
 
 import java.io.File
-import java.nio.file.{Paths, Files, Path}
+import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
 import play.api.Logger
 import play.api.libs.json.JsValue
-import uk.gov.hmrc.releaser.GithubApi.TagRefResponse
 import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.immutable.SortedSet
@@ -66,8 +65,8 @@ object ReleaseType extends Enumeration {
 
 object Releaser {
 
-  import ArgParser._
-  import RepoFlavours._
+  import uk.gov.hmrc.releaser.ArgParser._
+  import uk.gov.hmrc.releaser.domain.RepoFlavours._
 
   val log = new Logger()
 
@@ -262,7 +261,7 @@ class Coordinator(
         Success(targetPath)
       } else {
         transO.map { trans =>
-          trans.apply(localPath, map.targetVersion, targetPath)
+          trans.apply(localPath, map.sourceArtefact.artefactName, map.sourceVersion, map.targetVersion, targetPath)
         }.getOrElse {
           Try {
             Files.copy(localPath, targetPath)
