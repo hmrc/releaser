@@ -19,8 +19,7 @@ package uk.gov.hmrc.releaser.domain
 import java.io._
 import java.nio.file.Path
 
-import org.apache.commons.compress.archivers.ArchiveEntry
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream}
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.FileUtils
 import org.scalatest._
@@ -58,14 +57,15 @@ class TgzTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach 
       val originalTarEntries = listTgzEntries(inFile)
       assertTarEntry(originalTarEntries, "./help-frontend-1.26.0-3-gd7ed03c/")
       assertTarEntry(originalTarEntries, "./help-frontend-1.4.0/", exists = false)
+      assertTarEntry(originalTarEntries, "./start-docker.sh", mode = Some(493))
 
       val outFileTry = transformer(inFile, "help-frontend", candidate_1_26_0_3_gd7ed03c, release_1_4_0, targetFilePath)
       outFileTry match {
-        case Success(outFile) => {
+        case Success(outFile) =>
           val tarEntries = listTgzEntries(targetFilePath)
           assertTarEntry(tarEntries, "./help-frontend-1.26.0-3-gd7ed03c/", exists = false)
           assertTarEntry(tarEntries, "./help-frontend-1.4.0/")
-        }
+          assertTarEntry(tarEntries, "./start-docker.sh", mode = Some(493))
         case Failure(e) => fail("Caught exception: " + e.getMessage, e)
       }
 
@@ -73,15 +73,15 @@ class TgzTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach 
     }
   }
 
-  private def listTgzEntries(localTgzFile: Path) : List[ArchiveEntry] =  {
+  private def listTgzEntries(localTgzFile: Path) : List[TarArchiveEntry] =  {
     val bytes = new Array[Byte](2048)
     val fin = new BufferedInputStream(new FileInputStream(localTgzFile.toFile))
     val gzIn = new GzipCompressorInputStream(fin)
     val tarIn = new TarArchiveInputStream(gzIn)
 
-    val entries = ListBuffer[ArchiveEntry]()
+    val entries = ListBuffer[TarArchiveEntry]()
 
-    Iterator continually tarIn.getNextEntry takeWhile (null !=) foreach { tarEntry =>
+    Iterator continually tarIn.getNextTarEntry takeWhile (null !=) foreach { tarEntry =>
       entries += tarEntry
     }
 
@@ -91,7 +91,15 @@ class TgzTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach 
 
   }
 
-  private def assertTarEntry(tarEntries: List[ArchiveEntry], entryName: String, exists: Boolean = true) = {
-    tarEntries.exists (_.getName == entryName) shouldBe exists
+  private def assertTarEntry(tarEntries: List[TarArchiveEntry], entryName: String, exists: Boolean = true, mode: Option[Int] = None) = {
+    val entryOption = tarEntries.find(_.getName == entryName)
+    entryOption match {
+      case Some(entry) =>
+        exists shouldBe true
+        mode.foreach { m => m shouldBe entry.getMode}
+      case None => exists shouldBe false
+    }
+
   }
+
 }

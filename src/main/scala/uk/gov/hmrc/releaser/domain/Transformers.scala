@@ -26,35 +26,37 @@ import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInp
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
 import org.apache.commons.io.{FileUtils, IOUtils}
 import resource._
+import uk.gov.hmrc.releaser.PosixFileAttributes
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
 import scala.xml._
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 
-trait Transformer{
-  def apply(localFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile:Path): Try[Path]
+trait Transformer {
+  def apply(localFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path]
 }
 
-trait XmlTransformer extends Transformer{
+trait XmlTransformer extends Transformer {
 
-//  def stagingDir:Path
+  //  def stagingDir:Path
 
-  def apply(localPomFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile:Path): Try[Path] =  {
+  def apply(localPomFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path] = {
     val updatedT: Try[Node] = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion)
-    updatedT.flatMap { updated => Try{
+    updatedT.flatMap { updated => Try {
       Files.write(targetFile, updated.mkString.getBytes)
-    }}
+    }
+    }
   }
 
-  def updateVersion(node: Node, newVersion:ReleaseVersion): Try[Node]
+  def updateVersion(node: Node, newVersion: ReleaseVersion): Try[Node]
 
 }
 
-class PomTransformer extends XmlTransformer{
+class PomTransformer extends XmlTransformer {
 
-  def updateVersion(node: Node, newVersion:ReleaseVersion): Try[Node] = {
-    if((node \ "version").isEmpty){
+  def updateVersion(node: Node, newVersion: ReleaseVersion): Try[Node] = {
+    if ((node \ "version").isEmpty) {
       Failure(new Exception("Didn't find project element in pom file"))
     } else {
 
@@ -63,16 +65,18 @@ class PomTransformer extends XmlTransformer{
         case <version>{ _* }</version> => <version>{ newVersion.value }</version>
         case other @ _ => other
       }
-      Try { updateVersionRec(node, newVersion)}
+      Try {
+        updateVersionRec(node, newVersion)
+      }
     }
   }
 }
 
 
-class IvyTransformer extends XmlTransformer{
+class IvyTransformer extends XmlTransformer {
 
-  def updateVersion(node: Node, newVersion:ReleaseVersion): Try[Node] = {
-    if((node \ "info" \ "@revision").isEmpty){
+  def updateVersion(node: Node, newVersion: ReleaseVersion): Try[Node] = {
+    if ((node \ "info" \ "@revision").isEmpty) {
       Failure(new Exception("Didn't find revision element in ivy file"))
     } else {
 
@@ -84,19 +88,21 @@ class IvyTransformer extends XmlTransformer{
         }
       })
 
-      Try { rewrite(node) }
+      Try {
+        rewrite(node)
+      }
     }
   }
 }
 
-class JarManifestTransformer extends Transformer{
+class JarManifestTransformer extends Transformer {
 
   val versionNumberFields = Set("Git-Describe", "Implementation-Version", "Specification-Version")
 
-  def manifestTransformer(manifest: Manifest, updatedVersionNumber:ReleaseVersion): Manifest = {
+  def manifestTransformer(manifest: Manifest, updatedVersionNumber: ReleaseVersion): Manifest = {
 
     manifest.getMainAttributes.keysIterator.foldLeft(new Manifest()) { (newMan, key) =>
-      if(versionNumberFields.contains(key.toString)){
+      if (versionNumberFields.contains(key.toString)) {
         newMan.getMainAttributes.put(key, updatedVersionNumber.value)
       } else {
         newMan.getMainAttributes.put(key, manifest.getMainAttributes.get(key))
@@ -105,11 +111,11 @@ class JarManifestTransformer extends Transformer{
     }
   }
 
-  def apply(localJarFile:Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion:ReleaseVersion, target:Path):Try[Path] = Try {
+  def apply(localJarFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, target: Path): Try[Path] = Try {
 
     for {
       jarFile <- managed(new ZipFile(localJarFile.toFile))
-      zout    <- managed(new ZipOutputStream(new FileOutputStream(target.toFile)))
+      zout <- managed(new ZipOutputStream(new FileOutputStream(target.toFile)))
     } {
 
       jarFile.entries().foreach { ze =>
@@ -133,6 +139,8 @@ class JarManifestTransformer extends Transformer{
 
 class TgzTransformer extends Transformer {
 
+  import uk.gov.hmrc.releaser.PosixFileAttributes._
+
   override def apply(localTgzFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path] = Try {
     val decompressedArchivePath = decompressTgz(localTgzFile)
     renameFolder(decompressedArchivePath, artefactName, sourceVersion, targetVersion)
@@ -140,7 +148,7 @@ class TgzTransformer extends Transformer {
     targetFile
   }
 
-  private def decompressTgz(localTgzFile: Path) : Path =  {
+  private def decompressTgz(localTgzFile: Path): Path = {
     val bytes = new Array[Byte](2048)
     val fin = new BufferedInputStream(new FileInputStream(localTgzFile.toFile))
     val gzIn = new GzipCompressorInputStream(fin)
@@ -148,15 +156,16 @@ class TgzTransformer extends Transformer {
 
     val targetDecompressPath = localTgzFile.getParent.resolve("tmp_tgz")
     targetDecompressPath.toFile.mkdirs()
-    Iterator continually tarIn.getNextEntry takeWhile (null !=) foreach { tarEntry =>
+    Iterator continually tarIn.getNextTarEntry takeWhile (null !=) foreach { tarEntry =>
       val targetEntryFile = new File(targetDecompressPath.toFile, tarEntry.getName)
       if (tarEntry.isDirectory) {
         targetEntryFile.mkdirs()
       } else {
         targetEntryFile.getParentFile.mkdirs()
         val fos = new BufferedOutputStream(new FileOutputStream(targetEntryFile), 2048)
-        Iterator continually tarIn.read(bytes) takeWhile (-1 != ) foreach ( read => fos.write(bytes,0,read) )
+        Iterator continually tarIn.read(bytes) takeWhile (-1 !=) foreach (read => fos.write(bytes, 0, read))
         fos.close()
+        Files.setPosixFilePermissions(targetEntryFile.toPath, tarEntry.getMode)
       }
     }
 
@@ -164,6 +173,7 @@ class TgzTransformer extends Transformer {
 
     targetDecompressPath
   }
+
 
   private def renameFolder(decompressedArchivePath: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion): Try[Path] = Try {
     val folderToRename = decompressedArchivePath.resolve(s"$artefactName-${sourceVersion.value}")
@@ -195,8 +205,8 @@ class TgzTransformer extends Transformer {
 
     val children = f.listFiles()
     if (children != null) {
-      for ( child <- children) {
-        addEntryToTarGz(tOut, new TarArchiveEntry(child, tarEntry.getName + child.getName ))
+      for (child <- children) {
+        addEntryToTarGz(tOut, new TarArchiveEntry(child, tarEntry.getName + child.getName))
       }
     }
 
@@ -205,6 +215,7 @@ class TgzTransformer extends Transformer {
   private def addEntryToTarGz(tOut: TarArchiveOutputStream, tarEntry: TarArchiveEntry): Try[Unit] = Try {
     val f = tarEntry.getFile
     if (f.isFile) {
+      tarEntry.setMode(Files.getPosixFilePermissions(f.toPath))
       tOut.putArchiveEntry(tarEntry)
       IOUtils.copy(new FileInputStream(f), tOut)
       tOut.closeArchiveEntry()
