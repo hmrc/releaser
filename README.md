@@ -1,5 +1,7 @@
 # Releaser
 
+[![Build Status](https://travis-ci.org/hmrc/releaser.svg?branch=master)](https://travis-ci.org/hmrc/releaser) [ ![Download](https://api.bintray.com/packages/hmrc/releases/releaser/images/download.svg) ](https://bintray.com/hmrc/releases/releaser/_latestVersion)
+
 Releases artefacts from release candidates with one command. For use as part of a continuous delivery pipeline in which users can create a release from a development commit and create a tag in Github with one command. This automates numerous manual steps required to release an artefact with the existing [release](https://github.com/hmrc/release) scripts.
 
 The release candidate is a published artefact in a Bintray HMRC release candidate repository. Releaser works by taking a release candidate, modifying the verion numbers in the Manifest and file names and uploading files back to Bintray. *All compiled files are not touched in this process*.  
@@ -23,7 +25,6 @@ Releaser will release:
 
 ### Coding in the Open
 Release is an integral part of how we release code in the open, more information can be found in the [Coding in the Open Manual](http://hmrc.github.io/coding-in-the-open-manual.html)
-
 
 ### License
  
