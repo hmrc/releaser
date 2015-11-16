@@ -41,7 +41,6 @@ object HmrcBuild extends Build {
   lazy val releaser = Project(appName, file("."))
     .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
     .settings(
-      targetJvm := "jvm-1.7",
       scalaVersion := "2.11.6",
       libraryDependencies ++= libraries,
       resolvers += Resolver.typesafeRepo("releases"),
