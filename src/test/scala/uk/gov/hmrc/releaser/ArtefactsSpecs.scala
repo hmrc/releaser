@@ -57,6 +57,7 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       val artefacts = new IvyArtefacts(ver, Files.createTempDirectory("test"))
       val files = List(
         "sbt-bobby.jar",
+        "sbt-bobby-assembly.jar",
         "sbt-bobby-sources.jar",
         "ivy.xml"
       )
@@ -65,7 +66,8 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
 
       result foreach println
 
-      result.size shouldBe 3
+      result.size shouldBe 4
+      result("sbt-bobby-assembly.jar") shouldBe None
       result("sbt-bobby.jar") should not be None
       result("sbt-bobby-sources.jar") shouldBe None
       result("ivy.xml") should not be None

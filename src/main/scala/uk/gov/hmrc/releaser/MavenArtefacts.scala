@@ -33,10 +33,11 @@ object IvyArtefacts{
 class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvider{
 
   val parentDirTransformers = Map(
-    map.artefactName+"-sources.jar" -> None,
-    map.artefactName+"-javadoc.jar" -> None,
-    map.artefactName+".jar"         -> Some(new JarManifestTransformer),
-    "ivy.xml"                       -> Some(new IvyTransformer)
+    map.artefactName+"-sources.jar"  -> None,
+    map.artefactName+"-javadoc.jar"  -> None,
+    map.artefactName+"-assembly.jar" -> None,
+    map.artefactName+".jar"          -> Some(new JarManifestTransformer),
+    "ivy.xml"                        -> Some(new IvyTransformer)
   )
 
   def isTheJarFile(f:String):Boolean={

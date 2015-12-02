@@ -46,6 +46,7 @@ import scala.util.{Failure, Success, Try}
 class Logger{
   def info(st:String) = println("[INFO] " + st)
   def debug(st:String) = println("[DEBUG] " + st)
+  def warn(st:String) = println("[WARN] " + st)
 }
 
 object ReleaserMain {
@@ -57,7 +58,7 @@ object ReleaserMain {
 }
 
 object ReleaseType extends Enumeration {
-  type Margin = Value
+  type ReleaseType = Value
   val MAJOR, MINOR, PATCH = Value
 
   val stringValues: SortedSet[String] = this.values.map(_.toString)
