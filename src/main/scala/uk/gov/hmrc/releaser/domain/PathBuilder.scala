@@ -89,6 +89,7 @@ trait BintrayIvyPaths extends PathBuilder {
       case "-javadoc.jar" => "docs"
       case "-sources.jar" => "srcs"
       case ".jar" => "jars"
+      case "-assembly.jar" => "jars"
       case "ivy.xml" => "ivys"
       case _ => throw new scala.IllegalArgumentException(s"couldn't find directory for $fileName")
     }

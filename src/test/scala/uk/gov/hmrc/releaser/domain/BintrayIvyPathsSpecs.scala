@@ -31,6 +31,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
     val repo = Repo("sbt-bobby")
 
     "Generate URL for files on Bintray" in {
+      val expectedAssemblyJarUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby-assembly.jar"
       val expectedJarUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby.jar"
       val expectedPomUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/ivys/ivy.xml"
 
@@ -40,6 +41,8 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
       ivyPaths.jarFilenameFor(version) shouldBe "sbt-bobby.jar"
       ivyPaths.filenameFor(version, "sbt-bobby.jar") shouldBe "sbt-bobby.jar"
+
+      ivyPaths.fileDownloadFor(version, "sbt-bobby-assembly.jar") shouldBe expectedAssemblyJarUrl
 
       ivyPaths.jarDownloadFor(version) shouldBe expectedJarUrl
       ivyPaths.fileDownloadFor(version, "ivy.xml") shouldBe expectedPomUrl
