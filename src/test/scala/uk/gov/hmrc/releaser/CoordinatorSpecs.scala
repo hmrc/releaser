@@ -36,7 +36,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
   "the coordinator" should {
 
-    "release version 0.9.9 of a library with an assembly, not modifying the assembly manifest, when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
+    "release version 0.9.9 of a library with an assembly, not modifying the assembly manifest, when given the inputs 'time', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = Builders.buildConnector(
         "",
@@ -79,7 +79,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "0.9.9"
     }
 
-    "release version 2.0.0 of a maven-based service when given the inputs 'help-frontend', '1.26.0-3-gd7ed03c' and 'patch' as the artefact, release candidate and release type" in {
+    "release version 2.0.0 of a maven-based service when given the inputs 'help-frontend', '1.26.0-3-gd7ed03c' and 'hotfix' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = Builders.buildConnector(
         "",
@@ -126,7 +126,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "0.9.9"
     }
 
-    "release version 0.9.9 of a maven-based library when given the inputs 'time', '1.3.0-1-g21312cc' and 'patch' as the artefact, release candidate and release type" in {
+    "release version 0.9.9 of a maven-based library when given the inputs 'time', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = Builders.buildConnector(
         "",
@@ -192,7 +192,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
-    "release version 0.1.1 of an ivy-based SBT plugin when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'patch' as the artefact, release candidate and release type" in {
+    "release version 0.1.1 of an ivy-based SBT plugin when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'hotfix' as the artefact, release candidate and release type" in {
 
       val githubReleaseBuilder = new MockFunction2[ArtefactMetaData, VersionMapping]()
       val githubTagObjBuilder = new MockFunction3[Repo, ReleaseVersion, CommitSha, CommitSha]()

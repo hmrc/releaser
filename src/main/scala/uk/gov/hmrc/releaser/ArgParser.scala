@@ -21,7 +21,7 @@ object ArgParser{
   case class Config(
                      artefactName: String = "",
                      rcVersion:String = "",
-                     releaseType:ReleaseType.Value = ReleaseType.PATCH,
+                     releaseType:ReleaseType.Value = ReleaseType.HOTFIX,
                      githubNameOverride:Option[String] = None,
                      tag:Boolean = true,
                      verbose:Boolean = false,

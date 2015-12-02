@@ -59,7 +59,7 @@ object ReleaserMain {
 
 object ReleaseType extends Enumeration {
   type ReleaseType = Value
-  val MAJOR, MINOR, PATCH = Value
+  val MAJOR, MINOR, HOTFIX = Value
 
   val stringValues: SortedSet[String] = this.values.map(_.toString)
 }

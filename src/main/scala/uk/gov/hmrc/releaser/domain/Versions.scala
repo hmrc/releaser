@@ -61,8 +61,8 @@ object VersionNumberCalculator{
 
   def calculateTarget(rcVersion:ReleaseCandidateVersion, releaseType: ReleaseType.Value): Try[ReleaseVersion] = Try {
     groups(rcVersion.value).toList.map(_.toInt) match {
-      case List(major, minor, patch) => releaseType match {
-        case ReleaseType.PATCH => ReleaseVersion(major, minor, patch + 1)
+      case List(major, minor, hotfix) => releaseType match {
+        case ReleaseType.HOTFIX => ReleaseVersion(major, minor, hotfix + 1)
         case ReleaseType.MINOR => ReleaseVersion(major, minor+1, 0)
         case ReleaseType.MAJOR => ReleaseVersion(major+1, 0, 0)
       }
