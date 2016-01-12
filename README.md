@@ -24,7 +24,7 @@ Releaser will release:
 - Ivy based libraries for SBT plugins found in https://bintray.com/hmrc/sbt-plugin-release-candidates
 
 ### Coding in the Open
-Release is an integral part of how we release code in the open, more information can be found in the [Coding in the Open Manual](http://hmrc.github.io/coding-in-the-open-manual.html)
+Release is an integral part of how we release code in the open, more information can be found in the [Coding in the Open Manual](http://hmrc.github.io/coding-in-the-open-manual/)
 
 ### License
  
