@@ -39,8 +39,6 @@ trait Transformer {
 
 trait XmlTransformer extends Transformer {
 
-  //  def stagingDir:Path
-
   def apply(localPomFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path] = {
     val updatedT: Try[Node] = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion)
     updatedT.flatMap { updated => Try {

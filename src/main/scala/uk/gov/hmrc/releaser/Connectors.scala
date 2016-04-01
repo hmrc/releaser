@@ -19,11 +19,12 @@ package uk.gov.hmrc.releaser
 import java.net.URL
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser.domain.VersionDescriptor
+import uk.gov.hmrc.releaser.domain.{ReleaseVersion, VersionDescriptor}
 
 import scala.util.{Failure, Success, Try}
 
 trait RepoConnector{
+  def verifyTargetDoesNotExist(version:VersionDescriptor):Try[Unit]
   def downloadJar(version:VersionDescriptor):Try[Path]
   def publish(version: VersionDescriptor):Try[Unit]
   def findFiles(version: VersionDescriptor):Try[List[String]]

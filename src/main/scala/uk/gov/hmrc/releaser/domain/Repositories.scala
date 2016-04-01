@@ -34,13 +34,11 @@ trait RepoFlavour extends PathBuilder{
 
 trait IvyRepo extends RepoFlavour with BintrayIvyPaths{
   val scalaVersion = "2.10"
-  //val pomTransformer = new IvyTransformer(workDir)
   val artefactBuilder = IvyArtefacts.apply _
 }
 
 trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
   val scalaVersion = "2.11"
-  //val pomTransformer = new PomTransformer(workDir)
   val artefactBuilder = MavenArtefacts.apply _
 }
 

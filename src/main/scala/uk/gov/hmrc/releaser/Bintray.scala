@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.releaser
 
-import java.net.URL
+import java.net.{HttpURLConnection, URL}
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
@@ -56,6 +56,19 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
   def publish(version: VersionDescriptor):Try[Unit]={
     val url = bintrayPaths.publishUrlFor(version)
     bintrayHttp.emptyPost(url)
+  }
+
+  override def verifyTargetDoesNotExist(version:VersionDescriptor):Try[Unit]={
+    val artefactUrl = bintrayPaths.jarDownloadFor(version)
+
+    val conn = new URL(artefactUrl).openConnection().asInstanceOf[HttpURLConnection]
+    conn.setRequestMethod("HEAD")
+    conn.connect()
+
+    conn.getResponseCode match {
+      case 200 => Failure(new IllegalArgumentException(s"${version.artefactName} ${version.version} already exists"))
+      case _ => Success()
+    }
   }
 
   def downloadJar(version:VersionDescriptor):Try[Path] = {

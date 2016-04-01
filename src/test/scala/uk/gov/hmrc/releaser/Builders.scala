@@ -20,6 +20,7 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
+import org.scalatest.Failed
 import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.mutable
@@ -129,10 +130,7 @@ object Builders {
     new Coordinator(stageDir, artefactBuilder, githubRepoGetter, taggerAndReleaser)
   }
 
-  def buildConnector(filesuffix:String, jarResoure:String, bintrayFiles:Set[String]) = new RepoConnector(){
-
-//    var lastUploadedJar:Option[(VersionDescriptor, Path)] = None
-//    var lastUploadedPom:Option[(VersionDescriptor, Path)] = None
+  def buildConnector(filesuffix:String, jarResoure:String, bintrayFiles:Set[String], targetExists:Boolean = false) = new RepoConnector(){
 
     val uploadedFiles = mutable.Set[(VersionDescriptor, Path)]()
 
@@ -142,11 +140,6 @@ object Builders {
       Success {
         Paths.get(this.getClass.getResource(filesuffix + jarResoure).toURI) }
     }
-
-//    override def uploadJar(version: VersionDescriptor, jarFile: Path): Try[Unit] = {
-//      lastUploadedJar = Some(version -> jarFile)
-//      Success(Unit)
-//    }
 
     override def publish(version: VersionDescriptor): Try[Unit] = {
       lastPublishDescriptor = Some(version)
@@ -164,6 +157,11 @@ object Builders {
     override def uploadFile(version: VersionDescriptor, filePath: Path): Try[Unit] = {
       uploadedFiles.add((version, filePath))
       Success(Unit)
+    }
+
+    override def verifyTargetDoesNotExist(version: VersionDescriptor): Try[Unit] = targetExists match {
+      case true => Failure(new IllegalArgumentException("Failed in test"))
+      case false => Success(Unit)
     }
   }
 

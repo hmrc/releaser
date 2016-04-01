@@ -58,8 +58,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       fakeRepoConnector.uploadedFiles.size shouldBe 3
 
-      fakeRepoConnector.uploadedFiles foreach println
-
       val Some((assemblyVersion, assemblyFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-assembly.jar"))
       val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
       val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
@@ -103,9 +101,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case Failure(e) => fail(e)
         case _ =>
       }
-
-
-      fakeRepoConnector.uploadedFiles.foreach { println }
 
       fakeRepoConnector.uploadedFiles.size shouldBe 4
 
@@ -179,6 +174,26 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
+    "fail when the artefact has already been released" in {
+
+      val fakeRepoConnector = Builders.buildConnector(
+        "",
+        "/time/time_2.11-1.3.0-1-g21312cc.jar",
+        Set("/time/time_2.11-1.3.0-1-g21312cc.pom"), targetExists = true)
+
+      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+
+      val releaser = buildDefaultReleaser(
+        repositoryFinder = successfulRepoFinder(mavenRepository),
+        connectorBuilder = fakeRepoConnectorBuilder)
+
+      releaser.start("a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {
+        case Failure(e) => e shouldBe an [IllegalArgumentException]
+        case Success(s) => fail(s"Should have failed with an IllegalArgumentException")
+      }
+    }
+
+
     "fail when the repository of an artefact isn't found" in {
       val expectedException = new scala.Exception("repo fail")
 
@@ -221,8 +236,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         }
 
       fakeRepoConnector.uploadedFiles.size shouldBe 2
-
-      fakeRepoConnector.uploadedFiles foreach println
 
       val Some((_, ivyFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("ivy.xml"))
       val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("sbt-bobby.jar"))

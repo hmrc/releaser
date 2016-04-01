@@ -230,6 +230,7 @@ class Coordinator(
     val artefacts = map.repo.artefactBuilder(map, stageDir)
 
     for(
+      _         <- connector.verifyTargetDoesNotExist(map.targetArtefact);
       files     <- connector.findFiles(map.sourceArtefact);
       remotes    = artefacts.transformersForSupportedFiles(files);
       localJar  <- connector.downloadJar(map.sourceArtefact);
@@ -242,6 +243,9 @@ class Coordinator(
      yield ()
   }
 
+  def verifyTargetDoesNotExist():Try[Unit] = {
+    Failure(new Exception("target exists"))
+  }
 
   def uploadFiles(target:VersionDescriptor, files:List[Path], connector: RepoConnector):Try[Unit]={
 

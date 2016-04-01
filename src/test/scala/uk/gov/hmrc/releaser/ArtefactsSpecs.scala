@@ -64,8 +64,6 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
 
       val result: Map[String, Option[Transformer]] = artefacts.transformersForSupportedFiles(filePaths = files).toMap
 
-      result foreach println
-
       result.size shouldBe 4
       result("sbt-bobby-assembly.jar") shouldBe None
       result("sbt-bobby.jar") should not be None
