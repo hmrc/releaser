@@ -27,7 +27,7 @@ import play.api.mvc.Results
 import uk.gov.hmrc.releaser.domain.{BintrayPaths, PathBuilder, VersionDescriptor}
 
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
@@ -157,9 +157,10 @@ class BintrayHttp(creds:ServiceCredentials){
       .withHeaders(
         "X-Bintray-Package" -> version.artefactName,
         "X-Bintray-Version" -> version.version.value)
+      .withRequestTimeout((5 minutes).toMillis.toInt)
       .put(file.toFile)
 
-    val result: WSResponse = Await.result(call, Duration.apply(5, TimeUnit.MINUTES))
+    val result: WSResponse = Await.result(call, Duration.apply(6, TimeUnit.MINUTES))
 
     //log.info(s"result ${result.status} - ${result.statusText}")
 
