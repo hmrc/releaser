@@ -111,10 +111,12 @@ class BintrayHttp(creds:ServiceCredentials){
 
   val log = new Logger()
 
+  private def getTimeoutPropertyOptional(key: String) = Option(System.getProperty(key)).map(_.toLong * 1000)
+
   def wsClientConfig = new DefaultWSClientConfig(
-    connectionTimeout = Some(300000),
-    idleTimeout = Some(300000),
-    requestTimeout = Some(300000)
+    connectionTimeout = getTimeoutPropertyOptional("wsclient.timeout.connection"),
+    idleTimeout = getTimeoutPropertyOptional("wsclient.timeout.idle"),
+    requestTimeout = getTimeoutPropertyOptional("wsclient.timeout.request")
   )
 
   val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(wsClientConfig).build())

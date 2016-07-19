@@ -18,6 +18,13 @@ There are release and release candidate repositories in Bintray HMRC for standar
 - `-d | --dryRun`: perform a dry run of a relase. Downloads files and transforms but does not upload or create releases on github.com. Useful during development
 - `--github-name-override`: provide a different github repository to the bintray package. The default is to assume the github repository has the same name as the Bintry repository and this flag allows the user to provide a differnt github.com repository name.
 
+#### Configuration Parameters
+You can specify custom timeouts to be passed to the play.ws libraries that this project uses with the following System properties (-Dproperty.name=value)
+
+wsclient.timeout.connection - Connection timeout (seconds)
+wsclient.timeout.idle - Idle timeout (seconds)
+wsclient.timeout.request - Request timeout (seconds)
+
 ### Supported Artifacts
 Releaser will release:
 - Maven based libraries and services found in https://bintray.com/hmrc/release-candidates
