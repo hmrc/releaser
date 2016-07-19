@@ -90,7 +90,6 @@ object Releaser {
              ):Int={
     val tmpDir = Files.createTempDirectory("releaser")
 
-
     val githubCredsFile  = System.getProperty("user.home") + "/.github/.credentials"
     val bintrayCredsFile = System.getProperty("user.home") + "/.bintray/.credentials"
 
