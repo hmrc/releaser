@@ -111,7 +111,13 @@ class BintrayHttp(creds:ServiceCredentials){
 
   val log = new Logger()
 
-  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
+  def wsClientConfig = new DefaultWSClientConfig(
+    connectionTimeout = Some(300000),
+    idleTimeout = Some(300000),
+    requestTimeout = Some(300000)
+  )
+
+  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(wsClientConfig).build())
 
 
   def apiWs(url:String) = ws.url(url)
@@ -157,7 +163,6 @@ class BintrayHttp(creds:ServiceCredentials){
       .withHeaders(
         "X-Bintray-Package" -> version.artefactName,
         "X-Bintray-Version" -> version.version.value)
-      .withRequestTimeout((5 minutes).toMillis.toInt)
       .put(file.toFile)
 
     val result: WSResponse = Await.result(call, Duration.apply(6, TimeUnit.MINUTES))
