@@ -198,7 +198,7 @@ object Releaser {
     val artefactBuilder = ArtefactMetaData.fromFile _
 
     val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, gitHubTagAndRelease)
-    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
+    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository, gradleRepository)).findReposOfArtefact _
     new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
 }

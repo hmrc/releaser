@@ -121,6 +121,53 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "0.9.9"
     }
 
+    "release version 2.0.0 of a gradle-based service when given the inputs 'help-frontend', '1.26.0-3-gd7ed03c' and 'hotfix' as the artefact, release candidate and release type" in {
+
+      val fakeRepoConnector = Builders.buildConnector(
+        "",
+        "/gradle-help-frontend/help-frontend-1.26.0-3-gd7ed03c.jar",
+        Set(
+          "/gradle-help-frontend/help-frontend-1.26.0-3-gd7ed03c.pom",
+          "/gradle-help-frontend/help-frontend-1.26.0-3-gd7ed03c.tgz",
+          "/gradle-help-frontend/help-frontend-1.26.0-3-gd7ed03c.tgz.asc",
+          "/gradle-help-frontend/help-frontend-1.26.0-3-gd7ed03c.tgz.asc.md5",
+          "/gradle-help-frontend/help-frontend-1.26.0-3-gd7ed03c-sources.jar"
+        ))
+
+      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+
+      val releaser = buildDefaultReleaser(
+        repositoryFinder = successfulRepoFinder(gradleRepository),
+        connectorBuilder = fakeRepoConnectorBuilder,
+        artefactMetaData = ArtefactMetaData("sha", "help-frontend", DateTime.now()))
+
+      releaser.start("help-frontend", Repo("gradle-help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseVersion("0.9.9")) match {
+        case Failure(e) => {
+          println(e)
+          fail(e)
+        }
+        case _ =>
+      }
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 4
+
+      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
+
+
+      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
+
+      publishedDescriptor should not be None
+
+      jarVersion.version.value shouldBe "0.9.9"
+
+      val manifest = manifestFromZipFile(jarFile)
+
+      manifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
+      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
+      pomVersionText shouldBe "0.9.9"
+    }
+
     "release version 0.9.9 of a maven-based library when given the inputs 'time', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = Builders.buildConnector(
@@ -159,7 +206,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
       pomVersionText shouldBe "0.9.9"
     }
-
 
     "fail when given the sha in the pom does not exist" in {
       val expectedException = new scala.Exception("no commit message")

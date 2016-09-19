@@ -18,7 +18,7 @@ package uk.gov.hmrc.releaser.domain
 
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser.{MavenArtefacts, TransformerProvider, IvyArtefacts}
+import uk.gov.hmrc.releaser.{GradleArtefacts, IvyArtefacts, MavenArtefacts, TransformerProvider}
 
 import scala.util.{Failure, Success, Try}
 
@@ -42,9 +42,15 @@ trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
   val artefactBuilder = MavenArtefacts.apply _
 }
 
+trait GradleRepo extends RepoFlavour with BintrayMavenPaths{
+  val scalaVersion = ""
+  val artefactBuilder = GradleArtefacts.apply _
+}
+
 object RepoFlavours {
   val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
   val ivyRepository: RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
+  val gradleRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with GradleRepo
 }
 
 case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)

@@ -89,4 +89,42 @@ class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvi
     val fileName = filePath.split("/").last
     prefixTransformers.get(fileName.stripPrefix(filePrefix))
   }
+
+}
+
+object GradleArtefacts{
+  def apply(map:VersionMapping, localDir:Path) = new GradleArtefacts(map, localDir)
+}
+
+class GradleArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvider {
+
+  val prefixTransformers = Map(
+    "-javadoc.jar" -> None,
+    "-sources.jar" -> None,
+    "-assembly.jar" -> None,
+    ".jar" -> Some(new JarManifestTransformer),
+    ".pom" -> Some(new PomTransformer),
+    ".tgz" -> Some(new TgzTransformer)
+  )
+
+  def filePrefix = s"${map.artefactName}-${map.sourceVersion.value}"
+
+  def isTheJarFile(f: String): Boolean = {
+    f.split("/").last == filePrefix + ".jar"
+  }
+
+  def transformersForSupportedFiles(filePaths: List[String]): List[(String, Option[Transformer])] = {
+    filePaths
+      .filter(isRelevantFile(filePrefix))
+      .map { f => f -> findTransformer(filePrefix, f).flatten }
+  }
+
+  private def isRelevantFile(filePrefix: String)(filePath: String): Boolean = {
+    findTransformer(filePrefix, filePath).isDefined
+  }
+
+  private def findTransformer(filePrefix: String, filePath: String): Option[Option[Transformer]] = {
+    val fileName = filePath.split("/").last
+    prefixTransformers.get(fileName.stripPrefix(filePrefix))
+  }
 }

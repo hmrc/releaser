@@ -50,6 +50,32 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
     }
   }
 
+  "GradleArtefacts.transformersForSupportedFiles" should {
+    "generate the correct list of transformers" in {
+
+      val ver = mavenVersionMapping("time", "time")
+      val artefacts = new GradleArtefacts(ver, Files.createTempDirectory("test"))
+      val files = List(
+        "time/time-1.3.0-1-g21312cc.jar",
+        "time/time-1.3.0-1-g21312cc-assembly.jar",
+        "time/time-1.3.0-1-g21312cc-sources.jar",
+        "time/time-1.3.0-1-g21312cc.pom",
+        "time/time-1.3.0-1-g21312cc.pom.md5"
+      )
+
+      val result: Map[String, Option[Transformer]] = artefacts.transformersForSupportedFiles(filePaths = files).toMap
+
+      result foreach println
+
+      result.size shouldBe 4
+      result("time/time-1.3.0-1-g21312cc.jar") should not be None
+      result("time/time-1.3.0-1-g21312cc-assembly.jar") shouldBe None
+      result("time/time-1.3.0-1-g21312cc-sources.jar") shouldBe None
+      result("time/time-1.3.0-1-g21312cc.pom") should not be None
+
+    }
+  }
+
   "IvyArtefacts.transformersForSupportedFiles" should {
     "generate the correct list of transformers" in {
 
