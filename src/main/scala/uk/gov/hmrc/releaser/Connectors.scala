@@ -35,7 +35,7 @@ trait RepoConnector{
 
 trait MetaConnector{
 
-  def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]
+  def getRepoMetaData(repoName:String, artefactName: String):Try[MetaData]
 
   def publish(version: VersionDescriptor):Try[Unit]
 

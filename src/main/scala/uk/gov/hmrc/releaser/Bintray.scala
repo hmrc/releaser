@@ -30,11 +30,35 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
+case class MetaData(artefactName: String, repoName: String, description: String, systemIDs: String)
+
 class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
-  def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]={
+  def getRepoMetaData(repoName:String, artefactName: String):Try[MetaData]={
     val url = BintrayPaths.metadata(repoName, artefactName)
-    bintrayHttp.get(url).map { _ => Unit}
+    val metadata = bintrayHttp.get(url).get
+    var name: String = ""
+    var repo: String = ""
+    var desc: String = ""
+    var systemID: String = ""
+
+    metadata.split(",").filter(x =>
+      (x.contains("name") || x.contains("repo") || x.contains("desc") || x.contains("system_ids"))
+      && !x.contains("linked_to_repos") && !x.contains("attribute_names")).foreach{
+      i => val value = i.split("\"")
+        value{1} match {
+          case "name" => name = value{3}
+          case "repo" => repo = value{3}
+          case "desc" => desc = value{3}
+          case "system_ids" => systemID = value{3}.split(":"){1}
+        }
+    }
+
+    val bintrayData: MetaData = MetaData(name, repo, desc, systemID)
+
+    bintrayHttp.get(url).map { _ => bintrayData} /*match {
+      case Some(r) => Success(MetaData( ))
+    }*/
   }
 
   def publish(version: VersionDescriptor):Try[Unit]={

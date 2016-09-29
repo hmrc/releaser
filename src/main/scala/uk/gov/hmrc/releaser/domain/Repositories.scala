@@ -18,7 +18,7 @@ package uk.gov.hmrc.releaser.domain
 
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser.{GradleArtefacts, IvyArtefacts, MavenArtefacts, TransformerProvider}
+import uk.gov.hmrc.releaser.{GradleArtefacts, IvyArtefacts, MavenArtefacts, TransformerProvider, MetaData}
 
 import scala.util.{Failure, Success, Try}
 
@@ -55,11 +55,17 @@ object RepoFlavours {
 
 case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)
 
-class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoFlavour]){
+class Repositories(metaDataGetter:(String, String) => Try[MetaData])(repos:Seq[RepoFlavour]){
 
   def findReposOfArtefact(artefactName: ArtefactName): Try[RepoFlavour] = {
     repos.find { repo =>
-      metaDataGetter(repo.releaseCandidateRepo, artefactName).isSuccess
+      val metadata: Try[MetaData] = metaDataGetter(repo.releaseCandidateRepo, artefactName)
+      //check the data
+      if(metadata.isSuccess){
+        metadata match {
+          case Success(md) => md.systemIDs.equals(artefactName + repo.scalaVersion)
+        }
+      } else false
     } match {
       case Some(r) => Success(r)
       case None => Failure(new Exception(s"Didn't find a release candidate repository for '$artefactName' in repos ${repos.map(_.releaseCandidateRepo)}"))

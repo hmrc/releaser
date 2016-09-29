@@ -17,6 +17,7 @@
 package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
+import uk.gov.hmrc.releaser.MetaData
 
 import scala.util.{Failure, Success, Try}
 
@@ -34,8 +35,8 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Try
 
     "find the release-candidate/release repository pair that contains a given artefact" in {
 
-      val metaDataGetter:(String, String) => Try[Unit] = (reponame, _) =>  reponame match {
-        case "candidate-repo-1" => Success(Unit)
+      val metaDataGetter:(String, String) => Try[MetaData] = (reponame, _) =>  reponame match {
+        case "candidate-repo-1" => Success(MetaData("", "", "", ""))
         case _ => Failure(new Exception("fail"))
       }
 
@@ -46,7 +47,7 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Try
 
     "return exception when the candidate repo isn't found" in {
 
-      val metaDataGetter:(String, String) => Try[Unit] = (reponame, _) =>  reponame match {
+      val metaDataGetter:(String, String) => Try[MetaData] = (reponame, _) =>  reponame match {
         case _ => Failure(new Exception("fail"))
       }
 
