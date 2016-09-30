@@ -30,7 +30,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
-case class MetaData(artefactName: String, repoName: String, description: String, systemIDs: String)
+case class MetaData(artefactName: String, repoName: String, description: String, artefactNameAndVersion: String)
 
 class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
@@ -40,7 +40,7 @@ class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
     var name: String = ""
     var repo: String = ""
     var desc: String = ""
-    var systemID: String = ""
+    var artefactNameAndVersion: String = ""
 
     metadata.split(",").filter(x =>
       (x.contains("name") || x.contains("repo") || x.contains("desc") || x.contains("system_ids"))
@@ -50,11 +50,11 @@ class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
           case "name" => name = value{3}
           case "repo" => repo = value{3}
           case "desc" => desc = value{3}
-          case "system_ids" => systemID = value{3}.split(":"){1}
+          case "system_ids" => artefactNameAndVersion = value{3}.split(":"){1}
         }
     }
 
-    val bintrayData: MetaData = MetaData(name, repo, desc, systemID)
+    val bintrayData: MetaData = MetaData(name, repo, desc, artefactNameAndVersion)
 
     bintrayHttp.get(url).map { _ => bintrayData} /*match {
       case Some(r) => Success(MetaData( ))

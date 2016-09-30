@@ -59,13 +59,13 @@ class Repositories(metaDataGetter:(String, String) => Try[MetaData])(repos:Seq[R
 
   def findReposOfArtefact(artefactName: ArtefactName): Try[RepoFlavour] = {
     repos.find { repo =>
-      val metadata: Try[MetaData] = metaDataGetter(repo.releaseCandidateRepo, artefactName)
-      //check the data
-      if(metadata.isSuccess){
-        metadata match {
-          case Success(md) => md.systemIDs.equals(artefactName + repo.scalaVersion)
-        }
-      } else false
+      val metadata = metaDataGetter(repo.releaseCandidateRepo, artefactName)
+      val fullScalaVersion = if (!repo.scalaVersion.equals("")) "_" + repo.scalaVersion else repo.scalaVersion
+
+      metadata match {
+        case Success(md) => md.artefactNameAndVersion.equals(artefactName + fullScalaVersion)
+        case Failure(e) => false
+      }
     } match {
       case Some(r) => Success(r)
       case None => Failure(new Exception(s"Didn't find a release candidate repository for '$artefactName' in repos ${repos.map(_.releaseCandidateRepo)}"))
