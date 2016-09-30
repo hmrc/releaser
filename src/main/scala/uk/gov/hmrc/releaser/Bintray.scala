@@ -26,6 +26,8 @@ import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
 import play.api.mvc.Results
 import uk.gov.hmrc.releaser.domain.{BintrayPaths, PathBuilder, VersionDescriptor}
 
+import scala.util.parsing.json.JSON
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
@@ -36,13 +38,13 @@ class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
   def getRepoMetaData(repoName:String, artefactName: String):Try[MetaData]={
     val url = BintrayPaths.metadata(repoName, artefactName)
-    val metadata = bintrayHttp.get(url).get
+    val metadata = bintrayHttp.get(url)
     var name: String = ""
     var repo: String = ""
     var desc: String = ""
     var artefactNameAndVersion: String = ""
 
-    metadata.split(",").filter(x =>
+    metadata.get.split(",").filter(x =>
       (x.contains("name") || x.contains("repo") || x.contains("desc") || x.contains("system_ids"))
       && !x.contains("linked_to_repos") && !x.contains("attribute_names")).foreach{
       i => val value = i.split("\"")
@@ -56,7 +58,7 @@ class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
     val bintrayData: MetaData = MetaData(name, repo, desc, artefactNameAndVersion)
 
-    bintrayHttp.get(url).map { _ => bintrayData}
+    metadata.map { _ => bintrayData}
   }
 
   def publish(version: VersionDescriptor):Try[Unit]={
