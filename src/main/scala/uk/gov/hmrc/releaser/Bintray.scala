@@ -56,9 +56,7 @@ class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
     val bintrayData: MetaData = MetaData(name, repo, desc, artefactNameAndVersion)
 
-    bintrayHttp.get(url).map { _ => bintrayData} /*match {
-      case Some(r) => Success(MetaData( ))
-    }*/
+    bintrayHttp.get(url).map { _ => bintrayData}
   }
 
   def publish(version: VersionDescriptor):Try[Unit]={
