@@ -44,8 +44,8 @@ object Builders {
   }
 
   def buildMetaConnector() = new MetaConnector(){
-    override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
-      Success(Unit)
+    override def getRepoMetaData(repoName: String, artefactName: String): Option[MetaData] = {
+      Some(MetaData("", "", "", ""))
     }
 
     override def publish(version: VersionDescriptor): Try[Unit] = {

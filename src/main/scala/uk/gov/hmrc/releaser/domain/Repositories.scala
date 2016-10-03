@@ -18,7 +18,7 @@ package uk.gov.hmrc.releaser.domain
 
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser.{MavenArtefacts, TransformerProvider, IvyArtefacts}
+import uk.gov.hmrc.releaser.{GradleArtefacts, IvyArtefacts, MavenArtefacts, TransformerProvider, MetaData}
 
 import scala.util.{Failure, Success, Try}
 
@@ -42,18 +42,31 @@ trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
   val artefactBuilder = MavenArtefacts.apply _
 }
 
+trait GradleRepo extends RepoFlavour with BintrayMavenPaths{
+  val scalaVersion = ""
+  val artefactBuilder = GradleArtefacts.apply _
+}
+
 object RepoFlavours {
   val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
   val ivyRepository: RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
+  val gradleRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with GradleRepo
 }
 
 case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)
 
-class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoFlavour]){
+class Repositories(metaDataGetter:(String, String) => Option[MetaData])(repos:Seq[RepoFlavour]){
 
   def findReposOfArtefact(artefactName: ArtefactName): Try[RepoFlavour] = {
-    repos.find { repo =>
-      metaDataGetter(repo.releaseCandidateRepo, artefactName).isSuccess
+    repos.find {
+      repo =>
+        val metaData = metaDataGetter(repo.releaseCandidateRepo, artefactName)
+        metaData match {
+          case Some(md:MetaData) =>
+            val fullScalaVersion = if (!repo.scalaVersion.equals("")) "_" + repo.scalaVersion else repo.scalaVersion
+            md.artefactNameAndVersion.equals(artefactName + fullScalaVersion)
+          case None => false
+        }
     } match {
       case Some(r) => Success(r)
       case None => Failure(new Exception(s"Didn't find a release candidate repository for '$artefactName' in repos ${repos.map(_.releaseCandidateRepo)}"))

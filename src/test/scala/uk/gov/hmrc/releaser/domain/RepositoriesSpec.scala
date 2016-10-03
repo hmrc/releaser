@@ -17,6 +17,7 @@
 package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
+import uk.gov.hmrc.releaser.MetaData
 
 import scala.util.{Failure, Success, Try}
 
@@ -26,16 +27,17 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Try
 
     val repos = Seq(
       new BintrayRepository("candidate-repo-1", "release-repo-1") with IvyRepo,
-      new BintrayRepository("candidate-repo-1", "release-repo-2") with MavenRepo
+      new BintrayRepository("candidate-repo-1", "release-repo-2") with MavenRepo,
+      new BintrayRepository("candidate-repo-1", "release-repo-3") with GradleRepo
     )
 
     val artefactName = "artefact"
 
     "find the release-candidate/release repository pair that contains a given artefact" in {
 
-      val metaDataGetter:(String, String) => Try[Unit] = (reponame, _) =>  reponame match {
-        case "candidate-repo-1" => Success(Unit)
-        case _ => Failure(new Exception("fail"))
+      val metaDataGetter:(String, String) => Option[MetaData] = (reponame, _) =>  reponame match {
+        case "candidate-repo-1" => Some(MetaData("artefact", "candidate-repo-1", "artefact", "artefact_2.10"))
+        case _ => None
       }
 
       val respositories = new Repositories(metaDataGetter)(repos)
@@ -45,8 +47,8 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Try
 
     "return exception when the candidate repo isn't found" in {
 
-      val metaDataGetter:(String, String) => Try[Unit] = (reponame, _) =>  reponame match {
-        case _ => Failure(new Exception("fail"))
+      val metaDataGetter:(String, String) => Option[MetaData] = (reponame, _) =>  reponame match {
+        case _ => None
       }
 
       val respositories = new Repositories(metaDataGetter)(repos)

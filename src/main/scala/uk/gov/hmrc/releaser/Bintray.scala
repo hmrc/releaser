@@ -20,7 +20,7 @@ import java.net.{HttpURLConnection, URL}
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-import play.api.libs.json.{JsValue, JsPath, Json}
+import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
 import play.api.mvc.Results
@@ -30,11 +30,31 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
+case class MetaData(artefactName: String, repoName: String, description: String, artefactNameAndVersion: String)
+
 class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
-  def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]={
-    val url = BintrayPaths.metadata(repoName, artefactName)
-    bintrayHttp.get(url).map { _ => Unit}
+  def getRepoMetaData(repoName:String, artefactName: String):Option[MetaData]={
+    val metadata = bintrayHttp.get(BintrayPaths.metadata(repoName, artefactName))
+
+    metadata match {
+      case Success(r) =>
+        val jsonMetaData = Json.parse(r)
+        jsonMetaData \ "system_ids" match {
+            case _: JsUndefined => None
+            case systemIds =>
+              val name = (jsonMetaData \ "name").toString.replaceAll("\"", "")
+              val repo = (jsonMetaData \ "repo").toString.replaceAll("\"", "")
+              val desc = (jsonMetaData \ "desc").toString.replaceAll("\"", "")
+
+              val artefactNameAndVersion = systemIds {0}
+                .toString()
+                .split(":") {1}
+                .replaceAll("\"", "")
+              Some(MetaData(name, repo, desc, artefactNameAndVersion))
+          }
+      case _ => None
+    }
   }
 
   def publish(version: VersionDescriptor):Try[Unit]={
