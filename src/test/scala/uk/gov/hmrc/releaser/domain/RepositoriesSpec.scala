@@ -35,9 +35,9 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Try
 
     "find the release-candidate/release repository pair that contains a given artefact" in {
 
-      val metaDataGetter:(String, String) => Try[MetaData] = (reponame, _) =>  reponame match {
-        case "candidate-repo-1" => Success(MetaData("artefact", "candidate-repo-1", "artefact", "artefact_2.10"))
-        case _ => Failure(new Exception("fail"))
+      val metaDataGetter:(String, String) => Option[MetaData] = (reponame, _) =>  reponame match {
+        case "candidate-repo-1" => Some(MetaData("artefact", "candidate-repo-1", "artefact", "artefact_2.10"))
+        case _ => None
       }
 
       val respositories = new Repositories(metaDataGetter)(repos)
@@ -47,8 +47,8 @@ class RepositoriesSpec extends WordSpec with Matchers with OptionValues with Try
 
     "return exception when the candidate repo isn't found" in {
 
-      val metaDataGetter:(String, String) => Try[MetaData] = (reponame, _) =>  reponame match {
-        case _ => Failure(new Exception("fail"))
+      val metaDataGetter:(String, String) => Option[MetaData] = (reponame, _) =>  reponame match {
+        case _ => None
       }
 
       val respositories = new Repositories(metaDataGetter)(repos)

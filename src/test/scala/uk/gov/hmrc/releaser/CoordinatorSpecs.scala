@@ -133,7 +133,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       new BintrayMetaConnector(mockedBintrayHttp)
         .getRepoMetaData("release-candidates", "time-to-pay-arrangement") match {
-        case Success(r) => r.artefactNameAndVersion shouldBe "time-to-pay-arrangement"
+        case Some(r) => r.artefactNameAndVersion shouldBe "time-to-pay-arrangement"
           r.repoName shouldBe "release-candidates"
           r.description shouldBe "time-to-pay-arrangement release-candidates"
           r.artefactName shouldBe "time-to-pay-arrangement"

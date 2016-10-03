@@ -20,13 +20,11 @@ import java.net.{HttpURLConnection, URL}
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-import play.api.libs.json.{JsValue, JsPath, Json}
+import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
 import play.api.mvc.Results
 import uk.gov.hmrc.releaser.domain.{BintrayPaths, PathBuilder, VersionDescriptor}
-
-import scala.util.parsing.json.JSON
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -36,27 +34,27 @@ case class MetaData(artefactName: String, repoName: String, description: String,
 
 class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
-  def getRepoMetaData(repoName:String, artefactName: String):Try[MetaData]={
+  def getRepoMetaData(repoName:String, artefactName: String):Option[MetaData]={
     val metadata = bintrayHttp.get(BintrayPaths.metadata(repoName, artefactName))
-    var name = artefactName
-    var repo = repoName
-    var desc = ""
-    var artefactNameAndVersion = artefactName
 
-    if(repoName.equals("release-candidates")) {
-      val jsonMetaData = Json.parse(metadata.get)
-      name = (jsonMetaData \ "name").toString.replaceAll("\"", "")
-      repo = (jsonMetaData \ "repo").toString.replaceAll("\"", "")
-      desc = (jsonMetaData \ "desc").toString.replaceAll("\"", "")
-      artefactNameAndVersion = (jsonMetaData \ "system_ids") {0}
-        .toString()
-        .split(":") {1}
-        .replaceAll("\"", "")
+    metadata match {
+      case Success(r) =>
+        val jsonMetaData = Json.parse(r)
+        jsonMetaData \ "system_ids" match {
+            case _: JsUndefined => None
+            case systemIds =>
+              val name = (jsonMetaData \ "name").toString.replaceAll("\"", "")
+              val repo = (jsonMetaData \ "repo").toString.replaceAll("\"", "")
+              val desc = (jsonMetaData \ "desc").toString.replaceAll("\"", "")
+
+              val artefactNameAndVersion = systemIds {0}
+                .toString()
+                .split(":") {1}
+                .replaceAll("\"", "")
+              Some(MetaData(name, repo, desc, artefactNameAndVersion))
+          }
+      case _ => None
     }
-
-    val bintrayData: MetaData = MetaData(name, repo, desc, artefactNameAndVersion)
-
-    metadata.map { _ => bintrayData}
   }
 
   def publish(version: VersionDescriptor):Try[Unit]={
