@@ -37,23 +37,21 @@ case class MetaData(artefactName: String, repoName: String, description: String,
 class BintrayMetaConnector(bintrayHttp:BintrayHttp) extends MetaConnector{
 
   def getRepoMetaData(repoName:String, artefactName: String):Try[MetaData]={
-    val url = BintrayPaths.metadata(repoName, artefactName)
-    val metadata = bintrayHttp.get(url)
-    var name: String = ""
-    var repo: String = ""
-    var desc: String = ""
-    var artefactNameAndVersion: String = ""
+    val metadata = bintrayHttp.get(BintrayPaths.metadata(repoName, artefactName))
+    var name = artefactName
+    var repo = repoName
+    var desc = ""
+    var artefactNameAndVersion = artefactName
 
-    metadata.get.split(",").filter(x =>
-      (x.contains("name") || x.contains("repo") || x.contains("desc") || x.contains("system_ids"))
-      && !x.contains("linked_to_repos") && !x.contains("attribute_names")).foreach{
-      i => val value = i.split("\"")
-        value{1} match {
-          case "name" => name = value{3}
-          case "repo" => repo = value{3}
-          case "desc" => desc = value{3}
-          case "system_ids" => artefactNameAndVersion = value{3}.split(":"){1}
-        }
+    if(repoName.equals("release-candidates")) {
+      val jsonMetaData = Json.parse(metadata.get)
+      name = (jsonMetaData \ "name").toString.replaceAll("\"", "")
+      repo = (jsonMetaData \ "repo").toString.replaceAll("\"", "")
+      desc = (jsonMetaData \ "desc").toString.replaceAll("\"", "")
+      artefactNameAndVersion = (jsonMetaData \ "system_ids") {0}
+        .toString()
+        .split(":") {1}
+        .replaceAll("\"", "")
     }
 
     val bintrayData: MetaData = MetaData(name, repo, desc, artefactNameAndVersion)

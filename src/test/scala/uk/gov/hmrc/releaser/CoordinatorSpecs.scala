@@ -21,6 +21,7 @@ import java.util.jar
 import java.util.jar.Attributes
 import java.util.zip.ZipFile
 
+import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import org.mockito.Mockito
 import org.mockito.Mockito.when
@@ -28,6 +29,7 @@ import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
 import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.JavaConversions._
+import scala.io.Source.fromFile
 import scala.util.{Failure, Success, Try}
 import scala.xml.XML
 
@@ -146,7 +148,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         .thenReturn(Try("{\n\"name\": \"time-to-pay-arrangement\",\n\"repo\": \"release-candidates\",\n\"owner\": \"hmrc\",\n\"desc\": \"time-to-pay-arrangement release-candidates\",\n\"labels\": [],\n\"attribute_names\": [],\n\"licenses\": [\n\"Apache-2.0\"\n],\n\"custom_licenses\": [],\n\"followers_count\": 0,\n\"created\": \"2016-09-13T13:00:47.021Z\",\n\"website_url\": \"https://github.com/hmrc/time-to-pay-arrangement\",\n\"issue_tracker_url\": \"https://github.com/hmrc/time-to-pay-arrangement/issues\",\n\"linked_to_repos\": [],\n\"permissions\": [],\n\"versions\": [\n\"v0.1.0-70-gd81945a\",\n\"v0.1.0-63-g2c8c2e3\",\n\"v0.1.0-62-g20be0ad\",\n\"v0.1.0-61-g10ec4eb\",\n\"v0.1.0-60-g369734d\",\n\"v0.1.0-59-g26cd48d\",\n\"v0.1.0-58-ge34f2f4\",\n\"v0.1.0-57-g0dc418e\",\n\"v0.1.0-56-gd81363e\",\n\"v0.1.0-46-gaae5701\",\n\"v0.1.0-45-g89acdd5\",\n\"v0.1.0-44-g8eb5c82\",\n\"v0.1.0-43-g8292653\",\n\"v0.1.0-42-g8eb9e72\",\n\"v0.1.0-41-g6bd5be4\",\n\"v0.1.0-40-g80df6a0\",\n\"v0.1.0-39-gbb13ef8\",\n\"v0.1.0-38-g27a4f63\",\n\"v0.1.0-37-g2dba1f0\",\n\"v0.1.0-36-g433eb9a\",\n\"v0.1.0-35-gd0a9e3d\",\n\"v0.1.0-33-g3d301e0\",\n\"v0.1.0-32-g6b4b38e\",\n\"v0.1.0-31-g35c5e46\",\n\"v0.1.0-30-gf244161\",\n\"v0.1.0-29-g0a70573\",\n\"v0.1.0-28-ga895fe8\",\n\"v0.1.0-27-ge547b4b\",\n\"v0.1.0-26-g273d601\",\n\"v0.1.0-25-g7fd3e05\",\n\"v0.1.0-24-gca9ad66\",\n\"v0.1.0-22-gf9b2298\"\n],\n\"latest_version\": \"v0.1.0-70-gd81945a\",\n\"updated\": \"2016-09-27T09:40:12.779Z\",\n\"rating_count\": 0,\n\"system_ids\": [\n\"uk.gov.hmrc:time-to-pay-arrangement\"\n],\n\"vcs_url\": \"https://github.com/hmrc/time-to-pay-arrangement\",\n\"maturity\": \"\"\n}"))
 
       when(mockedBintrayHttp.get("https://bintray.com/api/v1/packages/hmrc/sbt-plugin-release-candidates/time-to-pay-arrangement"))
-        .thenReturn(Try(""))
+        .thenReturn(Try("{\n\"message\": \"Package 'sbt-git-versioning' was not found\"\n}"))
 
       val metaDataGetter = new BintrayMetaConnector(mockedBintrayHttp)
         .getRepoMetaData _
