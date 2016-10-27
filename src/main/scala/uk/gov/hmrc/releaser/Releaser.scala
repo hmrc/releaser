@@ -115,7 +115,7 @@ object Releaser {
       val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
 
       targetVersion.flatMap { tv =>
-        val result: Try[Unit] = releaser.start(artefactName, "",Repo(gitHubName), rcVersion, tv)
+        val result: Try[Unit] = releaser.start(artefactName, artefactSuffix, Repo(gitHubName), rcVersion, tv)
         Try {
           FileUtils.forceDelete(tmpDir.toFile)
         }
