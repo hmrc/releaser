@@ -33,15 +33,15 @@ object HmrcBuild extends Build {
     "commons-io" % "commons-io" % "2.4",
     "com.github.scopt" %% "scopt" % "3.3.0",
     "org.apache.commons" % "commons-compress" % "1.10",
-    "org.scalatest" %% "scalatest" % "2.2.2" % "test",
-    "org.pegdown" % "pegdown" % "1.4.2" % "test",
+    "org.scalatest" %% "scalatest" % "3.0.0" % "test",
+    "org.pegdown" % "pegdown" % "1.6.0" % "test",
     "org.mockito" % "mockito-all" % "1.9.5" % "test"
   )
 
   lazy val releaser = Project(appName, file("."))
     .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
     .settings(
-      scalaVersion := "2.11.6",
+      scalaVersion := "2.11.8",
       libraryDependencies ++= libraries,
       resolvers += Resolver.typesafeRepo("releases"),
       BuildDescriptionSettings(),
