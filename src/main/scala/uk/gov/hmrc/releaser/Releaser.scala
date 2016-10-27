@@ -75,7 +75,7 @@ object Releaser {
     parser.parse(args, Config()) match {
       case Some(config) => {
         val githubName = config.githubNameOverride.getOrElse(config.artefactName)
-        start(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.dryRun)
+        start(config.artefactName, config.artefactSuffix, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.dryRun)
       }
       case None => -1
     }
@@ -83,6 +83,7 @@ object Releaser {
 
   def start(
              artefactName: String,
+             artefactSuffix: String,
              rcVersion: ReleaseCandidateVersion,
              releaseType: ReleaseType.Value,
              gitHubName:String,
@@ -114,14 +115,14 @@ object Releaser {
       val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
 
       targetVersion.flatMap { tv =>
-        val result: Try[Unit] = releaser.start(artefactName, Repo(gitHubName), rcVersion, tv)
+        val result: Try[Unit] = releaser.start(artefactName, "",Repo(gitHubName), rcVersion, tv)
         Try {
           FileUtils.forceDelete(tmpDir.toFile)
         }
         result
       } match {
-        case Failure(e) => {e.printStackTrace(); log.info(s"Releaser failed to release $artefactName $rcVersion with error '${e.getMessage}'")}; 1
-        case Success(_) => log.info(s"Releaser successfully released $artefactName ${targetVersion.getOrElse("")}"); 0;
+        case Failure(e) => {e.printStackTrace(); log.info(s"Releaser failed to release $artefactName $artefactSuffix $rcVersion with error '${e.getMessage}'")}; 1
+        case Success(_) => log.info(s"Releaser successfully released $artefactName $artefactSuffix ${targetVersion.getOrElse("")}"); 0;
       }
     }
   }
@@ -208,10 +209,12 @@ class Releaser(stageDir:Path,
                connectorBuilder:(RepoFlavour) => RepoConnector,
                coordinator:Coordinator){
 
-  def start(artefactName: String, gitRepo:Repo, rcVersion: ReleaseCandidateVersion, targetVersionString: ReleaseVersion): Try[Unit] = {
+  def start(artefactName: String, artefactSuffix : String, gitRepo:Repo, rcVersion: ReleaseCandidateVersion, targetVersionString: ReleaseVersion): Try[Unit] = {
 
-    repositoryFinder(artefactName) flatMap { repo =>
-      val ver = VersionMapping(repo, artefactName, gitRepo, rcVersion, targetVersionString)
+    val artName = s"$artefactName$artefactSuffix"
+
+    repositoryFinder(artName) flatMap { repo =>
+      val ver = VersionMapping(repo, artName, gitRepo, rcVersion, targetVersionString)
       coordinator.start(ver, connectorBuilder(repo))
     }
   }
