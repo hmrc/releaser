@@ -20,6 +20,7 @@ object ArgParser{
 
   case class Config(
                      artefactName: String = "",
+                     artefactSuffix: String = "",
                      rcVersion:String = "",
                      releaseType:ReleaseType.Value = ReleaseType.HOTFIX,
                      githubNameOverride:Option[String] = None,
@@ -35,6 +36,8 @@ object ArgParser{
     help("help") text "prints this usage text"
     arg[String]("artefactName") action { (x, c) =>
       c.copy(artefactName = x) } text "the artefact"
+    arg[String]("artefactSuffix") action { (x, c) =>
+      c.copy(artefactSuffix = x) } text "the artefact name suffix"
     arg[String]("release-candidate") action { (x, c) =>
       c.copy(rcVersion = x) } text "the release candidate"
     arg[String]("release-type") action { (x, c) =>

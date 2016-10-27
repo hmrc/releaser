@@ -51,7 +51,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         connectorBuilder = fakeRepoConnectorBuilder,
         artefactMetaData = ArtefactMetaData("sha", "lib", DateTime.now()))
 
-      releaser.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
+      releaser.start("lib","", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -77,6 +77,50 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "0.9.9"
     }
 
+
+    "a library with an artefact suffix" in {
+
+      val fakeRepoConnector = Builders.buildConnector(
+        "",
+        "/paye-estimator_sjs0.6/paye-estimator_sjs0.6_2.11-0.1.0-32-g3ffe9af.jar",
+        Set("/paye-estimator_sjs0.6/paye-estimator_sjs0.6_2.11-0.1.0-32-g3ffe9af.pom",
+          "/paye-estimator_sjs0.6/paye-estimator_sjs0.6_2.11-0.1.0-32-g3ffe9af.tgz")
+      )
+
+      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+
+      val releaser = buildDefaultReleaser(
+        repositoryFinder = successfulRepoFinder(mavenRepository),
+        connectorBuilder = fakeRepoConnectorBuilder,
+        artefactMetaData = ArtefactMetaData("sha", "paye-estimator", DateTime.now()))
+
+      releaser.start("paye-estimator","_sjs0.6", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-32-g3ffe9af"), ReleaseVersion("0.1.7")) match {
+        case Failure(e) => fail(e)
+        case _ =>
+      }
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 3
+
+      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("7.jar"))
+      val Some((tgzVersion, tgzFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".tgz"))
+
+      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
+
+      publishedDescriptor should not be None
+
+      jarVersion.version.value shouldBe "0.1.7"
+
+      val jarManifest = manifestFromZipFile(jarFile)
+
+      jarManifest.value.getValue("Implementation-Version") shouldBe "0.1.7"
+
+      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
+      pomVersionText shouldBe "0.1.7"
+    }
+
+
+
     "release version 2.0.0 of a maven-based service when given the inputs 'help-frontend', '1.26.0-3-gd7ed03c' and 'hotfix' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = Builders.buildConnector(
@@ -97,7 +141,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         connectorBuilder = fakeRepoConnectorBuilder,
         artefactMetaData = ArtefactMetaData("sha", "help-frontend", DateTime.now()))
 
-      releaser.start("help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseVersion("0.9.9")) match {
+      releaser.start("help-frontend","", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseVersion("0.9.9")) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -135,7 +179,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         connectorBuilder = fakeRepoConnectorBuilder,
         artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now()))
 
-      releaser.start("time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
+      releaser.start("time","", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -168,7 +212,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         githubRepoGetter = (a, b) => Failure(expectedException)
       )
 
-      releaser.start("a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {
+      releaser.start("a", "", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {
         case Failure(e) => e shouldBe expectedException
         case Success(s) => fail(s"Should have failed with $expectedException")
       }
@@ -187,7 +231,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         repositoryFinder = successfulRepoFinder(mavenRepository),
         connectorBuilder = fakeRepoConnectorBuilder)
 
-      releaser.start("a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {
+      releaser.start("a", "", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {
         case Failure(e) => e shouldBe an [IllegalArgumentException]
         case Success(s) => fail(s"Should have failed with an IllegalArgumentException")
       }
@@ -201,7 +245,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         repositoryFinder = (a) => Failure(expectedException)
       )
 
-      releaser.start("a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {
+      releaser.start("a", "", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {
         case Failure(e) => e shouldBe expectedException
         case Success(s) => fail(s"Should have failed with $expectedException")
       }
@@ -230,7 +274,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           githubTagRefPublisher = githubTagRefBuilder.build[Unit](Unit)
       )
 
-        releaser.start("sbt-bobby", Repo("sbt-bobby"), ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseVersion("0.1.1")) match {
+        releaser.start("sbt-bobby", "", Repo("sbt-bobby"), ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseVersion("0.1.1")) match {
           case Failure(e) => fail(e)
           case _ =>
         }
