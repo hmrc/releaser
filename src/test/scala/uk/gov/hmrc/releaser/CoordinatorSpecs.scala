@@ -226,8 +226,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           connectorBuilder = fakeRepoConnectorBuilder,
           artefactMetaData = ArtefactMetaData("gitsha", "sbt-bobby", DateTime.now()),
           githubReleasePublisher = githubReleaseBuilder.build,
-          githubTagObjPublisher = githubTagObjBuilder.build[CommitSha]("the-tag-sha"),
-          githubTagRefPublisher = githubTagRefBuilder.build[Unit](Unit)
+          githubTagObjPublisher = githubTagObjBuilder.build("the-tag-sha"),
+          githubTagRefPublisher = githubTagRefBuilder.build(Unit)
       )
 
         releaser.start("sbt-bobby", Repo("sbt-bobby"), ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseVersion("0.1.1")) match {
@@ -289,7 +289,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
   class MockFunction3[A, B, C, R]{
     var params:Option[(A, B, C)] = None
 
-    def build[R](r:R):(A, B, C) => Try[R] ={
+    def build(r:R):(A, B, C) => Try[R] ={
       (a, b, c) => {
         params = Some((a, b, c))
         Success(r)

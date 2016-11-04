@@ -26,7 +26,7 @@ import uk.gov.hmrc.releaser.domain._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
-object Builders {
+object Builders extends GitTagAndRelease {
 
   import RepoFlavours._
 
@@ -125,7 +125,7 @@ object Builders {
                                githubTagRefPublisher:(Repo, ReleaseVersion, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
                                )={
 
-    val taggerAndReleaser = Releaser.createGitHubTagAndRelease(githubTagObjectPublisher, githubTagRefPublisher, githubReleasePublisher) _
+    val taggerAndReleaser = createGitHubTagAndRelease(githubTagObjectPublisher, githubTagRefPublisher, githubReleasePublisher) _
     val artefactBuilder = successfulArtefactBulider(artefactMetaData)
     new Coordinator(stageDir, artefactBuilder, githubRepoGetter, taggerAndReleaser)
   }

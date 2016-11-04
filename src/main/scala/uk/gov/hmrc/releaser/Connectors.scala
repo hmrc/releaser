@@ -19,7 +19,7 @@ package uk.gov.hmrc.releaser
 import java.net.URL
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser.domain.{ReleaseVersion, VersionDescriptor}
+import uk.gov.hmrc.releaser.domain.VersionDescriptor
 
 import scala.util.{Failure, Success, Try}
 
@@ -42,9 +42,7 @@ trait MetaConnector{
 }
 
 
-object Http{
-
-  val log = new Logger()
+object Http extends Logger {
 
   import resource._
 

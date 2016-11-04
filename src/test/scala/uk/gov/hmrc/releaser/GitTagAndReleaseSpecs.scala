@@ -17,13 +17,13 @@
 package uk.gov.hmrc.releaser
 
 import org.joda.time.DateTime
-import org.scalatest.{OptionValues, TryValues, Matchers, WordSpec}
-import uk.gov.hmrc.releaser.domain.{Repo, RepoFlavours, VersionMapping, ArtefactMetaData}
+import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
+import uk.gov.hmrc.releaser.domain.ArtefactMetaData
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Success
 
-class ReleaserSpecs extends WordSpec with Matchers with TryValues with OptionValues {
+class GitTagAndReleaseSpecs extends WordSpec with Matchers with TryValues with OptionValues with GitTagAndRelease {
 
   import Builders._
 
@@ -35,7 +35,7 @@ class ReleaserSpecs extends WordSpec with Matchers with TryValues with OptionVal
 
       val executedCalls = ListBuffer[String]()
 
-      Releaser.createGitHubTagAndRelease(
+      createGitHubTagAndRelease(
         (a, b, c) => { executedCalls += "add-object"; Success("sha") },
         (a, b, c) => { executedCalls += "add-ref"; Success() },
         (a, b) => { executedCalls += "release"; Success() })(artefactMetaData, ver)
