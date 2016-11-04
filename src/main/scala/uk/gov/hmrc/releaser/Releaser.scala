@@ -16,38 +16,16 @@
 
 package uk.gov.hmrc.releaser
 
-/*
- * Copyright 2015 HM Revenue & Customs
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import java.io.File
 import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
-import play.api.Logger
 import play.api.libs.json.JsValue
+import uk.gov.hmrc.releaser.domain.RepoFlavours._
 import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.immutable.SortedSet
 import scala.util.{Failure, Success, Try}
-
-class Logger{
-  def info(st:String) = println("[INFO] " + st)
-  def debug(st:String) = println("[DEBUG] " + st)
-  def warn(st:String) = println("[WARN] " + st)
-}
 
 object ReleaserMain {
   def main(args: Array[String]):Unit= {
@@ -64,12 +42,10 @@ object ReleaseType extends Enumeration {
   val stringValues: SortedSet[String] = this.values.map(_.toString)
 }
 
-object Releaser {
+object Releaser extends Logger {
 
   import uk.gov.hmrc.releaser.ArgParser._
   import uk.gov.hmrc.releaser.domain.RepoFlavours._
-
-  val log = new Logger()
 
   def apply(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
@@ -85,9 +61,10 @@ object Releaser {
              artefactName: String,
              rcVersion: ReleaseCandidateVersion,
              releaseType: ReleaseType.Value,
-             gitHubName:String,
-             dryRun:Boolean = false
-             ):Int={
+             gitHubName: String,
+             dryRun: Boolean = false
+           ): Int = {
+
     val tmpDir = Files.createTempDirectory("releaser")
 
     val githubCredsFile  = System.getProperty("user.home") + "/.github/.credentials"
@@ -95,6 +72,8 @@ object Releaser {
 
     val githubCredsOpt  = CredentialsFinder.findGithubCredsInFile(new File(githubCredsFile).toPath)
     val bintrayCredsOpt = CredentialsFinder.findBintrayCredsInFile(new File(bintrayCredsFile).toPath)
+
+    val githubApi = new GithubApi()
 
     if(githubCredsOpt.isEmpty){
       log.info(s"Didn't find github credentials in $githubCredsFile")
@@ -106,9 +85,9 @@ object Releaser {
 
       val releaser = if (dryRun) {
         log.info("starting in dry-run mode")
-        buildDryRunReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get)
+        DryRun(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get, githubApi).releaser
       } else {
-        buildReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get)
+        PublishRun(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get, githubApi).releaser
       }
 
       val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
@@ -124,82 +103,6 @@ object Releaser {
         case Success(_) => log.info(s"Releaser successfully released $artefactName ${targetVersion.getOrElse("")}"); 0;
       }
     }
-  }
-
-  //TODO not tested
-  def buildDryRunReleaser(
-                     tmpDir:Path,
-                     githubCreds: ServiceCredentials,
-                     bintrayCreds: ServiceCredentials): Releaser = {
-
-    val githubConnector = new GithubHttp(githubCreds)
-    val EmptyBintrayConnector = new BintrayHttp(bintrayCreds){
-      override def emptyPost(url:String): Try[Unit] = { println("BintrayHttp emptyPost DRY_RUN");Success(Unit)}
-      override def putFile(version: VersionDescriptor, file: Path, url: String): Try[Unit] = { println("BintrayHttp putFile DRY_RUN");Success(Unit) }
-    }
-
-    val releaserVersion = getClass.getPackage.getImplementationVersion
-
-    val emptyGitPoster: (String, JsValue) => Try[Unit] = (a, b) => { println("Github emptyPost DRY_RUN"); Success(Unit) }
-    val emptyGitPosteAndGetter: (String, JsValue) => Try[CommitSha] = (a, b) => { println("Github emptyPost DRY_RUN"); Success("a-fake-tag-sha") }
-
-    val workDir = Files.createDirectories(tmpDir.resolve("work"))
-    val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
-
-    val metaDataGetter = new BintrayMetaConnector(EmptyBintrayConnector).getRepoMetaData _
-    val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, EmptyBintrayConnector) _
-    val githubReleaseCreator = GithubApi.createRelease(emptyGitPoster)(releaserVersion) _
-    val githubTagObjectCreator = GithubApi.createAnnotatedTagObject(emptyGitPosteAndGetter)(releaserVersion) _
-    val githubTagRefCreator = GithubApi.createAnnotatedTagRef(emptyGitPoster)(releaserVersion) _
-    val verifyGithubCommit = GithubApi.verifyCommit(githubConnector.get) _
-    val gitHubTagAndRelease = createGitHubTagAndRelease(githubTagObjectCreator, githubTagRefCreator, githubReleaseCreator) _
-
-    val artefactBuilder = ArtefactMetaData.fromFile _
-
-    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, gitHubTagAndRelease)
-    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
-    new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
-  }
-
-  def createGitHubTagAndRelease(
-                                  githubTagObjectCreator: (Repo, ReleaseVersion, CommitSha) => Try[CommitSha],
-                                  githubTagRefCreator: (Repo, ReleaseVersion, CommitSha) => Try[Unit],
-                                  githubReleaseCreator: (ArtefactMetaData, VersionMapping) => Try[Unit])
-                                (metaData: ArtefactMetaData, map: VersionMapping):Try[Unit]={
-    for(
-      tagSha <- githubTagObjectCreator(map.gitRepo, map.targetVersion, metaData.sha);
-      _      <- githubTagRefCreator(map.gitRepo, map.targetVersion, tagSha);
-      _      <- githubReleaseCreator(metaData, map))
-      yield ()
-  }
-
-  //TODO not tested
-  def buildReleaser(
-                     tmpDir:Path,
-                     githubCreds: ServiceCredentials,
-                     bintrayCreds: ServiceCredentials): Releaser = {
-
-    val githubConnector = new GithubHttp(githubCreds)
-    val bintrayConnector = new BintrayHttp(bintrayCreds)
-
-    val releaserVersion = getClass.getPackage.getImplementationVersion
-
-    val workDir = Files.createDirectories(tmpDir.resolve("work"))
-    val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
-
-    val metaDataGetter = new BintrayMetaConnector(bintrayConnector).getRepoMetaData _
-    val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, bintrayConnector) _
-    val githubReleaseCreator = GithubApi.createRelease(githubConnector.postUnit)(releaserVersion) _
-    val githubTagObjectCreator = GithubApi.createAnnotatedTagObject(githubConnector.post[CommitSha](GithubApi.shaFromResponse))(releaserVersion) _
-    val githubTagRefCreator = GithubApi.createAnnotatedTagRef(githubConnector.postUnit)(releaserVersion) _
-    val verifyGithubCommit = GithubApi.verifyCommit(githubConnector.get) _
-    val gitHubTagAndRelease = createGitHubTagAndRelease(githubTagObjectCreator, githubTagRefCreator, githubReleaseCreator) _
-
-    val artefactBuilder = ArtefactMetaData.fromFile _
-
-    val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, gitHubTagAndRelease)
-    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
-    new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
 }
 
@@ -217,13 +120,11 @@ class Releaser(stageDir:Path,
   }
 }
 
-class Coordinator(
+sealed class Coordinator(
                    stageDir:Path,
                    artefactBuilder:(Path) => Try[ArtefactMetaData],
                    verifyGithubTagExists:(Repo, CommitSha) => Try[Unit],
-                   createGithubTagAndRelease:(ArtefactMetaData, VersionMapping) => Try[Unit]){
-
-  val logger = new Logger()
+                   createGithubTagAndRelease:(ArtefactMetaData, VersionMapping) => Try[Unit]) extends Logger {
 
   def start(map: VersionMapping, connector:RepoConnector): Try[Unit] ={
     val artefacts = map.repo.artefactBuilder(map, stageDir)
@@ -259,9 +160,9 @@ class Coordinator(
     connector.downloadFile(map.sourceArtefact, remotePath).flatMap { localPath =>
       val targetFileName = buildTargetFileName(map, remotePath, prefix)
       val targetPath = stageDir.resolve(targetFileName)
-      Logger.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $remotePath writing to file ${targetPath}")
+      log.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $remotePath writing to file ${targetPath}")
       if(targetPath.toFile.exists()){
-        Logger.info(s"already have $targetPath, not updating")
+        log.info(s"already have $targetPath, not updating")
         Success(targetPath)
       } else {
         transO.map { trans =>
@@ -296,4 +197,93 @@ class Coordinator(
       case Some(f) => Failure[List[A]](f.failed.get)
     }
   }
+}
+
+trait ReleaserVersion {
+  val releaserVersion = getClass.getPackage.getImplementationVersion
+}
+
+trait GitRelease extends GitTagAndRelease {
+  self : ReleaserVersion =>
+
+  type GitPost = (String, JsValue) => Try[Unit]
+  type GitPostAndGet = (String, JsValue) => Try[CommitSha]
+
+  def gitPost : GitPost
+  def gitPostAndGet : GitPostAndGet
+
+  val githubCreds : ServiceCredentials
+  lazy val githubConnector = new GithubHttp(githubCreds)
+  val githubApi : GithubApi
+
+  val githubReleaseCreator = githubApi.createRelease(gitPost)(releaserVersion) _
+  val githubTagObjectCreator = githubApi.createAnnotatedTagObject(gitPostAndGet)(releaserVersion) _
+  val githubTagRefCreator = githubApi.createAnnotatedTagRef(gitPost)(releaserVersion) _
+  val verifyGithubCommit = githubApi.verifyCommit(githubConnector.get) _
+
+  val gitHubTagAndRelease = createGitHubTagAndRelease(githubTagObjectCreator, githubTagRefCreator, githubReleaseCreator) _
+
+}
+
+trait BintrayData {
+  val bintrayCreds : ServiceCredentials
+  val tmpDir : Path
+
+  lazy val bintrayConnector : BintrayHttp = new BintrayHttp(bintrayCreds)
+
+  val metaDataGetter = new BintrayMetaConnector(bintrayConnector).getRepoMetaData _
+  val workDir = Files.createDirectories(tmpDir.resolve("work"))
+  val repoConnectorBuilder = BintrayRepoConnector.apply(workDir, bintrayConnector) _
+
+}
+
+trait ReleaseRunner extends GitRelease with BintrayData with ReleaserVersion {
+
+  val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
+
+  val artefactBuilder = ArtefactMetaData.fromFile _
+
+  val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, gitHubTagAndRelease)
+  val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
+
+  val releaser = new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
+
+}
+
+case class DryRun(tmpDir:Path,
+                  githubCreds: ServiceCredentials,
+                  bintrayCreds: ServiceCredentials,
+                  githubApi: GithubApi) extends ReleaseRunner with Logger{
+
+  override lazy val bintrayConnector : BintrayHttp = new BintrayHttp(bintrayCreds){
+
+    override def emptyPost(url: String): Try[Unit] = {
+      log.info("BintrayHttp emptyPost DRY_RUN")
+      Success(Unit)
+    }
+
+    override def putFile(version: VersionDescriptor, file: Path, url: String): Try[Unit] = {
+      log.info("BintrayHttp putFile DRY_RUN")
+      Success(Unit)
+    }
+  }
+
+  val gitPost: (String, JsValue) => Try[Unit] = (a, b) => {
+    log.info("Github emptyPost DRY_RUN")
+    Success(Unit)
+  }
+  val gitPostAndGet: (String, JsValue) => Try[CommitSha] = (a, b) => {
+    log.info("Github emptyPost DRY_RUN")
+    Success("a-fake-tag-sha")
+  }
+}
+
+
+case class PublishRun(tmpDir:Path,
+                      githubCreds: ServiceCredentials,
+                      bintrayCreds: ServiceCredentials,
+                      githubApi: GithubApi) extends ReleaseRunner {
+
+  val gitPost : (String, JsValue) => Try[Unit] = githubConnector.postUnit
+  val gitPostAndGet : (String, JsValue) => Try[CommitSha] = githubConnector.post[CommitSha](githubApi.shaFromResponse)
 }

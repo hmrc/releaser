@@ -16,22 +16,27 @@
 
 package uk.gov.hmrc.releaser.domain
 
+trait BintrayDetails {
+  val organisation = System.getProperty("bintray.organisation", "hmrc")
+  val `package` = System.getProperty("bintray.package", "uk.gov.hmrc")
+  val path = System.getProperty("bintray.path", "uk/gov/hmrc")
+}
 
-trait BintrayPaths{
+trait BintrayPaths extends BintrayDetails {
 
-  val bintrayRepoRoot = "https://bintray.com/artifact/download/hmrc"
+  val bintrayRepoRoot = s"https://bintray.com/artifact/download/$organisation"
   val bintrayApiRoot = "https://bintray.com/api/v1"
 
   def metadata(repo:String, artefactName: String): String = {
-    s"$bintrayApiRoot/packages/hmrc/$repo/$artefactName"
+    s"$bintrayApiRoot/packages/$organisation/$repo/$artefactName"
   }
 
   def publishUrlFor(v: VersionDescriptor): String = {
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/${v.artefactName}/${v.version.value}/publish"
+    s"$bintrayApiRoot/content/$organisation/${v.repo}/${v.artefactName}/${v.version.value}/publish"
   }
 
   def fileListUrlFor(v: VersionDescriptor): String={
-    s"$bintrayApiRoot/packages/hmrc/${v.repo}/${v.artefactName}/versions/${v.version.value}/files"
+    s"$bintrayApiRoot/packages/$organisation/${v.repo}/${v.artefactName}/versions/${v.version.value}/files"
   }
 }
 
@@ -69,19 +74,19 @@ trait BintrayIvyPaths extends PathBuilder {
 
   override def jarDownloadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/jars/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/${`package`}/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/jars/$fileName"
   }
 
   override def jarUploadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/jars/$fileName"
+    s"$bintrayApiRoot/content/$organisation/${v.repo}/${`package`}/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/jars/$fileName"
   }
 
   def filePrefixFor(v: VersionDescriptor) = s"${v.artefactName}_$scalaVersion-${v.version.value}"
 
   def fileDownloadFor(v: VersionDescriptor, fileName:String): String = {
     val dir = findParentDirectoryFor(v, fileName)
-    s"$bintrayRepoRoot/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/$dir/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/${`package`}/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/$dir/$fileName"
   }
 
   private def findParentDirectoryFor(v: VersionDescriptor, fileName: String): String = {
@@ -97,7 +102,7 @@ trait BintrayIvyPaths extends PathBuilder {
 
   def fileUploadFor(v: VersionDescriptor, fileName:String): String={
     val dir = findParentDirectoryFor(v, fileName)
-    s"$bintrayApiRoot/content/hmrc/${v.repo}/uk.gov.hmrc/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/$dir/$fileName"
+    s"$bintrayApiRoot/content/$organisation/${v.repo}/${`package`}/${v.artefactName}/scala_$scalaVersion/$sbtVersion/${v.version.value}/$dir/$fileName"
   }
 }
 
@@ -115,22 +120,22 @@ trait BintrayMavenPaths extends PathBuilder{
 
   def jarDownloadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/$path/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
   def jarUploadFor(v:VersionDescriptor):String={
     val fileName = jarFilenameFor(v)
-    s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
+    s"$bintrayApiRoot/maven/$organisation/${v.repo}/${v.artefactName}/$path/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
   def filePrefixFor(v: VersionDescriptor) = s"${v.artefactName}_$scalaVersion-${v.version.value}"
 
   def fileDownloadFor(v: VersionDescriptor, fileName:String)={
-    s"$bintrayRepoRoot/${v.repo}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
+    s"$bintrayRepoRoot/${v.repo}/$path/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
   def fileUploadFor(v: VersionDescriptor, fileName:String): String={
-    s"$bintrayApiRoot/maven/hmrc/${v.repo}/${v.artefactName}/uk/gov/hmrc/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
+    s"$bintrayApiRoot/maven/$organisation/${v.repo}/${v.artefactName}/$path/${v.artefactName}_$scalaVersion/${v.version.value}/$fileName"
   }
 
 }

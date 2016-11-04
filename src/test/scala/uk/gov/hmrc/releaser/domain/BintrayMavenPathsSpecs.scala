@@ -17,6 +17,7 @@
 package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, WordSpec}
+import uk.gov.hmrc.releaser.Repo
 
 class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 

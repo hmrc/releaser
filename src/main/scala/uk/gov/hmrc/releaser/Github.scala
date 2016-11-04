@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.releaser
 
-import java.net.URL
 import java.util.concurrent.TimeUnit
 
 import org.joda.time.DateTime
@@ -30,16 +29,18 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
 
-object GithubApi{
+case class GithubOrganisationDetails(taggerName: String = System.getProperty("github.tagger.name", "hmrc-web-operations"),
+                                     taggerEmail: String = System.getProperty("github.tagger.email", "hmrc-web-operations@digital.hmrc.gov.uk"),
+                                     organisation: String = System.getProperty("github.organisation", "hmrc")) extends Logger {
+  log.info(s"Github organisation details : taggerName : '$taggerName', taggerEmail : '$taggerEmail', organisation : '$organisation")
+}
+
+class GithubApi(gitOrgDetails : GithubOrganisationDetails = GithubOrganisationDetails()) extends Logger {
 
   val githubDateTimeFormatter = org.joda.time.format.ISODateTimeFormat.dateTime
   val githubTagDateTimeFormatter = org.joda.time.format.ISODateTimeFormat.dateTimeNoMillis
   val releaseMessageDateTimeFormat = DateTimeFormat.longDateTime()
 
-
-  val taggerName  = "hmrc-web-operations"
-  val taggerEmail = "hmrc-web-operations@digital.hmrc.gov.uk"
-  
   type JsonGetReturnUnit  = (Url) => Try[Unit]
   type JsonPostReturnUnit = (Url, JsValue) => Try[Unit]
   type JsonPostReturnSha  = (Url, JsValue) => Try[CommitSha]
@@ -49,12 +50,8 @@ object GithubApi{
   case class TagRef(ref:String, sha:String)
   case class TagRefResponse(sha:String)
 
-  case class GitRelease(
-                         name:String,
-                         tag_name:String,
-                         body:String,
-                         draft:Boolean,
-                         prerelease:Boolean)
+
+  case class GitRelease(name:String, tag_name:String, body:String, draft:Boolean, prerelease:Boolean)
 
   object Tagger{
     implicit val formats = Json.format[Tagger]
@@ -78,8 +75,6 @@ object GithubApi{
 
   val shaFromResponse = (r:WSResponse) => Success(r.json.as[TagRefResponse].sha)
 
-  val logger = new Logger()
-
   def verifyCommit(getter:(Url) => Try[Unit])(repo:Repo, sha:CommitSha): Try[Unit] ={
     getter(buildCommitGetUrl(repo, sha))
   }
@@ -87,36 +82,36 @@ object GithubApi{
   def createAnnotatedTagRef(tagger:JsonPostReturnUnit)
                            (releaserVersion:String)
                            (repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[Unit] = {
-    logger.debug("creating annotated tag ref from " + targetVersion + " version mapping " + targetVersion)
+    log.debug("creating annotated tag ref from " + targetVersion + " version mapping " + targetVersion)
 
     val url = buildAnnotatedTagRefPostUrl(repo)
 
     val body = buildTagRefBody(targetVersion, commitSha)
 
-    logger.debug("github url: " + url)
-    logger.debug("github body: " + body)
+    log.debug("github url: " + url)
+    log.debug("github body: " + body)
 
     tagger(url, body)
   }
-  
+
   def createAnnotatedTagObject(tagger: JsonPostReturnSha)
                               (releaserVersion:String)
                               (repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[CommitSha] = {
-    logger.debug("creating annotated tag object from " + targetVersion + " version mapping " + targetVersion)
+    log.debug("creating annotated tag object from " + targetVersion + " version mapping " + targetVersion)
 
     val url = buildAnnotatedTagObjectPostUrl(repo)
 
     val body = buildTagObjectBody("tag of " + targetVersion, targetVersion, new DateTime(), commitSha)
 
-    logger.debug("github url: " + url)
-    logger.debug("github body: " + body)
+    log.debug("github url: " + url)
+    log.debug("github body: " + body)
 
     tagger(url, body)
   }
 
   def createRelease(tagger: JsonPostReturnUnit)(releaserVersion:String)
                    (artefactMd: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
-    logger.debug("creating release from " + artefactMd + " version mapping " + v)
+    log.debug("creating release from " + artefactMd + " version mapping " + v)
 
     val url = buildReleasePostUrl(v.gitRepo)
 
@@ -124,8 +119,8 @@ object GithubApi{
 
     val body = buildReleaseBody(message, v.targetVersion)
 
-    logger.debug("github url: " + url)
-    logger.debug("github body: " + body)
+    log.debug("github url: " + url)
+    log.debug("github body: " + body)
 
     tagger(url, body)
   }
@@ -137,7 +132,7 @@ object GithubApi{
 
   def buildTagObjectBody(message: String, targetVersion: ReleaseVersion, date:DateTime, commitSha: CommitSha): JsValue = {
     val tagName = "v" + targetVersion.value
-    Json.toJson(TagObject(tagName, message, commitSha, Tagger(taggerName, taggerEmail, githubTagDateTimeFormatter.print(date))))
+    Json.toJson(TagObject(tagName, message, commitSha, Tagger(gitOrgDetails.taggerName, gitOrgDetails.taggerEmail, githubTagDateTimeFormatter.print(date))))
   }
 
   def buildReleaseBody(message:String, targetVersion:ReleaseVersion):JsValue={
@@ -167,24 +162,23 @@ object GithubApi{
   }
 
   def buildCommitGetUrl(repo:Repo, sha:CommitSha)={
-    s"https://api.github.com/repos/hmrc/${repo.value}/git/commits/$sha"
+    s"https://api.github.com/repos/${gitOrgDetails.organisation}/${repo.value}/git/commits/$sha"
   }
   
   def buildAnnotatedTagRefPostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/${repo.value}/git/refs"
+    s"https://api.github.com/repos/${gitOrgDetails.organisation}/${repo.value}/git/refs"
   }
 
   def buildAnnotatedTagObjectPostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/${repo.value}/git/tags"
+    s"https://api.github.com/repos/${gitOrgDetails.organisation}/${repo.value}/git/tags"
   }
   
   def buildReleasePostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/${repo.value}/releases"
+    s"https://api.github.com/repos/${gitOrgDetails.organisation}/${repo.value}/releases"
   }
 }
 
-class GithubHttp(cred:ServiceCredentials){
-  val log = new Logger()
+class GithubHttp(cred:ServiceCredentials) extends Logger {
 
   val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
 

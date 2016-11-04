@@ -49,9 +49,7 @@ object BintrayRepoConnector{
   }
 }
 
-class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:PathBuilder) extends RepoConnector{
-
-  val log = new Logger()
+class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:PathBuilder) extends RepoConnector with Logger {
 
   def publish(version: VersionDescriptor):Try[Unit]={
     val url = bintrayPaths.publishUrlFor(version)
@@ -107,9 +105,7 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
 }
 
 
-class BintrayHttp(creds:ServiceCredentials){
-
-  val log = new Logger()
+class BintrayHttp(creds:ServiceCredentials) extends Logger{
 
   private def getTimeoutPropertyOptional(key: String) = Option(System.getProperty(key)).map(_.toLong * 1000)
 
@@ -134,8 +130,6 @@ class BintrayHttp(creds:ServiceCredentials){
 
     val result: WSResponse = Await.result(call, Duration.apply(5, TimeUnit.MINUTES))
 
-    //log.info(s"result ${result.status} - ${result.statusText}")
-
     result.status match {
       case s if s >= 200 && s < 300 => Success(new URL(url))
       case _@e => Failure(new scala.Exception(s"Didn't get expected status code when writing to Bintray. Got status ${result.status}: ${result.body}"))
@@ -148,8 +142,6 @@ class BintrayHttp(creds:ServiceCredentials){
     val call = apiWs(url).get()
 
     val result: WSResponse = Await.result(call, Duration.apply(5, TimeUnit.MINUTES))
-
-    //log.info(s"result ${result.status} - ${result.statusText} - ${result.body}")
 
     result.status match {
       case s if s >= 200 && s < 300 => Success(result.body)
@@ -168,8 +160,6 @@ class BintrayHttp(creds:ServiceCredentials){
       .put(file.toFile)
 
     val result: WSResponse = Await.result(call, Duration.apply(6, TimeUnit.MINUTES))
-
-    //log.info(s"result ${result.status} - ${result.statusText}")
 
     result.status match {
       case s if s >= 200 && s < 300 => Success(Unit)

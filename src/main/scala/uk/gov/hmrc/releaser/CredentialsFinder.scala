@@ -39,9 +39,7 @@ object CredentialsFinder {
   }
 }
 
-class ConfigFile(file: Path) {
-
-  val logger = new Logger
+class ConfigFile(file: Path) extends Logger {
 
   private val kvMap: Map[String, String] = {
     try {
@@ -51,7 +49,7 @@ class ConfigFile(file: Path) {
         .map { case Array(key, value) => key.trim -> value.trim}.toMap
     } catch {
       case e: Exception => {
-        logger.info(s"error parsing $file ${e.getMessage}")
+        log.info(s"error parsing $file ${e.getMessage}")
         Map.empty
       }
     }

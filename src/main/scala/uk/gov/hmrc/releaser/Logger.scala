@@ -16,11 +16,15 @@
 
 package uk.gov.hmrc.releaser
 
-package object domain {
+sealed class ConsoleLog {
+  def info(st: String) = println("[INFO] " + st)
 
-  type CommitSha = String
-  type ArtefactName = String
-  type Url = String
+  def debug(st: String) = println("[DEBUG] " + st)
+
+  def warn(st: String) = println("[WARN] " + st)
 }
 
-case class Repo(value:String) extends AnyVal
+trait Logger {
+
+  val log = new ConsoleLog()
+}
