@@ -19,7 +19,7 @@ package uk.gov.hmrc.releaser
 import java.net.URL
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser.domain.VersionDescriptor
+import uk.gov.hmrc.releaser.domain.{RepoFlavour, VersionDescriptor}
 
 import scala.util.{Failure, Success, Try}
 
@@ -30,6 +30,9 @@ trait RepoConnector{
   def findFiles(version: VersionDescriptor):Try[List[String]]
   def downloadFile(version:VersionDescriptor, fileName:String):Try[Path]
   def uploadFile(version:VersionDescriptor, filePath:Path):Try[Unit]
+}
+object RepoConnector{
+  type RepoConnectorBuilder = (RepoFlavour) => RepoConnector
 }
 
 
