@@ -21,6 +21,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
 import org.scalatest.Failed
+import uk.gov.hmrc.releaser.RepoConnector.RepoConnectorBuilder
 import uk.gov.hmrc.releaser.domain._
 
 import scala.collection.mutable
@@ -56,6 +57,10 @@ object Builders extends GitTagAndRelease {
   def successfulArtefactBulider(artefactMetaData:ArtefactMetaData):(Path) => Try[ArtefactMetaData] = {
     (x) => Success(artefactMetaData)
   }
+
+  val successfulGithubMetaDataGetter : (String, String) => Try[Unit] = {
+    (a, b) => Success()
+  }
   
   val successfulGithubVerifier:(Repo, CommitSha) => Try[Unit] ={
     (a, b) => Success(Unit)
@@ -85,7 +90,7 @@ object Builders extends GitTagAndRelease {
     (a) => Success(mavenRepository)
   }
 
-  val successfulConnectorBuilder:(RepoFlavour) => RepoConnector = (r) => Builders.buildConnector(
+  val successfulConnectorBuilder: RepoConnectorBuilder = (r) => Builders.buildConnector(
     filesuffix = "",
     "/time/time_2.11-1.3.0-1-g21312cc.jar",
     Set("/time/time_2.11-1.3.0-1-g21312cc.pom")
