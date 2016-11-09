@@ -264,7 +264,7 @@ object ReleaserBuilder extends Logger {
     val bintrayDetails = if(dryRun) BintrayDetails.dryRun(bintrayCreds, directories.workDir) else BintrayDetails(bintrayCreds, directories.workDir)
 
     val coordinator = new Coordinator(directories.stageDir, ArtefactMetaData.fromFile, gitHubDetails.verifyGithubCommit, gitHubDetails.gitHubTagAndRelease)
-    val repositories = new Repositories(bintrayDetails.metaDataGetter)(Seq(mavenRepository, ivyRepository))
+    val repositories = new Repositories(bintrayDetails.metaDataGetter)(bintrayDetails.repositoryFlavors)
 
     ReleaserBuilder(coordinator, repositories, bintrayDetails.repoConnectorBuilder, directories.stageDir)
   }

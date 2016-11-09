@@ -16,45 +16,79 @@
 
 package uk.gov.hmrc.releaser
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
+import java.util.jar
+import java.util.jar.Attributes
+import java.util.zip.ZipFile
 
-import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.JsValue
+import org.scalatest.{Matchers, OptionValues, WordSpec}
+import uk.gov.hmrc.releaser.RepoConnector.RepoConnectorBuilder
+import uk.gov.hmrc.releaser.domain.RepoFlavours._
 import uk.gov.hmrc.releaser.domain._
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Try}
+import scala.xml.XML
 
 
-class ReleaseRunnerSpec extends WordSpec with Matchers {
+class ReleaseRunnerSpec extends WordSpec with Matchers with OptionValues{
 
-  val githubCreds = ServiceCredentials("github", "passwordG")
-  val bintrayCreds = ServiceCredentials("bintray", "passwordB")
-  val tmpDir = Files.createTempDirectory("releaser")
-  val versionRelease = getClass.getPackage.getImplementationVersion
+  import Builders._
+  
+  "ReleaseBuilder" should {
+    "create instance of Release" in {
 
-  def gitHubDetailsStub() = {
-    val emptyGitPoster: (String, JsValue) => Try[Unit] = (a, b) => { println("Github emptyPost DRY_RUN"); Success(Unit) }
-    val emptyGitPosteAndGetter: (String, JsValue) => Try[CommitSha] = (a, b) => { println("Github emptyPost DRY_RUN"); Success("a-fake-tag-sha") }
+      val fakeRepoConnector = Builders.buildConnector(
+        filesuffix = "",
+        "/lib/lib_2.11-1.3.0-1-g21312cc.jar",
+        Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom", "/lib/lib_2.11-1.3.0-1-g21312cc-assembly.jar")
+      )
+      val fakeRepoConnectorBuilder: RepoConnectorBuilder = (r) => fakeRepoConnector
 
-    val releaserVersion = getClass.getPackage.getImplementationVersion
-    new GithubDetails(new GithubHttp(githubCreds), releaserVersion, new GithubApi())(emptyGitPoster, emptyGitPosteAndGetter)
-  }
+      val directories = ReleaseDirectories()
+      val coordinator = Builders.buildDefaultCoordinator(directories.tmpDirectory())
+      val repository = new Repositories(successfulGithubMetaDataGetter)(Seq(mavenRepository, ivyRepository))
 
-  def bintrayDetailsStub(workDir : Path) = {
+      val releaser = ReleaserBuilder(coordinator, repository, fakeRepoConnectorBuilder, directories.stageDir)
 
-    val bintrayConnectorStub = new BintrayHttp(bintrayCreds) {
-      override def emptyPost(url: String): Try[Unit] = Success(Unit)
-      override def putFile(version: VersionDescriptor, file: Path, url: String): Try[Unit] = Success(Unit)
-      override def get[A](url: String): Try[String] = Success(s"""{message: "url call : $url"}""")
+      releaser.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
+        case Failure(e) => fail(e)
+        case _ =>
+      }
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 3
+
+      val Some((assemblyVersion, assemblyFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-assembly.jar"))
+      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
+
+      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
+
+      publishedDescriptor should not be None
+
+      jarVersion.version.value shouldBe "0.9.9"
+
+      val jarManifest = manifestFromZipFile(jarFile)
+
+      jarManifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
+
+      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
+      pomVersionText shouldBe "0.9.9"
+
     }
-
-    new BintrayDetails(bintrayConnectorStub, workDir)
   }
 
-  "Build a Releaser" should {
-    "create instance with dry run connectors" in {
 
-      val dryRunReleaser = ReleaserBuilder(versionRelease, ReleaseDirectories(), githubCreds, bintrayCreds, true)
+  def manifestFromZipFile(file: Path): Option[Attributes] = {
+    import scala.collection.JavaConversions._
+
+    val zipFile: ZipFile = new ZipFile(file.toFile)
+
+    zipFile.entries().toList.find { ze =>
+      ze.getName == "META-INF/MANIFEST.MF"
+    }.flatMap { ze =>
+      Try(new jar.Manifest(zipFile.getInputStream(ze))).map { man =>
+        man.getMainAttributes
+      }.toOption
     }
   }
 }
