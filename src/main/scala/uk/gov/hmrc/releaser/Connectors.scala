@@ -25,7 +25,7 @@ import scala.util.{Failure, Success, Try}
 
 trait RepoConnector{
   def verifyTargetDoesNotExist(version:VersionDescriptor):Try[Unit]
-  def downloadJar(version:VersionDescriptor):Try[Path]
+  def findJar(version:VersionDescriptor):Option[Path]
   def publish(version: VersionDescriptor):Try[Unit]
   def findFiles(version: VersionDescriptor):Try[List[String]]
   def downloadFile(version:VersionDescriptor, fileName:String):Try[Path]

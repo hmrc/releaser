@@ -66,8 +66,8 @@ object Builders extends GitTagAndRelease {
     (a, b) => Success(Unit)
   }
 
-  val successfulGithubReleasePublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] = {
-    (a, b) => Success()
+  val successfulGithubReleasePublisher:(CommitSha, String, DateTime, VersionMapping) => Try[Unit] = {
+    (a, b, c, d) => Success()
   }
 
   val successfulGithubTagObjectPublisher:(Repo, ReleaseVersion, CommitSha) => Try[CommitSha] ={
@@ -92,7 +92,7 @@ object Builders extends GitTagAndRelease {
 
   val successfulConnectorBuilder: RepoConnectorBuilder = (r) => Builders.buildConnector(
     filesuffix = "",
-    "/time/time_2.11-1.3.0-1-g21312cc.jar",
+    Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
     Set("/time/time_2.11-1.3.0-1-g21312cc.pom")
   )
 
@@ -106,7 +106,7 @@ object Builders extends GitTagAndRelease {
                         connectorBuilder:(RepoFlavour) => RepoConnector = successfulConnectorBuilder,
                         artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
                         githubRepoGetter:(Repo, CommitSha) => Try[Unit] = successfulGithubVerifier,
-                        githubReleasePublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] = successfulGithubReleasePublisher,
+                        githubReleasePublisher:(CommitSha, String, DateTime, VersionMapping) => Try[Unit] = successfulGithubReleasePublisher,
                         githubTagObjPublisher:(Repo, ReleaseVersion, CommitSha) => Try[CommitSha] = successfulGithubTagObjectPublisher,
                         githubTagRefPublisher:(Repo, ReleaseVersion, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
                           ): Releaser ={
@@ -125,7 +125,7 @@ object Builders extends GitTagAndRelease {
                                stageDir:Path = tempDir(),
                                artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
                                githubRepoGetter:(Repo, CommitSha) => Try[Unit] = successfulGithubVerifier,
-                               githubReleasePublisher:(ArtefactMetaData, VersionMapping) => Try[Unit] = successfulGithubReleasePublisher,
+                               githubReleasePublisher:(CommitSha, String, DateTime, VersionMapping) => Try[Unit] = successfulGithubReleasePublisher,
                                githubTagObjectPublisher:(Repo, ReleaseVersion, CommitSha) => Try[CommitSha] = successfulGithubTagObjectPublisher,
                                githubTagRefPublisher:(Repo, ReleaseVersion, CommitSha) => Try[Unit] = successfulGithubTagRefPublisher
                                )={
@@ -135,23 +135,20 @@ object Builders extends GitTagAndRelease {
     new Coordinator(stageDir, artefactBuilder, githubRepoGetter, taggerAndReleaser)
   }
 
-  def buildConnector(filesuffix:String, jarResoure:String, bintrayFiles:Set[String], targetExists:Boolean = false) = new RepoConnector(){
+  def buildConnector(filesuffix:String, jarResoure:Option[String], bintrayFiles:Set[String], targetExists:Boolean = false) = new RepoConnector(){
 
     val uploadedFiles = mutable.Set[(VersionDescriptor, Path)]()
-
     var lastPublishDescriptor:Option[VersionDescriptor] = None
 
-    override def downloadJar(version: VersionDescriptor): Try[Path] = {
-      Success {
-        Paths.get(this.getClass.getResource(filesuffix + jarResoure).toURI) }
-    }
+    override def findJar(version: VersionDescriptor): Option[Path] =
+      jarResoure.map { x =>  Paths.get(this.getClass.getResource(filesuffix + x).toURI) }
 
     override def publish(version: VersionDescriptor): Try[Unit] = {
       lastPublishDescriptor = Some(version)
       Success(Unit)
     }
 
-    override def findFiles(version: VersionDescriptor): Try[List[String]] = Success(bintrayFiles.toList :+ jarResoure)
+    override def findFiles(version: VersionDescriptor): Try[List[String]] = Success(bintrayFiles.toList ++ jarResoure)
 
     override def downloadFile(version: VersionDescriptor, fileName: String): Try[Path] = {
       Success {

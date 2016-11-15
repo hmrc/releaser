@@ -20,6 +20,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
+import org.joda.time.DateTime
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.releaser.GithubDetails.{GitPost, GitPostAndGet}
 import uk.gov.hmrc.releaser.RepoConnector.RepoConnectorBuilder
@@ -116,10 +117,10 @@ class Releaser(stageDir: Path,
 
 
 class Coordinator(
-                   stageDir:Path,
+                   stageDir: Path,
                    artefactBuilder:(Path) => Try[ArtefactMetaData],
-                   verifyGithubTagExists:(Repo, CommitSha) => Try[Unit],
-                   createGithubTagAndRelease:(ArtefactMetaData, VersionMapping) => Try[Unit]) extends Logger {
+                   verifyGithubTagExists: (Repo, CommitSha) => Try[Unit],
+                   createGithubTagAndRelease: (CommitSha, String, DateTime, VersionMapping) => Try[Unit]) extends Logger {
 
   def start(map: VersionMapping, connector:RepoConnector): Try[Unit] ={
     val artefacts = map.repo.artefactBuilder(map, stageDir)
@@ -128,14 +129,23 @@ class Coordinator(
       _         <- connector.verifyTargetDoesNotExist(map.targetArtefact);
       files     <- connector.findFiles(map.sourceArtefact);
       remotes    = artefacts.transformersForSupportedFiles(files);
-      localJar  <- connector.downloadJar(map.sourceArtefact);
-      metaData  <- artefactBuilder(localJar);
-      _         <- verifyGithubTagExists(map.gitRepo, metaData.sha);
+      localJar   = connector.findJar(map.sourceArtefact);
+      (commitSha, commitAuthor, commitDate)
+                <- getMetaData(localJar).map(x => ArtefactMetaData.unapply(x).get);
+      _         <- verifyGithubTagExists(map.gitRepo, commitSha);
       transd    <- transformFiles(map, remotes, connector, artefacts.filePrefix);
       _         <- uploadFiles(map.targetArtefact, transd, connector);
       _         <- connector.publish(map.targetArtefact);
-      _         <- createGithubTagAndRelease(metaData, map))
+      _         <- createGithubTagAndRelease(commitSha, commitAuthor, commitDate, map)
+    )
      yield ()
+  }
+
+  def getMetaData(jarPath: Option[Path]): Try[ArtefactMetaData] = {
+    jarPath match {
+      case Some(path) => artefactBuilder(path)
+      case None => ???
+    }
   }
 
   def verifyTargetDoesNotExist():Try[Unit] = {
@@ -155,7 +165,7 @@ class Coordinator(
     connector.downloadFile(map.sourceArtefact, remotePath).flatMap { localPath =>
       val targetFileName = buildTargetFileName(map, remotePath, prefix)
       val targetPath = stageDir.resolve(targetFileName)
-      log.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $remotePath writing to file ${targetPath}")
+      log.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $remotePath writing to file $targetPath")
       if(targetPath.toFile.exists()){
         log.info(s"already have $targetPath, not updating")
         Success(targetPath)

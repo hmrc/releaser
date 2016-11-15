@@ -46,7 +46,7 @@ import scala.util.{Failure, Success, Try}
 case class ArtefactMetaData(sha:CommitSha, commitAuthor:String, commitDate:DateTime)
 
 
-object ArtefactMetaData{
+object ArtefactMetaData {
 
   val gitCommitDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 

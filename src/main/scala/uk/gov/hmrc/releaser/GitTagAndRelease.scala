@@ -16,6 +16,10 @@
 
 package uk.gov.hmrc.releaser
 
+import java.time
+
+import org.joda.time.DateTime
+
 trait GitTagAndRelease {
 
   import uk.gov.hmrc.releaser.domain._
@@ -25,12 +29,12 @@ trait GitTagAndRelease {
   def createGitHubTagAndRelease(
                                  githubTagObjectCreator: (Repo, ReleaseVersion, CommitSha) => Try[CommitSha],
                                  githubTagRefCreator: (Repo, ReleaseVersion, CommitSha) => Try[Unit],
-                                 githubReleaseCreator: (ArtefactMetaData, VersionMapping) => Try[Unit])
-                               (metaData: ArtefactMetaData, map: VersionMapping): Try[Unit] = {
+                                 githubReleaseCreator: (CommitSha, String, DateTime, VersionMapping) => Try[Unit])
+                               (commitSha: CommitSha, commitAuthor: String, commitDate: DateTime, map: VersionMapping): Try[Unit] = {
     for (
-      tagSha <- githubTagObjectCreator(map.gitRepo, map.targetVersion, metaData.sha);
+      tagSha <- githubTagObjectCreator(map.gitRepo, map.targetVersion, commitSha);
       _ <- githubTagRefCreator(map.gitRepo, map.targetVersion, tagSha);
-      _ <- githubReleaseCreator(metaData, map))
+      _ <- githubReleaseCreator(commitSha, commitAuthor, commitDate, map))
       yield ()
   }
 }

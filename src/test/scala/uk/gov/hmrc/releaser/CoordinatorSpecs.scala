@@ -40,7 +40,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val fakeRepoConnector = Builders.buildConnector(
         "",
-        "/lib/lib_2.11-1.3.0-1-g21312cc.jar",
+        Some("/lib/lib_2.11-1.3.0-1-g21312cc.jar"),
         Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom", "/lib/lib_2.11-1.3.0-1-g21312cc-assembly.jar")
       )
 
@@ -81,7 +81,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val fakeRepoConnector = Builders.buildConnector(
         "",
-        "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.jar",
+        Some("/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.jar"),
         Set(
           "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.pom",
           "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz",
@@ -125,7 +125,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val fakeRepoConnector = Builders.buildConnector(
         "",
-        "/time/time_2.11-1.3.0-1-g21312cc.jar",
+        Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
         Set("/time/time_2.11-1.3.0-1-g21312cc.pom"))
 
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
@@ -160,6 +160,38 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "0.9.9"
     }
 
+//    "Require only a .pom in order to release an artifact" in {
+//
+//      val fakeRepoConnector = Builders.buildConnector(
+//        "",
+//        None,
+//        Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom")
+//      )
+//
+//      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+//
+//      val releaser = buildDefaultReleaser(
+//        repositoryFinder = successfulRepoFinder(mavenRepository),
+//        connectorBuilder = fakeRepoConnectorBuilder,
+//        artefactMetaData = ArtefactMetaData("sha", "lib", DateTime.now()))
+//
+//      releaser.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
+//        case Failure(e) => fail(e)
+//        case _ =>
+//      }
+//
+//      fakeRepoConnector.uploadedFiles.size shouldBe 1
+//
+//      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+//
+//      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
+//      publishedDescriptor should not be None
+//
+//      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
+//      pomVersionText shouldBe "0.9.9"
+//
+//    }
+
 
     "fail when given the sha in the pom does not exist" in {
       val expectedException = new scala.Exception("no commit message")
@@ -178,7 +210,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val fakeRepoConnector = Builders.buildConnector(
         "",
-        "/time/time_2.11-1.3.0-1-g21312cc.jar",
+        Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
         Set("/time/time_2.11-1.3.0-1-g21312cc.pom"), targetExists = true)
 
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
@@ -209,13 +241,13 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
     "release version 0.1.1 of an ivy-based SBT plugin when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'hotfix' as the artefact, release candidate and release type" in {
 
-      val githubReleaseBuilder = new MockFunction2[ArtefactMetaData, VersionMapping]()
+      val githubReleaseBuilder = new MockFunction4[CommitSha, String, DateTime, VersionMapping]()
       val githubTagObjBuilder = new MockFunction3[Repo, ReleaseVersion, CommitSha, CommitSha]()
       val githubTagRefBuilder = new MockFunction3[Repo, ReleaseVersion, CommitSha, Unit]()
 
       val fakeRepoConnector = Builders.buildConnector(
         filesuffix = "/sbt-bobby/",
-        "sbt-bobby.jar",
+        Some("sbt-bobby.jar"),
         Set("ivy.xml")
       )
 
@@ -255,8 +287,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val ivyVersionText = (XML.loadFile(ivyFile.toFile) \ "info" \ "@revision").text
       ivyVersionText shouldBe "0.1.1"
 
-      val(md, ver) = githubReleaseBuilder.params.value
-      md.sha shouldBe "gitsha"
+      val(sha, _, _, ver) = githubReleaseBuilder.params.value
+      sha shouldBe "gitsha"
       ver.sourceVersion.value shouldBe "0.8.1-4-ge733d26"
 
       githubTagObjBuilder.params.value shouldBe ((Repo("sbt-bobby"), ReleaseVersion("0.1.1"), "gitsha"))
@@ -275,12 +307,12 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
     }
   }
 
-  class MockFunction2[A, B]{
-    var params:Option[(A, B)] = None
+  class MockFunction4[A, B, C, D]{
+    var params:Option[(A, B, C, D)] = None
 
-    def build:(A, B) => Try[Unit] ={
-      (a, b) => {
-        params = Some((a, b))
+    def build:(A, B, C, D) => Try[Unit] ={
+      (a, b, c, d) => {
+        params = Some((a, b, c, d))
         Success(Unit)
       }
     }

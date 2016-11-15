@@ -39,7 +39,7 @@ class ReleaseRunnerSpec extends WordSpec with Matchers with OptionValues{
 
       val fakeRepoConnector = Builders.buildConnector(
         filesuffix = "",
-        "/lib/lib_2.11-1.3.0-1-g21312cc.jar",
+        Some("/lib/lib_2.11-1.3.0-1-g21312cc.jar"),
         Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom", "/lib/lib_2.11-1.3.0-1-g21312cc-assembly.jar")
       )
       val fakeRepoConnectorBuilder: RepoConnectorBuilder = (r) => fakeRepoConnector

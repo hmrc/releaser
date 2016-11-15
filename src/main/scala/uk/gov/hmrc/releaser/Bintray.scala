@@ -69,16 +69,17 @@ class BintrayRepoConnector(workDir:Path, bintrayHttp:BintrayHttp, bintrayPaths:P
     }
   }
 
-  def downloadJar(version:VersionDescriptor):Try[Path] = {
-
+  def findJar(version:VersionDescriptor):Option[Path] = {
     val fileName = bintrayPaths.jarFilenameFor(version)
     val artefactUrl = bintrayPaths.jarDownloadFor(version)
 
-    downloadFile(artefactUrl, fileName)
+    downloadFile(artefactUrl, fileName) match {
+      case Success(x) => Some(x)
+      case Failure(y) => None
+    }
   }
 
   def downloadFile(version:VersionDescriptor, fileName:String):Try[Path] = {
-
     val artefactUrl = bintrayPaths.fileDownloadFor(version, fileName)
     downloadFile(artefactUrl, fileName)
   }

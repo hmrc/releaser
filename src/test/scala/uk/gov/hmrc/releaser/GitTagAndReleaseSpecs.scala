@@ -30,15 +30,13 @@ class GitTagAndReleaseSpecs extends WordSpec with Matchers with TryValues with O
   "createGitHubTagAndRelease" should {
     "create a function that calls github api in the correct order to create an annotated tag and release: create-tag-object -> create-tag-ref -> create-release" in {
 
-      val artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now())
       val ver = mavenVersionMapping()
-
       val executedCalls = ListBuffer[String]()
 
       createGitHubTagAndRelease(
         (a, b, c) => { executedCalls += "add-object"; Success("sha") },
         (a, b, c) => { executedCalls += "add-ref"; Success() },
-        (a, b) => { executedCalls += "release"; Success() })(artefactMetaData, ver)
+        (a, b, c, d) => { executedCalls += "release"; Success() })("sha", "time", DateTime.now(), ver)
 
       executedCalls.toList shouldBe List("add-object", "add-ref", "release")
     }

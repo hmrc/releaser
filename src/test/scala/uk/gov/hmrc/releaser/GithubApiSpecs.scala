@@ -41,7 +41,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues with OptionVa
       val md = anArtefactMetaData
       val vm = VersionMapping(RepoFlavours.mavenRepository, "bintray-artefact", repo, aReleaseCandidateVersion, aReleaseVersion)
 
-      githubApi.createRelease(poster)("0.1.0")(md, vm)
+      githubApi.createRelease(poster)("0.1.0")(md.sha, md.commitAuthor, md.commitDate, vm)
 
       postUrl.value shouldBe "https://api.github.com/repos/hmrc/myRepo/releases"
     }
@@ -72,13 +72,11 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues with OptionVa
     }
 
     "create the correct message for a release" in {
+      val releaseCandidateVersion = ReleaseCandidateVersion("1.0.0-abcd")
+      val releaseVersion = ReleaseVersion("1.0.0")
+      val sha = "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c"
+      val author = "charleskubicek"
       val commitDate = DateTime.now().minusDays(4)
-
-      val sourceVersion = ReleaseCandidateVersion("1.0.0-abcd")
-      val artefactMetaData = ArtefactMetaData(
-        "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
-        "charleskubicek",
-        commitDate)
 
       val expectedMessage =
         s"""
@@ -91,9 +89,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues with OptionVa
           |
           |Release and tag created by [Releaser](https://github.com/hmrc/releaser) 6.6.6""".stripMargin
 
-
-        githubApi.buildMessage("myArtefact", ReleaseVersion("1.0.0"), "6.6.6", sourceVersion, artefactMetaData) shouldBe expectedMessage
-
+        githubApi.buildMessage("myArtefact",  releaseVersion, "6.6.6",  releaseCandidateVersion, sha, author, commitDate) shouldBe expectedMessage
     }
 
     "create the correct body for creating an annotated tag object" in {

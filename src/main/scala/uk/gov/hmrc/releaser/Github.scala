@@ -110,12 +110,12 @@ class GithubApi(gitOrgDetails : GithubOrganisationDetails = GithubOrganisationDe
   }
 
   def createRelease(tagger: JsonPostReturnUnit)(releaserVersion:String)
-                   (artefactMd: ArtefactMetaData, v: VersionMapping): Try[Unit] = {
-    log.debug("creating release from " + artefactMd + " version mapping " + v)
+                   (commitSha: CommitSha, commitAuthor: String, commitDate: DateTime, v: VersionMapping): Try[Unit] = {
+    log.debug(s"creating release from $commitSha version mapping " + v)
 
     val url = buildReleasePostUrl(v.gitRepo)
 
-    val message = buildMessage(v.artefactName, v.targetVersion, releaserVersion, v.sourceVersion, artefactMd)
+    val message = buildMessage(v.artefactName, v.targetVersion, releaserVersion, v.sourceVersion, commitSha, commitAuthor, commitDate)
 
     val body = buildReleaseBody(message, v.targetVersion)
 
@@ -142,24 +142,21 @@ class GithubApi(gitOrgDetails : GithubOrganisationDetails = GithubOrganisationDe
       GitRelease(targetVersion.value, tagName, message, draft = false, prerelease = false))
   }
 
-  def buildMessage(name:String,
-                   version:ReleaseVersion,
-                   releaserVersion:String,
-                   sourceVersion:ReleaseCandidateVersion,
-                   artefactMetaData: ArtefactMetaData)={
-
-
+  def buildMessage(
+                    name: String,
+                    version: ReleaseVersion,
+                    releaserVersion: String,
+                    sourceVersion: ReleaseCandidateVersion,
+                    commitSha: CommitSha, commitAuthor: String, commitDate: DateTime) =
     s"""
         |Release            : $name ${version.value}
         |Release candidate  : $name ${sourceVersion.value}
         |
-        |Last commit sha    : ${artefactMetaData.sha}
-        |Last commit author : ${artefactMetaData.commitAuthor}
-        |Last commit time   : ${DateTimeFormat.longDateTime().print(artefactMetaData.commitDate)}
+        |Last commit sha    : $commitSha
+        |Last commit author : $commitAuthor
+        |Last commit time   : ${DateTimeFormat.longDateTime().print(commitDate)}
         |
         |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion""".stripMargin
-
-  }
 
   def buildCommitGetUrl(repo:Repo, sha:CommitSha)={
     s"https://api.github.com/repos/${gitOrgDetails.organisation}/${repo.value}/git/commits/$sha"
