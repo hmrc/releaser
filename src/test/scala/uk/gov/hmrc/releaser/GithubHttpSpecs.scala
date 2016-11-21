@@ -19,6 +19,7 @@ package uk.gov.hmrc.releaser
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import play.api.libs.json.{JsNumber, JsObject}
 import play.api.libs.ws.{EmptyBody, WSAuthScheme}
+import uk.gov.hmrc.releaser.github.GithubHttp
 
 class GithubHttpSpecs extends WordSpec with Matchers with OptionValues{
 

@@ -24,6 +24,7 @@ import java.util.zip.ZipFile
 import org.joda.time.DateTime
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
 import uk.gov.hmrc.releaser.domain._
+import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
@@ -140,7 +141,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case _ =>
       }
 
-
       fakeRepoConnector.uploadedFiles.size shouldBe 2
 
       val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
@@ -160,12 +160,12 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "0.9.9"
     }
 
-//    "Require only a .pom in order to release an artifact" in {
+//    "Require only a .pom and a commit manifest in order to release an artifact" in {
 //
 //      val fakeRepoConnector = Builders.buildConnector(
 //        "",
 //        None,
-//        Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom")
+//        Set("/lib/commit.mf", "/lib/lib_2.11-1.3.0-1-g21312cc.pom")
 //      )
 //
 //      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
@@ -180,25 +180,25 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 //        case _ =>
 //      }
 //
-//      fakeRepoConnector.uploadedFiles.size shouldBe 1
+//      fakeRepoConnector.uploadedFiles.size shouldBe 2
 //
-//      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+//      val Some((_, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
 //
 //      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
 //      publishedDescriptor should not be None
 //
 //      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
 //      pomVersionText shouldBe "0.9.9"
-//
 //    }
-
 
     "fail when given the sha in the pom does not exist" in {
       val expectedException = new scala.Exception("no commit message")
 
-      val releaser = buildDefaultReleaser(
-        githubRepoGetter = (a, b) => Failure(expectedException)
-      )
+      val taggerAndReleaser = new DummyTagAndRelease {
+        override def verifyGithubTagExists(repo: Repo, sha: CommitSha): Try[Unit] = Failure(expectedException)
+      }
+
+      val releaser = buildDefaultReleaser(taggerAndReleaser = taggerAndReleaser)
 
       releaser.start("a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {
         case Failure(e) => e shouldBe expectedException
@@ -225,7 +225,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
     }
 
-
     "fail when the repository of an artefact isn't found" in {
       val expectedException = new scala.Exception("repo fail")
 
@@ -241,10 +240,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
     "release version 0.1.1 of an ivy-based SBT plugin when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'hotfix' as the artefact, release candidate and release type" in {
 
-      val githubReleaseBuilder = new MockFunction4[CommitSha, String, DateTime, VersionMapping]()
-      val githubTagObjBuilder = new MockFunction3[Repo, ReleaseVersion, CommitSha, CommitSha]()
-      val githubTagRefBuilder = new MockFunction3[Repo, ReleaseVersion, CommitSha, Unit]()
-
       val fakeRepoConnector = Builders.buildConnector(
         filesuffix = "/sbt-bobby/",
         Some("sbt-bobby.jar"),
@@ -256,11 +251,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val releaser = buildDefaultReleaser(
           repositoryFinder = successfulRepoFinder(ivyRepository),
           connectorBuilder = fakeRepoConnectorBuilder,
-          artefactMetaData = ArtefactMetaData("gitsha", "sbt-bobby", DateTime.now()),
-          githubReleasePublisher = githubReleaseBuilder.build,
-          githubTagObjPublisher = githubTagObjBuilder.build("the-tag-sha"),
-          githubTagRefPublisher = githubTagRefBuilder.build(Unit)
-      )
+          artefactMetaData = ArtefactMetaData("gitsha", "sbt-bobby", DateTime.now()))
 
         releaser.start("sbt-bobby", Repo("sbt-bobby"), ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseVersion("0.1.1")) match {
           case Failure(e) => fail(e)
@@ -282,30 +273,23 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val manifest = manifestFromZipFile(jarFile)
 
-
       manifest.value.getValue("Implementation-Version") shouldBe "0.1.1"
       val ivyVersionText = (XML.loadFile(ivyFile.toFile) \ "info" \ "@revision").text
       ivyVersionText shouldBe "0.1.1"
-
-      val(sha, _, _, ver) = githubReleaseBuilder.params.value
-      sha shouldBe "gitsha"
-      ver.sourceVersion.value shouldBe "0.8.1-4-ge733d26"
-
-      githubTagObjBuilder.params.value shouldBe ((Repo("sbt-bobby"), ReleaseVersion("0.1.1"), "gitsha"))
-      githubTagRefBuilder.params.value shouldBe ((Repo("sbt-bobby"), ReleaseVersion("0.1.1"), "the-tag-sha"))
     }
   }
 
-  "buildTargetFileName" should {
-    "buildTargetFileName" in {
-      val coord = buildDefaultCoordinator()
-      val remotePath = "/time/time_2.11-1.3.0-1-g21312cc.jar"
-      val versionMapping: VersionMapping = mavenVersionMapping(artefactName = "time", releaseVersion = "1.0.0")
-      val targetFileName = coord.buildTargetFileName(versionMapping, remotePath, "time_2.11-1.3.0-1-g21312cc")
-
-      targetFileName shouldBe "time_2.11-1.0.0.jar"
-    }
-  }
+  // TODO: This should be tested at the public interface
+  //  "buildTargetFileName" should {
+  //    "buildTargetFileName" in {
+  //      val coord = buildDefaultCoordinator()
+  //      val remotePath = "/time/time_2.11-1.3.0-1-g21312cc.jar"
+  //      val versionMapping: VersionMapping = mavenVersionMapping(artefactName = "time", releaseVersion = "1.0.0")
+  //      val targetFileName = coord.buildTargetFileName(versionMapping, remotePath, "time_2.11-1.3.0-1-g21312cc")
+  //
+  //      targetFileName shouldBe "time_2.11-1.0.0.jar"
+  //    }
+  //  }
 
   class MockFunction4[A, B, C, D]{
     var params:Option[(A, B, C, D)] = None

@@ -37,19 +37,16 @@ object ReleaseVersion{
 }
 case class ReleaseCandidateVersion(value:String) extends Version
 
-case class VersionDescriptor(
-                              repo:String,
+case class VersionDescriptor(repo:String,
                               artefactName:String,
                               gitHubName:Repo,
                               version:Version)
 
-case class VersionMapping (
-                            repo:RepoFlavour,
+case class VersionMapping (repo:RepoFlavour,
                             artefactName:String,
                             gitRepo:Repo,
                             sourceVersion:ReleaseCandidateVersion,
-                            targetVersion:ReleaseVersion
-                            ) {
+                            targetVersion:ReleaseVersion) {
 
   def targetArtefact = VersionDescriptor(repo.releaseRepo, artefactName, gitRepo, targetVersion)
   def sourceArtefact = VersionDescriptor(repo.releaseCandidateRepo, artefactName, gitRepo, sourceVersion)

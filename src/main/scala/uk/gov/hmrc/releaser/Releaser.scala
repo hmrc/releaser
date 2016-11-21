@@ -21,11 +21,10 @@ import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import play.api.libs.json.JsValue
-import uk.gov.hmrc.releaser.GithubDetails.{GitPost, GitPostAndGet}
 import uk.gov.hmrc.releaser.RepoConnector.RepoConnectorBuilder
 import uk.gov.hmrc.releaser.domain.RepoFlavours._
 import uk.gov.hmrc.releaser.domain._
+import uk.gov.hmrc.releaser.github.{GithubTagAndRelease, GithubConnector}
 
 import scala.collection.immutable.SortedSet
 import scala.util.{Failure, Success, Try}
@@ -48,7 +47,6 @@ object ReleaseType extends Enumeration {
 object Releaser extends Logger {
 
   import uk.gov.hmrc.releaser.ArgParser._
-  import uk.gov.hmrc.releaser.domain.RepoFlavours._
 
   def apply(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
@@ -116,11 +114,9 @@ class Releaser(stageDir: Path,
 }
 
 
-class Coordinator(
-                   stageDir: Path,
-                   artefactBuilder:(Path) => Try[ArtefactMetaData],
-                   verifyGithubTagExists: (Repo, CommitSha) => Try[Unit],
-                   createGithubTagAndRelease: (CommitSha, String, DateTime, VersionMapping) => Try[Unit]) extends Logger {
+class Coordinator(stageDir: Path,
+                   findArtefactMetaData:(Path) => Try[ArtefactMetaData],
+                   githubConnector: GithubTagAndRelease) extends Logger {
 
   def start(map: VersionMapping, connector:RepoConnector): Try[Unit] ={
     val artefacts = map.repo.artefactBuilder(map, stageDir)
@@ -132,36 +128,28 @@ class Coordinator(
       localJar   = connector.findJar(map.sourceArtefact);
       (commitSha, commitAuthor, commitDate)
                 <- getMetaData(localJar).map(x => ArtefactMetaData.unapply(x).get);
-      _         <- verifyGithubTagExists(map.gitRepo, commitSha);
+      _         <- githubConnector.verifyGithubTagExists(map.gitRepo, commitSha);
       transd    <- transformFiles(map, remotes, connector, artefacts.filePrefix);
       _         <- uploadFiles(map.targetArtefact, transd, connector);
       _         <- connector.publish(map.targetArtefact);
-      _         <- createGithubTagAndRelease(commitSha, commitAuthor, commitDate, map)
+      _         <- githubConnector.createGithubTagAndRelease(new DateTime(), commitSha, commitAuthor, commitDate, map)
     )
      yield ()
   }
 
-  def getMetaData(jarPath: Option[Path]): Try[ArtefactMetaData] = {
+  private def getMetaData(jarPath: Option[Path]): Try[ArtefactMetaData] = {
     jarPath match {
-      case Some(path) => artefactBuilder(path)
+      case Some(path) => findArtefactMetaData(path)
       case None => ???
     }
   }
 
-  def verifyTargetDoesNotExist():Try[Unit] = {
-    Failure(new Exception("target exists"))
-  }
-
-  def uploadFiles(target:VersionDescriptor, files:List[Path], connector: RepoConnector):Try[Unit]={
-
-    val res = files.map { localFile =>
-      connector.uploadFile(target, localFile)
-    }
-
+  private def uploadFiles(target:VersionDescriptor, files:List[Path], connector: RepoConnector) : Try[Unit] = {
+    val res = files.map { localFile => connector.uploadFile(target, localFile) }
     sequence(res).map { _ => Unit }
   }
 
-  def transformFile(map: VersionMapping, remotePath:String, transO:Option[Transformer], connector:RepoConnector, prefix:String):Try[Path]={
+  private def transformFile(map: VersionMapping, remotePath:String, transO:Option[Transformer], connector:RepoConnector, prefix:String) : Try[Path]={
     connector.downloadFile(map.sourceArtefact, remotePath).flatMap { localPath =>
       val targetFileName = buildTargetFileName(map, remotePath, prefix)
       val targetPath = stageDir.resolve(targetFileName)
@@ -181,55 +169,27 @@ class Coordinator(
     }
   }
 
-  def buildTargetFileName(map: VersionMapping, remotePath: String, prefix: String): String = {
+  private def buildTargetFileName(map: VersionMapping, remotePath: String, prefix: String): String = {
     val fileName = remotePath.split("/").last.stripPrefix(prefix)
     map.repo.filenameFor(map.targetArtefact, fileName)
   }
 
-  def transformFiles(map: VersionMapping, files:List[(String, Option[Transformer])], connector:RepoConnector, prefix:String):Try[List[Path]]={
+  private def transformFiles(map: VersionMapping, files:List[(String, Option[Transformer])], connector:RepoConnector, prefix:String):Try[List[Path]]={
     sequence{
       files.map { case(file, transO) => transformFile(map, file, transO, connector, prefix) }
     }
   }
 
-  def publish(map: VersionMapping, connector:RepoConnector): Try[Unit] = {
+  private def publish(map: VersionMapping, connector:RepoConnector): Try[Unit] = {
     connector.publish(map.targetArtefact)
   }
 
-  def sequence[A](l:Iterable[Try[A]]):Try[List[A]]={
+  private def sequence[A](l:Iterable[Try[A]]):Try[List[A]]={
     l.find(_.isFailure) match {
       case None => Success(l.map(_.get).toList)
       case Some(f) => Failure[List[A]](f.failed.get)
     }
   }
-}
-
-object GithubDetails extends Logger {
-  type GitPost = (String, JsValue) => Try[Unit]
-  type GitPostAndGet = (String, JsValue) => Try[CommitSha]
-
-  def apply(githubCreds: ServiceCredentials, releaserVersion : String) = new GithubDetails(new GithubHttp(githubCreds), releaserVersion, new GithubApi())()
-
-  def dryRun(githubCreds: ServiceCredentials, releaserVersion : String) = {
-    log.info("Github : running in dry-run mode")
-    val emptyGitPoster: (String, JsValue) => Try[Unit] = (a, b) => { println("Github emptyPost DRY_RUN"); Success(Unit) }
-    val emptyGitPosteAndGetter: (String, JsValue) => Try[CommitSha] = (a, b) => { println("Github emptyPost DRY_RUN"); Success("a-fake-tag-sha") }
-    new GithubDetails(new GithubHttp(githubCreds), releaserVersion, new GithubApi())(emptyGitPoster, emptyGitPosteAndGetter)
-  }
-}
-
-class GithubDetails(githubConnector : GithubHttp, releaserVersion : String, githubApi : GithubApi)
-                   (gitPost : GitPost = githubConnector.postUnit,
-                    gitPostAndGet : GitPostAndGet = githubConnector.post[CommitSha](githubApi.shaFromResponse))
-  extends GitTagAndRelease{
-
-  val githubReleaseCreator = githubApi.createRelease(gitPost)(releaserVersion) _
-  val githubTagObjectCreator = githubApi.createAnnotatedTagObject(gitPostAndGet)(releaserVersion) _
-  val githubTagRefCreator = githubApi.createAnnotatedTagRef(gitPost)(releaserVersion) _
-
-  val verifyGithubCommit = githubApi.verifyCommit(githubConnector.get) _
-  val gitHubTagAndRelease = createGitHubTagAndRelease(githubTagObjectCreator, githubTagRefCreator, githubReleaseCreator) _
-  val artefactBuilder = ArtefactMetaData.fromFile _
 }
 
 case class ReleaseDirectories(tmpDirectory : () => Path = () => Files.createTempDirectory("releaser")){
@@ -270,10 +230,10 @@ object ReleaserBuilder extends Logger {
   }
 
   def apply(releaserVersion : String, directories: ReleaseDirectories, githubCreds: ServiceCredentials, bintrayCreds: ServiceCredentials, dryRun : Boolean) : Releaser = {
-    val gitHubDetails = if(dryRun) GithubDetails.dryRun(githubCreds, releaserVersion) else GithubDetails(githubCreds, releaserVersion)
+    val gitHubDetails = if(dryRun) GithubConnector.dryRun(githubCreds, releaserVersion) else GithubConnector(githubCreds, releaserVersion)
     val bintrayDetails = if(dryRun) BintrayDetails.dryRun(bintrayCreds, directories.workDir) else BintrayDetails(bintrayCreds, directories.workDir)
 
-    val coordinator = new Coordinator(directories.stageDir, ArtefactMetaData.fromFile, gitHubDetails.verifyGithubCommit, gitHubDetails.gitHubTagAndRelease)
+    val coordinator = new Coordinator(directories.stageDir, ArtefactMetaData.fromFile, gitHubDetails)
     val repositories = new Repositories(bintrayDetails.metaDataGetter)(bintrayDetails.repositoryFlavors)
 
     ReleaserBuilder(coordinator, repositories, bintrayDetails.repoConnectorBuilder, directories.stageDir)

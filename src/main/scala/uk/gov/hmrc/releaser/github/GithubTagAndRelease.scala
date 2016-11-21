@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.github
 
-sealed class ConsoleLog {
-  def info(st: String) = println("[INFO] " + st)
+import org.joda.time.DateTime
+import uk.gov.hmrc.releaser.Repo
+import uk.gov.hmrc.releaser.domain.{CommitSha, VersionMapping}
 
-  def debug(st: String) = println("[DEBUG] " + st)
+import scala.util.Try
 
-  def warn(st: String) = println("[WARN] " + st)
-}
+trait GithubTagAndRelease {
 
-trait Logger {
-  val log = new ConsoleLog()
+  def verifyGithubTagExists(repo:Repo, sha:CommitSha): Try[Unit]
+
+  def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha, commitAuthor: String, commitDate: DateTime, map: VersionMapping): Try[Unit]
+
 }

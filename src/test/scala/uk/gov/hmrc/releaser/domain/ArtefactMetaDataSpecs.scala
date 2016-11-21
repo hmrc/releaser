@@ -19,7 +19,7 @@ package uk.gov.hmrc.releaser.domain
 import java.nio.file.Paths
 
 import org.scalatest.{Matchers, TryValues, WordSpec}
-import uk.gov.hmrc.releaser.GithubApi
+import uk.gov.hmrc.releaser.github.GithubConnector
 
 import scala.util.Failure
 
@@ -34,7 +34,7 @@ class ArtefactMetaDataSpecs extends WordSpec with Matchers with TryValues{
 
       md.success.value.commitAuthor shouldBe "Charles Kubicek"
       md.success.value.sha  shouldBe "e733d26fa504c040f2c95ecd25a3a55399a00883"
-      md.success.value.commitDate shouldBe new GithubApi().githubDateTimeFormatter.parseDateTime("2015-04-09T10:18:12.000Z")
+      md.success.value.commitDate shouldBe GithubConnector.githubDateTimeFormatter.parseDateTime("2015-04-09T10:18:12.000Z")
     }
   }
 }
