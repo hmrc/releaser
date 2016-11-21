@@ -19,29 +19,9 @@ package uk.gov.hmrc.releaser
 import java.net.URL
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser.domain.{RepoFlavour, VersionDescriptor}
-
 import scala.util.{Failure, Success, Try}
 
-trait RepoConnector{
-  def verifyTargetDoesNotExist(version:VersionDescriptor):Try[Unit]
-  def findJar(version:VersionDescriptor):Option[Path]
-  def publish(version: VersionDescriptor):Try[Unit]
-  def findFiles(version: VersionDescriptor):Try[List[String]]
-  def downloadFile(version:VersionDescriptor, fileName:String):Try[Path]
-  def uploadFile(version:VersionDescriptor, filePath:Path):Try[Unit]
-}
-
-object RepoConnector{
-  type RepoConnectorBuilder = (RepoFlavour) => RepoConnector
-}
-
-trait MetaConnector{
-  def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]
-  def publish(version: VersionDescriptor):Try[Unit]
-}
-
-object Http extends Logger {
+class FileDownloader extends Logger {
   import resource._
 
   def url2File(url: String, targetFile: Path): Try[Path] = {

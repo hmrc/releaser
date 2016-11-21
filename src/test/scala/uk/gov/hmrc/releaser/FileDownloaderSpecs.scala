@@ -23,7 +23,7 @@ import org.scalatest._
 
 import scala.util.Success
 
-class HttpSpecs extends WordSpec with Matchers with TryValues with BeforeAndAfterAll{
+class FileDownloaderSpecs extends WordSpec with Matchers with TryValues with BeforeAndAfterAll{
 
   val tempDir = "source-dir"
 
@@ -37,20 +37,21 @@ class HttpSpecs extends WordSpec with Matchers with TryValues with BeforeAndAfte
     (url, tmpDir.resolve("out.txt"))
   }
 
-  // TODO: Test at the public interface (bintray repo connector)
-  "Http" should{
+  "File Downloader" should{
 
     "download a file and return the path" in {
+      val downloader = new FileDownloader
       val (url, targetFile) = createSourceUrlAndTargetPath
 
-      Http.url2File(url.toString, targetFile) shouldBe Success(targetFile)
+      downloader.url2File(url.toString, targetFile) shouldBe Success(targetFile)
     }
 
     "not download a file if the file already exists but return the path" in {
+      val downloader = new FileDownloader
       val (url, targetFile) = createSourceUrlAndTargetPath
       Files.createFile(targetFile)
 
-      Http.url2File(url.toString, targetFile) shouldBe Success(targetFile)
+      downloader.url2File(url.toString, targetFile) shouldBe Success(targetFile)
     }
   }
 

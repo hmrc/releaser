@@ -18,11 +18,12 @@ package uk.gov.hmrc.releaser.domain
 
 import java.nio.file.{Files, Path}
 
-import uk.gov.hmrc.releaser.{MavenArtefacts, TransformerProvider, IvyArtefacts}
+import uk.gov.hmrc.releaser.bintray.{BintrayIvyPaths, BintrayMavenPaths, BintrayPaths}
+import uk.gov.hmrc.releaser.{IvyArtefacts, MavenArtefacts, TransformerProvider}
 
 import scala.util.{Failure, Success, Try}
 
-trait RepoFlavour extends PathBuilder{
+trait RepoFlavour extends BintrayPaths {
   val workDir:Path = Files.createTempDirectory("releaser")
 
   def scalaVersion:String
@@ -32,7 +33,7 @@ trait RepoFlavour extends PathBuilder{
   val artefactBuilder:(VersionMapping, Path) => TransformerProvider
 }
 
-trait IvyRepo extends RepoFlavour with BintrayIvyPaths{
+trait IvyRepo extends RepoFlavour with BintrayIvyPaths {
   val scalaVersion = "2.10"
   val artefactBuilder = IvyArtefacts.apply _
 }

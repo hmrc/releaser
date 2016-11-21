@@ -18,6 +18,7 @@ package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.releaser.Repo
+import uk.gov.hmrc.releaser.bintray.{BintrayMavenPaths, BintrayPaths}
 
 class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 
@@ -59,13 +60,14 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 
     }
 
+    // TODO: this is not maven specific
     "Generate correct URL for publishing a package in Bintray" in {
       val expectedUrl = "https://bintray.com/api/v1/content/hmrc/releases/time/0.9.9/publish"
 
       val repoName = "releases"
       val version = VersionDescriptor(repoName, artefactName, repo, ReleaseVersion("0.9.9"))
 
-      mavenPaths.publishUrlFor(version) shouldBe expectedUrl
+      BintrayPaths.publishUrlFor(version) shouldBe expectedUrl
 
     }
   }

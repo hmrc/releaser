@@ -20,8 +20,7 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
-import org.scalatest.Failed
-import uk.gov.hmrc.releaser.RepoConnector.RepoConnectorBuilder
+import uk.gov.hmrc.releaser.bintray.{BintrayMetaConnector, BintrayRepoConnector}
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
@@ -45,15 +44,15 @@ object Builders {
       ReleaseVersion(releaseVersion))
   }
 
-  def buildMetaConnector() = new MetaConnector(){
-    override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
-      Success(Unit)
-    }
-
-    override def publish(version: VersionDescriptor): Try[Unit] = {
-      Success(Unit)
-    }
-  }
+//  def buildMetaConnector() = new BintrayMetaConnector() {
+//    override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
+//      Success(Unit)
+//    }
+//
+//    override def publish(version: VersionDescriptor): Try[Unit] = {
+//      Success(Unit)
+//    }
+//  }
 
   def successfulArtefactMetaDataFinder(artefactMetaData:ArtefactMetaData):(Path) => Try[ArtefactMetaData] = {
     (x) => Success(artefactMetaData)
@@ -71,12 +70,6 @@ object Builders {
     (a) => Success(mavenRepository)
   }
 
-  val successfulConnectorBuilder: RepoConnectorBuilder = (r) => Builders.buildConnector(
-    filesuffix = "",
-    Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
-    Set("/time/time_2.11-1.3.0-1-g21312cc.pom")
-  )
-
   val aReleaseCandidateVersion = ReleaseCandidateVersion("1.3.0-1-g21312cc")
   val aReleaseVersion = ReleaseVersion("1.3.1")
   val anArtefactMetaData = new ArtefactMetaData("803749", "ck", DateTime.now())
@@ -86,23 +79,16 @@ object Builders {
     override def verifyGithubTagExists(repo: Repo, sha: CommitSha): Try[Unit] = Success(Unit)
   }
 
-  def buildDefaultReleaser(stageDir:Path = tempDir(),
-                        repositoryFinder:(String) => Try[RepoFlavour] = successfulRepoFinder,
-                        connectorBuilder:(RepoFlavour) => RepoConnector = successfulConnectorBuilder,
-                        artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
-                        taggerAndReleaser: GithubTagAndRelease = new DummyTagAndRelease): Releaser = {
-
-    val coord = new Coordinator(stageDir, (x) => Success(artefactMetaData), taggerAndReleaser)
-    new Releaser(stageDir, repositoryFinder, connectorBuilder, coord)
-  }
-
   def resource(path:String):Path={
     new File(this.getClass.getClassLoader.getResource(path).toURI).toPath
   }
 
   def tempDir() = Files.createTempDirectory("tmp")
 
-  def buildConnector(filesuffix:String, jarResoure:Option[String], bintrayFiles:Set[String], targetExists:Boolean = false) = new RepoConnector(){
+  class DummyBintrayRepoConnector(filesuffix:String  = "",
+                                  jarResoure:Option[String] = Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
+                                  bintrayFiles:Set[String] = Set("/time/time_2.11-1.3.0-1-g21312cc.pom"),
+                                  targetExists:Boolean = false) extends BintrayRepoConnector {
 
     val uploadedFiles = mutable.Set[(VersionDescriptor, Path)]()
     var lastPublishDescriptor:Option[VersionDescriptor] = None
@@ -133,5 +119,4 @@ object Builders {
       case false => Success(Unit)
     }
   }
-
 }
