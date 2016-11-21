@@ -18,6 +18,7 @@ package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.releaser.Repo
+import uk.gov.hmrc.releaser.bintray.BintrayIvyPaths
 
 class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 

@@ -23,6 +23,7 @@ import java.util.zip.ZipFile
 
 import org.joda.time.DateTime
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
+import uk.gov.hmrc.releaser.bintray.BintrayPaths
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
@@ -45,7 +46,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom", "/lib/lib_2.11-1.3.0-1-g21312cc-assembly.jar")
       )
 
-      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+      def fakeRepoConnectorBuilder(p: BintrayPaths):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
         repositoryFinder = successfulRepoFinder(mavenRepository),
@@ -91,7 +92,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c-sources.jar"
         ))
 
-      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+      def fakeRepoConnectorBuilder(p: BintrayPaths):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
         repositoryFinder = successfulRepoFinder(mavenRepository),
@@ -129,7 +130,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
         Set("/time/time_2.11-1.3.0-1-g21312cc.pom"))
 
-      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+      def fakeRepoConnectorBuilder(p: BintrayPaths):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
         repositoryFinder = successfulRepoFinder(mavenRepository),
@@ -213,7 +214,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
         Set("/time/time_2.11-1.3.0-1-g21312cc.pom"), targetExists = true)
 
-      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+      def fakeRepoConnectorBuilder(p: BintrayPaths):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
         repositoryFinder = successfulRepoFinder(mavenRepository),
@@ -246,7 +247,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         Set("ivy.xml")
       )
 
-      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
+      def fakeRepoConnectorBuilder(p: BintrayPaths):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
           repositoryFinder = successfulRepoFinder(ivyRepository),

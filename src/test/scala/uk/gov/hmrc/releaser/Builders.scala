@@ -20,8 +20,7 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
-import org.scalatest.Failed
-import uk.gov.hmrc.releaser.RepoConnector.RepoConnectorBuilder
+import uk.gov.hmrc.releaser.bintray.BintrayMetaConnector
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
@@ -45,7 +44,7 @@ object Builders {
       ReleaseVersion(releaseVersion))
   }
 
-  def buildMetaConnector() = new MetaConnector(){
+  def buildMetaConnector() = new BintrayMetaConnector() {
     override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
       Success(Unit)
     }
@@ -86,23 +85,13 @@ object Builders {
     override def verifyGithubTagExists(repo: Repo, sha: CommitSha): Try[Unit] = Success(Unit)
   }
 
-  def buildDefaultReleaser(stageDir:Path = tempDir(),
-                        repositoryFinder:(String) => Try[RepoFlavour] = successfulRepoFinder,
-                        connectorBuilder:(RepoFlavour) => RepoConnector = successfulConnectorBuilder,
-                        artefactMetaData:ArtefactMetaData = ArtefactMetaData("sha", "project", DateTime.now()),
-                        taggerAndReleaser: GithubTagAndRelease = new DummyTagAndRelease): Releaser = {
-
-    val coord = new Coordinator(stageDir, (x) => Success(artefactMetaData), taggerAndReleaser)
-    new Releaser(stageDir, repositoryFinder, connectorBuilder, coord)
-  }
-
   def resource(path:String):Path={
     new File(this.getClass.getClassLoader.getResource(path).toURI).toPath
   }
 
   def tempDir() = Files.createTempDirectory("tmp")
 
-  def buildConnector(filesuffix:String, jarResoure:Option[String], bintrayFiles:Set[String], targetExists:Boolean = false) = new RepoConnector(){
+  def buildConnector(filesuffix:String, jarResoure:Option[String], bintrayFiles:Set[String], targetExists:Boolean = false) = new RepoConnector() {
 
     val uploadedFiles = mutable.Set[(VersionDescriptor, Path)]()
     var lastPublishDescriptor:Option[VersionDescriptor] = None
