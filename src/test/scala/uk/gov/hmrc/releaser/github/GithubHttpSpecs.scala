@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.github
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import play.api.libs.json.{JsNumber, JsObject}
 import play.api.libs.ws.{EmptyBody, WSAuthScheme}
-import uk.gov.hmrc.releaser.github.GithubHttp
+import uk.gov.hmrc.releaser.ServiceCredentials
 
 class GithubHttpSpecs extends WordSpec with Matchers with OptionValues{
 

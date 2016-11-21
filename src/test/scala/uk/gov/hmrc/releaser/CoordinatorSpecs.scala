@@ -291,31 +291,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
   //    }
   //  }
 
-  class MockFunction4[A, B, C, D]{
-    var params:Option[(A, B, C, D)] = None
-
-    def build:(A, B, C, D) => Try[Unit] ={
-      (a, b, c, d) => {
-        params = Some((a, b, c, d))
-        Success(Unit)
-      }
-    }
-  }
-
-  class MockFunction3[A, B, C, R]{
-    var params:Option[(A, B, C)] = None
-
-    def build(r:R):(A, B, C) => Try[R] ={
-      (a, b, c) => {
-        params = Some((a, b, c))
-        Success(r)
-      }
-    }
-  }
-
-  def tmpDir: Path = Files.createTempDirectory("test-release")
-
-  def manifestFromZipFile(file: Path): Option[Attributes] = {
+  private def manifestFromZipFile(file: Path): Option[Attributes] = {
     val zipFile: ZipFile = new ZipFile(file.toFile)
 
     zipFile.entries().toList.find { ze =>

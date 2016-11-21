@@ -37,6 +37,7 @@ class HttpSpecs extends WordSpec with Matchers with TryValues with BeforeAndAfte
     (url, tmpDir.resolve("out.txt"))
   }
 
+  // TODO: Test at the public interface (bintray repo connector)
   "Http" should{
 
     "download a file and return the path" in {

@@ -22,9 +22,10 @@ import java.nio.file.{Files, Path}
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import uk.gov.hmrc.releaser.RepoConnector.RepoConnectorBuilder
+import uk.gov.hmrc.releaser.bintray.{BintrayHttp, BintrayMetaConnector, BintrayRepoConnector}
 import uk.gov.hmrc.releaser.domain.RepoFlavours._
 import uk.gov.hmrc.releaser.domain._
-import uk.gov.hmrc.releaser.github.{GithubTagAndRelease, GithubConnector}
+import uk.gov.hmrc.releaser.github.{GithubConnector, GithubTagAndRelease}
 
 import scala.collection.immutable.SortedSet
 import scala.util.{Failure, Success, Try}

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc.releaser.github
 
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
@@ -23,10 +23,10 @@ import org.mockito.Mockito.when
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
 import play.api.libs.json.{JsString, Json}
+import uk.gov.hmrc.releaser.Repo
 import uk.gov.hmrc.releaser.domain._
-import uk.gov.hmrc.releaser.github.{GithubCommitter, GithubConnector, GithubHttp}
 
-import scala.util.{Success, Try}
+import scala.util.Success
 
 class GithubConnectorSpecs extends WordSpec with Matchers with TryValues with OptionValues with MockitoSugar {
   

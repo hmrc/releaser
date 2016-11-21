@@ -31,22 +31,17 @@ trait RepoConnector{
   def downloadFile(version:VersionDescriptor, fileName:String):Try[Path]
   def uploadFile(version:VersionDescriptor, filePath:Path):Try[Unit]
 }
+
 object RepoConnector{
   type RepoConnectorBuilder = (RepoFlavour) => RepoConnector
 }
 
-
 trait MetaConnector{
-
   def getRepoMetaData(repoName:String, artefactName: String):Try[Unit]
-
   def publish(version: VersionDescriptor):Try[Unit]
-
 }
 
-
 object Http extends Logger {
-
   import resource._
 
   def url2File(url: String, targetFile: Path): Try[Path] = {
