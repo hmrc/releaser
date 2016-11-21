@@ -25,10 +25,21 @@ import uk.gov.hmrc.releaser.{FileDownloader, Logger}
 
 import scala.util.{Failure, Success, Try}
 
-class BintrayRepoConnector(workDir: Path,
-                           bintrayHttp: BintrayHttp,
-                           bintrayPaths: BintrayPaths,
-                           fileDownloader: FileDownloader) extends Logger {
+trait BintrayRepoConnector {
+
+  def findJar(version: VersionDescriptor): Option[Path]
+  def publish(version: VersionDescriptor): Try[Unit]
+  def downloadFile(version: VersionDescriptor, fileName: String): Try[Path]
+  def uploadFile(version: VersionDescriptor, filePath: Path): Try[Unit]
+  def verifyTargetDoesNotExist(version: VersionDescriptor): Try[Unit]
+  def findFiles(version: VersionDescriptor): Try[List[String]]
+
+}
+
+class DefaultBintrayRepoConnector(workDir: Path,
+                                  bintrayHttp: BintrayHttp,
+                                  bintrayPaths: BintrayPaths,
+                                  fileDownloader: FileDownloader) extends BintrayRepoConnector with Logger {
 
   def publish(version: VersionDescriptor):Try[Unit] = {
     val url = BintrayPaths.publishUrlFor(version)

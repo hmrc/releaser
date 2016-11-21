@@ -20,7 +20,7 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.releaser.bintray.BintrayMetaConnector
+import uk.gov.hmrc.releaser.bintray.{BintrayMetaConnector, BintrayRepoConnector}
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
@@ -70,12 +70,6 @@ object Builders {
     (a) => Success(mavenRepository)
   }
 
-  val successfulConnectorBuilder: RepoConnectorBuilder = (r) => Builders.buildConnector(
-    filesuffix = "",
-    Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
-    Set("/time/time_2.11-1.3.0-1-g21312cc.pom")
-  )
-
   val aReleaseCandidateVersion = ReleaseCandidateVersion("1.3.0-1-g21312cc")
   val aReleaseVersion = ReleaseVersion("1.3.1")
   val anArtefactMetaData = new ArtefactMetaData("803749", "ck", DateTime.now())
@@ -91,7 +85,10 @@ object Builders {
 
   def tempDir() = Files.createTempDirectory("tmp")
 
-  def buildConnector(filesuffix:String, jarResoure:Option[String], bintrayFiles:Set[String], targetExists:Boolean = false) = new RepoConnector() {
+  class DummyBintrayRepoConnector(filesuffix:String  = "",
+                                  jarResoure:Option[String] = Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
+                                  bintrayFiles:Set[String] = Set("/time/time_2.11-1.3.0-1-g21312cc.pom"),
+                                  targetExists:Boolean = false) extends BintrayRepoConnector {
 
     val uploadedFiles = mutable.Set[(VersionDescriptor, Path)]()
     var lastPublishDescriptor:Option[VersionDescriptor] = None
@@ -122,5 +119,4 @@ object Builders {
       case false => Success(Unit)
     }
   }
-
 }

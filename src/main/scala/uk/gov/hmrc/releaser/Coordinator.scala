@@ -3,7 +3,7 @@ package uk.gov.hmrc.releaser
 import java.nio.file.{Files, Path}
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.releaser.bintray.BintrayRepoConnector
+import uk.gov.hmrc.releaser.bintray.{BintrayRepoConnector, DefaultBintrayRepoConnector}
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 

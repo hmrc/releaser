@@ -20,7 +20,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
-import uk.gov.hmrc.releaser.bintray.{BintrayHttp, BintrayMetaConnector, BintrayRepoConnector}
+import uk.gov.hmrc.releaser.bintray.{BintrayHttp, BintrayMetaConnector, DefaultBintrayRepoConnector}
 import uk.gov.hmrc.releaser.domain.RepoFlavours._
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubConnector
@@ -86,7 +86,7 @@ object Releaser extends Logger {
       val result = for {
         repo <- repositories.findReposOfArtefact(artefactName)
         targetVersion <- VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
-        bintrayRepoConnector = new BintrayRepoConnector(directories.workDir, new BintrayHttp(bintrayCredsOpt.get), repo, new FileDownloader)
+        bintrayRepoConnector = new DefaultBintrayRepoConnector(directories.workDir, new BintrayHttp(bintrayCredsOpt.get), repo, new FileDownloader)
         coordinator = new Coordinator(directories.stageDir, ArtefactMetaData.fromFile, gitHubDetails, bintrayRepoConnector)
         result = coordinator.start(VersionMapping(repo, artefactName, Repo(gitHubName), rcVersion, targetVersion))
       } yield {

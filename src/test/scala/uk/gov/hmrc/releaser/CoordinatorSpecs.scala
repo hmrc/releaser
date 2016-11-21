@@ -40,20 +40,14 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
     "release version 0.9.9 of a library with an assembly, not modifying the assembly manifest, when given the inputs 'time', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
 
-      val fakeRepoConnector = Builders.buildConnector(
-        "",
-        Some("/lib/lib_2.11-1.3.0-1-g21312cc.jar"),
-        Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom", "/lib/lib_2.11-1.3.0-1-g21312cc-assembly.jar")
-      )
+      val fakeRepoConnector = new DummyBintrayRepoConnector()
+      val coordinator = new Coordinator(
+        tempDir(),
+        (x) => Success(ArtefactMetaData("sha", "author", DateTime.now())),
+        new DummyTagAndRelease,
+        fakeRepoConnector)
 
-      def fakeRepoConnectorBuilder(p: BintrayPaths):RepoConnector = fakeRepoConnector
-
-      val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(mavenRepository),
-        connectorBuilder = fakeRepoConnectorBuilder,
-        artefactMetaData = ArtefactMetaData("sha", "lib", DateTime.now()))
-
-      releaser.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
+      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9"))) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -81,7 +75,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
     "release version 2.0.0 of a maven-based service when given the inputs 'help-frontend', '1.26.0-3-gd7ed03c' and 'hotfix' as the artefact, release candidate and release type" in {
 
-      val fakeRepoConnector = Builders.buildConnector(
+      val fakeRepoConnector = new DummyBintrayRepoConnector(
         "",
         Some("/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.jar"),
         Set(
@@ -92,14 +86,13 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c-sources.jar"
         ))
 
-      def fakeRepoConnectorBuilder(p: BintrayPaths):RepoConnector = fakeRepoConnector
+      val coordinator = new Coordinator(
+        tempDir(),
+        (x) => Success(ArtefactMetaData("sha", "help-frontend", DateTime.now())),
+        new DummyTagAndRelease,
+        fakeRepoConnector)
 
-      val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(mavenRepository),
-        connectorBuilder = fakeRepoConnectorBuilder,
-        artefactMetaData = ArtefactMetaData("sha", "help-frontend", DateTime.now()))
-
-      releaser.start("help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseVersion("0.9.9")) match {
+      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseVersion("0.9.9"))) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -125,19 +118,14 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
     "release version 0.9.9 of a maven-based library when given the inputs 'time', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
 
-      val fakeRepoConnector = Builders.buildConnector(
-        "",
-        Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
-        Set("/time/time_2.11-1.3.0-1-g21312cc.pom"))
+      val fakeRepoConnector = new DummyBintrayRepoConnector()
+      val coordinator = new Coordinator(
+        tempDir(),
+        (x) => Success(ArtefactMetaData("sha", "author", DateTime.now())),
+        new DummyTagAndRelease,
+        fakeRepoConnector)
 
-      def fakeRepoConnectorBuilder(p: BintrayPaths):RepoConnector = fakeRepoConnector
-
-      val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(mavenRepository),
-        connectorBuilder = fakeRepoConnectorBuilder,
-        artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now()))
-
-      releaser.start("time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
+      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9"))) match {
         case Failure(e) => fail(e)
         case _ =>
       }
