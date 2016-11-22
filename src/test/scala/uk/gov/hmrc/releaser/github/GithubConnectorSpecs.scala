@@ -23,8 +23,7 @@ import org.mockito.Mockito.when
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
 import play.api.libs.json.{JsString, Json}
-import uk.gov.hmrc.releaser.Repo
-import uk.gov.hmrc.releaser.domain._
+import uk.gov.hmrc.releaser._
 
 import scala.util.Success
 

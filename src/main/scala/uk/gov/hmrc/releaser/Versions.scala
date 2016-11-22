@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.domain
-
-import uk.gov.hmrc.releaser.Repo
+package uk.gov.hmrc.releaser
 
 import scala.util.Try
 

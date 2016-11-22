@@ -21,7 +21,6 @@ import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
 import uk.gov.hmrc.releaser.bintray.BintrayRepoConnector
-import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
 import scala.collection.mutable

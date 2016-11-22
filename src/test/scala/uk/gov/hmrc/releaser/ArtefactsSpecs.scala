@@ -20,7 +20,6 @@ import java.nio.file.Files
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import uk.gov.hmrc.releaser.Builders._
-import uk.gov.hmrc.releaser.domain.Transformer
 
 class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
 

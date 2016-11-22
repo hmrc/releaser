@@ -23,8 +23,8 @@ import java.util.concurrent.TimeUnit
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
 import play.api.mvc.Results
-import uk.gov.hmrc.releaser.domain.VersionDescriptor
-import uk.gov.hmrc.releaser.{Logger, ServiceCredentials}
+import uk.gov.hmrc.{Logger, ServiceCredentials}
+import uk.gov.hmrc.releaser.VersionDescriptor
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

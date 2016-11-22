@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.domain
+package uk.gov.hmrc.releaser
 
 /*
  * Copyright 2015 HM Revenue & Customs

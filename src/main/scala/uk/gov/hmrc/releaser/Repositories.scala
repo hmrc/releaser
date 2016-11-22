@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.domain
+package uk.gov.hmrc.releaser
 
 import java.nio.file.{Files, Path}
 
 import uk.gov.hmrc.releaser.bintray.{BintrayIvyPaths, BintrayMavenPaths, BintrayPaths}
-import uk.gov.hmrc.releaser.{IvyArtefacts, MavenArtefacts, TransformerProvider}
-
-import scala.util.{Failure, Success, Try}
 
 trait RepoFlavour extends BintrayPaths {
   val workDir:Path = Files.createTempDirectory("releaser")

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.releaser.bintray
 
-import uk.gov.hmrc.releaser.domain.VersionDescriptor
+import uk.gov.hmrc.releaser.VersionDescriptor
 
 object BintrayPaths {
   val bintrayApiRoot = "https://bintray.com/api/v1"

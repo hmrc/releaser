@@ -18,8 +18,6 @@ package uk.gov.hmrc.releaser
 
 import java.nio.file.Path
 
-import uk.gov.hmrc.releaser.domain._
-
 trait TransformerProvider{
   def transformersForSupportedFiles(filePaths: List[String]): List[(String, Option[Transformer])]
   def isTheJarFile(f:String):Boolean

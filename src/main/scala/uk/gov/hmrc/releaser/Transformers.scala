@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.domain
+package uk.gov.hmrc.releaser
 
 import java.io._
 import java.nio.file.{Files, Path}
@@ -26,7 +26,7 @@ import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInp
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
 import org.apache.commons.io.{FileUtils, IOUtils}
 import resource._
-import uk.gov.hmrc.releaser.PosixFileAttributes
+import uk.gov.hmrc.PosixFileAttributes
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
@@ -137,7 +137,7 @@ class JarManifestTransformer extends Transformer {
 
 class TgzTransformer extends Transformer {
 
-  import uk.gov.hmrc.releaser.PosixFileAttributes._
+  import PosixFileAttributes._
 
   override def apply(localTgzFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path] = Try {
     val decompressedArchivePath = decompressTgz(localTgzFile)

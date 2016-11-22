@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc
 
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.attribute.PosixFilePermission._
 
-import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions.setAsJavaSet
+import scala.collection.mutable.ListBuffer
 
 object PosixFileAttributes {
 

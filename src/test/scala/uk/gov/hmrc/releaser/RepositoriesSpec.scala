@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.domain
+package uk.gov.hmrc.releaser
 
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
-
-import scala.util.{Failure, Success, Try}
 
 class RepositoriesSpec extends WordSpec with Matchers with OptionValues with TryValues {
 

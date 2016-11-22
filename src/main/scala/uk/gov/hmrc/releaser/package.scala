@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc
 
-package object domain {
+import scala.collection.immutable.SortedSet
 
+package object releaser {
   type CommitSha = String
   type ArtefactName = String
   type Url = String
-}
 
-case class Repo(value:String) extends AnyVal
+  case class Repo(value:String) extends AnyVal
+
+  object ReleaseType extends Enumeration {
+    type ReleaseType = Value
+    val MAJOR, MINOR, HOTFIX = Value
+
+    val stringValues: SortedSet[String] = this.values.map(_.toString)
+  }
+}

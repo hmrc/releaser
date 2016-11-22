@@ -20,8 +20,8 @@ import java.net.{HttpURLConnection, URL}
 import java.nio.file.Path
 
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.releaser.domain.VersionDescriptor
-import uk.gov.hmrc.releaser.{FileDownloader, Logger, ServiceCredentials}
+import uk.gov.hmrc.{FileDownloader, Logger, ServiceCredentials}
+import uk.gov.hmrc.releaser.VersionDescriptor
 
 import scala.util.{Failure, Success, Try}
 

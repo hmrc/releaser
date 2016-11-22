@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 import play.api.libs.json.JsValue
 import play.api.libs.ws._
 import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-import uk.gov.hmrc.releaser.{Logger, ServiceCredentials}
+import uk.gov.hmrc.{Logger, ServiceCredentials}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

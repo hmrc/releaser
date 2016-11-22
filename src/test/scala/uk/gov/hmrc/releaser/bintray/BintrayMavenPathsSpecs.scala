@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.domain
+package uk.gov.hmrc.releaser.bintray
 
 import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.releaser.Repo
-import uk.gov.hmrc.releaser.bintray.{BintrayMavenPaths, BintrayPaths}
+import uk.gov.hmrc.releaser.{ReleaseCandidateVersion, ReleaseVersion, Repo, VersionDescriptor}
 
 class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 

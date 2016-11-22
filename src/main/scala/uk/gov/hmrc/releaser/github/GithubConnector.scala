@@ -20,8 +20,8 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSResponse
-import uk.gov.hmrc.releaser.domain.{ArtefactMetaData, _}
-import uk.gov.hmrc.releaser.{Logger, Repo, ServiceCredentials}
+import uk.gov.hmrc.{Logger, ServiceCredentials}
+import uk.gov.hmrc.releaser._
 
 import scala.util.{Success, Try}
 

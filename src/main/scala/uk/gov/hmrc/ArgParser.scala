@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc
 
-import uk.gov.hmrc.releaser.domain.ReleaseType
+import uk.gov.hmrc.releaser.ReleaseType
 
 object ArgParser{
 

@@ -21,8 +21,8 @@ import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
 import uk.gov.hmrc.releaser.bintray.{BintrayHttp, BintrayRepoConnector, DefaultBintrayRepoConnector}
-import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubConnector
+import uk.gov.hmrc.{ArgParser, CredentialsFinder, FileDownloader, Logger}
 
 import scala.util.{Failure, Success, Try}
 
@@ -34,7 +34,7 @@ object ReleaserMain {
 }
 
 object Releaser extends Logger {
-  import uk.gov.hmrc.releaser.ArgParser._
+  import ArgParser._
 
   def apply(args: Array[String]):Int= {
     parser.parse(args, Config()) match {

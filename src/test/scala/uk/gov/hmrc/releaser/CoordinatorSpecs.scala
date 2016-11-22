@@ -16,16 +16,13 @@
 
 package uk.gov.hmrc.releaser
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 import java.util.jar
 import java.util.jar.Attributes
 import java.util.zip.ZipFile
 
 import org.joda.time.DateTime
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
-import uk.gov.hmrc.releaser.bintray.BintrayPaths
-import uk.gov.hmrc.releaser.domain._
-import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}

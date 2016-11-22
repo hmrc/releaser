@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc
 
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
 import uk.gov.hmrc.releaser.Builders._

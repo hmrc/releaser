@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.domain
+package uk.gov.hmrc.releaser
 
 import java.io._
 import java.nio.file.Path
@@ -23,7 +23,6 @@ import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInp
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.FileUtils
 import org.scalatest._
-import uk.gov.hmrc.releaser.Builders
 
 import scala.collection.mutable.ListBuffer
 import scala.util.{Failure, Success}

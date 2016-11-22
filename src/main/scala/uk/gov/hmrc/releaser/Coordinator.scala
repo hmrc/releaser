@@ -19,9 +19,9 @@ package uk.gov.hmrc.releaser
 import java.nio.file.{Files, Path}
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.releaser.bintray.{BintrayPaths, BintrayRepoConnector, DefaultBintrayRepoConnector}
-import uk.gov.hmrc.releaser.domain.RepoFlavours._
-import uk.gov.hmrc.releaser.domain._
+import uk.gov.hmrc.Logger
+import uk.gov.hmrc.releaser.RepoFlavours._
+import uk.gov.hmrc.releaser.bintray.BintrayRepoConnector
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
 import scala.util.{Failure, Success, Try}

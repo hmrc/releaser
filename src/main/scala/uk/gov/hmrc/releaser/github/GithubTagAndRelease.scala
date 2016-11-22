@@ -17,8 +17,7 @@
 package uk.gov.hmrc.releaser.github
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.releaser.Repo
-import uk.gov.hmrc.releaser.domain.{CommitSha, VersionMapping}
+import uk.gov.hmrc.releaser.{CommitSha, Repo, VersionMapping}
 
 import scala.util.Try
 

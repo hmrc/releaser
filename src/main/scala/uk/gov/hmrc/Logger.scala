@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc
 
 sealed class ConsoleLog {
   def info(st: String) = println("[INFO] " + st)

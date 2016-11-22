@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.domain
+package uk.gov.hmrc.releaser
 
 import java.io.File
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 import java.security.MessageDigest
 import java.util
 import java.util.jar
@@ -26,7 +26,6 @@ import java.util.zip.ZipFile
 
 import com.google.common.io.ByteStreams
 import org.scalatest._
-import uk.gov.hmrc.releaser.Builders
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}

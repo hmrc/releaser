@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser
+package uk.gov.hmrc
 
 import java.net.URL
-import java.nio.file.{Path, Files}
+import java.nio.file.{Files, Path}
 
 import org.scalatest._
 
