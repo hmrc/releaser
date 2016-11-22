@@ -20,7 +20,7 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.releaser.bintray.{BintrayMetaConnector, BintrayRepoConnector}
+import uk.gov.hmrc.releaser.bintray.BintrayRepoConnector
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
@@ -90,10 +90,10 @@ object Builders {
                                   bintrayFiles:Set[String] = Set("/time/time_2.11-1.3.0-1-g21312cc.pom"),
                                   targetExists:Boolean = false) extends BintrayRepoConnector {
 
-    val uploadedFiles = mutable.Set[(VersionDescriptor, Path)]()
+    val uploadedFiles = mutable.Set[(VersionDescriptor, Path, String)]()
     var lastPublishDescriptor:Option[VersionDescriptor] = None
 
-    override def findJar(version: VersionDescriptor): Option[Path] =
+    override def findJar(jarFileName: String, jarUrl: String, version: VersionDescriptor): Option[Path] =
       jarResoure.map { x =>  Paths.get(this.getClass.getResource(filesuffix + x).toURI) }
 
     override def publish(version: VersionDescriptor): Try[Unit] = {
@@ -103,20 +103,22 @@ object Builders {
 
     override def findFiles(version: VersionDescriptor): Try[List[String]] = Success(bintrayFiles.toList ++ jarResoure)
 
-    override def downloadFile(version: VersionDescriptor, fileName: String): Try[Path] = {
+    override def downloadFile(url: String, fileName: String): Try[Path] = {
       Success {
         Paths.get(this.getClass.getResource(filesuffix + fileName).toURI)
       }
     }
 
-    override def uploadFile(version: VersionDescriptor, filePath: Path): Try[Unit] = {
-      uploadedFiles.add((version, filePath))
+    override def uploadFile(version: VersionDescriptor, filePath: Path, url: String): Try[Unit] = {
+      uploadedFiles.add((version, filePath, url))
       Success(Unit)
     }
 
-    override def verifyTargetDoesNotExist(version: VersionDescriptor): Try[Unit] = targetExists match {
+    override def verifyTargetDoesNotExist(jarUrl: String, version: VersionDescriptor): Try[Unit] = targetExists match {
       case true => Failure(new IllegalArgumentException("Failed in test"))
       case false => Success(Unit)
     }
+
+    override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = Success(Unit)
   }
 }

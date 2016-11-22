@@ -21,35 +21,45 @@ import java.nio.file.Path
 
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.releaser.domain.VersionDescriptor
-import uk.gov.hmrc.releaser.{FileDownloader, Logger}
+import uk.gov.hmrc.releaser.{FileDownloader, Logger, ServiceCredentials}
 
 import scala.util.{Failure, Success, Try}
 
-trait BintrayRepoConnector {
+object BintrayRepoConnector extends Logger {
+  def apply(bintrayCreds: ServiceCredentials, workDir : Path): BintrayRepoConnector =
+    new DefaultBintrayRepoConnector(workDir, new BintrayHttp(bintrayCreds), new FileDownloader())
 
-  def findJar(version: VersionDescriptor): Option[Path]
-  def publish(version: VersionDescriptor): Try[Unit]
-  def downloadFile(version: VersionDescriptor, fileName: String): Try[Path]
-  def uploadFile(version: VersionDescriptor, filePath: Path): Try[Unit]
-  def verifyTargetDoesNotExist(version: VersionDescriptor): Try[Unit]
-  def findFiles(version: VersionDescriptor): Try[List[String]]
+  def dryRun(bintrayCreds: ServiceCredentials, workDir : Path) = {
+    log.info("Bintray : running in dry-run mode")
+    val dryRunHttp = new BintrayHttp(bintrayCreds){
+      override def emptyPost(url:String): Try[Unit] = { println("BintrayHttp emptyPost DRY_RUN");Success(Unit)}
+      override def putFile(version: VersionDescriptor, file: Path, url: String): Try[Unit] = { println("BintrayHttp putFile DRY_RUN");Success(Unit) }
+    }
 
+    new DefaultBintrayRepoConnector(workDir, dryRunHttp, new FileDownloader())
+  }
 }
 
-class DefaultBintrayRepoConnector(workDir: Path,
-                                  bintrayHttp: BintrayHttp,
-                                  bintrayPaths: BintrayPaths,
-                                  fileDownloader: FileDownloader) extends BintrayRepoConnector with Logger {
+trait BintrayRepoConnector {
+  def findJar(jarFileName: String, jarUrl: String, version: VersionDescriptor): Option[Path]
+  def publish(version: VersionDescriptor): Try[Unit]
+  def downloadFile(url: String, fileName: String): Try[Path]
+  def uploadFile(version: VersionDescriptor, filePath: Path, url: String): Try[Unit]
+  def verifyTargetDoesNotExist(jarUrl: String, version: VersionDescriptor): Try[Unit]
+  def findFiles(version: VersionDescriptor): Try[List[String]]
+  def getRepoMetaData(repoName:String, artefactName: String): Try[Unit]
+}
+
+class DefaultBintrayRepoConnector(workDir: Path, bintrayHttp: BintrayHttp, fileDownloader: FileDownloader)
+  extends BintrayRepoConnector with Logger {
 
   def publish(version: VersionDescriptor):Try[Unit] = {
     val url = BintrayPaths.publishUrlFor(version)
     bintrayHttp.emptyPost(url)
   }
 
-  def verifyTargetDoesNotExist(version: VersionDescriptor): Try[Unit] = {
-    val artefactUrl = bintrayPaths.jarDownloadFor(version)
-
-    val conn = new URL(artefactUrl).openConnection().asInstanceOf[HttpURLConnection]
+  def verifyTargetDoesNotExist(jarUrl: String, version: VersionDescriptor): Try[Unit] = {
+    val conn = new URL(jarUrl).openConnection().asInstanceOf[HttpURLConnection]
     conn.setRequestMethod("HEAD")
     conn.connect()
 
@@ -59,27 +69,18 @@ class DefaultBintrayRepoConnector(workDir: Path,
     }
   }
 
-  def findJar(version: VersionDescriptor): Option[Path] = {
-    val fileName = bintrayPaths.jarFilenameFor(version)
-    val artefactUrl = bintrayPaths.jarDownloadFor(version)
-
-    downloadFile(artefactUrl, fileName) match {
+  def findJar(jarFileName: String, jarUrl: String, version: VersionDescriptor): Option[Path] = {
+    downloadFile(jarUrl, jarFileName) match {
       case Success(x) => Some(x)
       case Failure(y) => None
     }
   }
 
-  def downloadFile(version: VersionDescriptor, fileName: String): Try[Path] = {
-    val artefactUrl = bintrayPaths.fileDownloadFor(version, fileName)
-    downloadFile(artefactUrl, fileName)
-  }
-
-  def uploadFile(version: VersionDescriptor, filePath: Path): Try[Unit] = {
-    val url = bintrayPaths.fileUploadFor(version, filePath.getFileName.toString)
+  def uploadFile(version: VersionDescriptor, filePath: Path, url: String): Try[Unit] = {
     bintrayHttp.putFile(version, filePath, url)
   }
 
-  private def downloadFile(url: String, fileName: String): Try[Path] = {
+  def downloadFile(url: String, fileName: String): Try[Path] = {
     val targetFile = workDir.resolve(fileName)
     fileDownloader.url2File(url, targetFile) map { unit => targetFile }
   }
@@ -90,6 +91,11 @@ class DefaultBintrayRepoConnector(workDir: Path,
       val fileNames: Seq[JsValue] = Json.parse(st).\\("name")
       fileNames.map(_.as[String]).toList
     }
+  }
+
+  def getRepoMetaData(repoName:String, artefactName: String): Try[Unit] = {
+    val url = BintrayPaths.metadata(repoName, artefactName)
+    bintrayHttp.get(url).map { _ => Unit}
   }
 }
 

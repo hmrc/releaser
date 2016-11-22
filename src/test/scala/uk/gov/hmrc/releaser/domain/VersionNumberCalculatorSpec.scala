@@ -17,7 +17,6 @@
 package uk.gov.hmrc.releaser.domain
 
 import org.scalatest.{Matchers, TryValues, WordSpec}
-import uk.gov.hmrc.releaser.ReleaseType
 
 class VersionNumberCalculatorSpec extends WordSpec with Matchers with TryValues {
 

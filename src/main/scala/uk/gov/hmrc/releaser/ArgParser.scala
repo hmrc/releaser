@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.releaser
 
+import uk.gov.hmrc.releaser.domain.ReleaseType
+
 object ArgParser{
 
   case class Config(

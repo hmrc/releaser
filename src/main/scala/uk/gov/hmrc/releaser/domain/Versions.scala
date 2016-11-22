@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.releaser.domain
 
-import uk.gov.hmrc.releaser.{ReleaseType, Repo}
+import uk.gov.hmrc.releaser.Repo
 
 import scala.util.Try
 

@@ -37,7 +37,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
   "the coordinator" should {
 
-    "release version 0.9.9 of a library with an assembly, not modifying the assembly manifest, when given the inputs 'lib', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
+    "release version 1.3.1 of a library with an assembly, not modifying the assembly manifest, when given the inputs 'lib', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = new DummyBintrayRepoConnector(
         jarResoure = Some("/lib/lib_2.11-1.3.0-1-g21312cc.jar"),
@@ -49,7 +49,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         new DummyTagAndRelease,
         fakeRepoConnector)
 
-      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9"))) match {
+      coordinator.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.HOTFIX) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -57,19 +57,19 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       fakeRepoConnector.uploadedFiles.size shouldBe 3
       fakeRepoConnector.lastPublishDescriptor should not be None
 
-      val Some((assemblyVersion, assemblyFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-assembly.jar"))
-      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
-      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
+      val Some((assemblyVersion, assemblyFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-assembly.jar"))
+      val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("1.3.1.jar"))
 
       val jarManifest = manifestFromZipFile(jarFile)
-      jarManifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
-      jarVersion.version.value shouldBe "0.9.9"
+      jarManifest.value.getValue("Implementation-Version") shouldBe "1.3.1"
+      jarVersion.version.value shouldBe "1.3.1"
 
       val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
-      pomVersionText shouldBe "0.9.9"
+      pomVersionText shouldBe "1.3.1"
     }
 
-    "release version 2.0.0 of a maven-based service when given the inputs 'help-frontend', '1.26.0-3-gd7ed03c' and 'hotfix' as the artefact, release candidate and release type" in {
+    "release version 2.0.0 of a maven-based service when given the inputs 'help-frontend', '1.26.0-3-gd7ed03c' and 'major' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = new DummyBintrayRepoConnector(
         jarResoure = Some("/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.jar"),
@@ -86,7 +86,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         new DummyTagAndRelease,
         fakeRepoConnector)
 
-      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseVersion("0.9.9"))) match {
+      coordinator.start("help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseType.MAJOR) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -94,18 +94,18 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       fakeRepoConnector.uploadedFiles.size shouldBe 4
       fakeRepoConnector.lastPublishDescriptor should not be None
 
-      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
-      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
+      val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("2.0.0.jar"))
 
       val jarManifest = manifestFromZipFile(jarFile)
-      jarManifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
-      jarVersion.version.value shouldBe "0.9.9"
+      jarManifest.value.getValue("Implementation-Version") shouldBe "2.0.0"
+      jarVersion.version.value shouldBe "2.0.0"
 
       val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
-      pomVersionText shouldBe "0.9.9"
+      pomVersionText shouldBe "2.0.0"
     }
 
-    "release version 0.9.9 of a maven-based library when given the inputs 'time', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
+    "release version 1.4.0 of a maven-based library when given the inputs 'time', '1.3.0-1-g21312cc' and 'minor' as the artefact, release candidate and release type" in {
 
       val fakeRepoConnector = new DummyBintrayRepoConnector()
       val coordinator = new Coordinator(
@@ -114,7 +114,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         new DummyTagAndRelease,
         fakeRepoConnector)
 
-      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9"))) match {
+      coordinator.start("time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.MINOR) match {
         case Failure(e) => fail(e)
         case _ =>
       }
@@ -122,17 +122,17 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       fakeRepoConnector.uploadedFiles.size shouldBe 2
       fakeRepoConnector.lastPublishDescriptor should not be None
 
-      val Some((pomVersion, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
-      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("9.jar"))
+      val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("1.4.0.jar"))
 
       jarFile.getFileName.toString should endWith(".jar")
-      jarVersion.version.value shouldBe "0.9.9"
+      jarVersion.version.value shouldBe "1.4.0"
 
       val jarManifest = manifestFromZipFile(jarFile)
-      jarManifest.value.getValue("Implementation-Version") shouldBe "0.9.9"
+      jarManifest.value.getValue("Implementation-Version") shouldBe "1.4.0"
 
       val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
-      pomVersionText shouldBe "0.9.9"
+      pomVersionText shouldBe "1.4.0"
     }
 
 //    "Require only a .pom and a commit manifest in order to release an artifact" in {
@@ -180,7 +180,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         taggerAndReleaser,
         fakeRepoConnector)
 
-      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion)) match {
+      coordinator.start("a", Repo("a"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
         case Failure(e) => e shouldBe expectedException
         case Success(s) => fail(s"Should have failed with $expectedException")
       }
@@ -195,36 +195,16 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         new DummyTagAndRelease,
         fakeRepoConnector)
 
-      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion)) match {
+      coordinator.start("a", Repo("a"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
         case Failure(e) => e shouldBe an [IllegalArgumentException]
         case Success(s) => fail(s"Should have failed with an IllegalArgumentException")
       }
     }
 
-    // TODO: This functionality currently sits outside of the coordinator
-    //    "fail when the repository of an artefact isn't found" in {
-    //      val expectedException = new scala.Exception("repo fail")
-    //
-    //      val releaser = buildDefaultReleaser(
-    //        repositoryFinder = (a) => Failure(expectedException)
-    //      )
-    //
-    //      val fakeRepoConnector = new DummyBintrayRepoConnector()
-    //      val coordinator = new Coordinator(
-    //        tempDir(),
-    //        (x) => Success(ArtefactMetaData("sha", "author", DateTime.now())),
-    //        new DummyTagAndRelease,
-    //        fakeRepoConnector)
-    //
-    //      coordinator.start(VersionMapping(RepoFlavours.mavenRepository, "a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion)) match {
-    //        case Failure(e) => e shouldBe expectedException
-    //        case Success(s) => fail(s"Should have failed with $expectedException")
-    //      }
-    //    }
-
-    "release version 0.1.1 of an ivy-based SBT plugin when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'hotfix' as the artefact, release candidate and release type" in {
-
-      val fakeRepoConnector = new DummyBintrayRepoConnector(filesuffix = "/sbt-bobby/", Some("sbt-bobby.jar"), Set("ivy.xml"))
+    "fail when the repository of an artefact isn't found" in {
+      val fakeRepoConnector = new DummyBintrayRepoConnector(filesuffix = "/sbt-bobby/", Some("sbt-bobby.jar"), Set("ivy.xml")) {
+        override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = Failure(new RuntimeException)
+      }
 
       val coordinator = new Coordinator(
         tempDir(),
@@ -232,7 +212,28 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         new DummyTagAndRelease,
         fakeRepoConnector)
 
-      coordinator.start(VersionMapping(RepoFlavours.ivyRepository, "sbt-bobby", Repo("sbt-bobby"), ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseVersion("0.1.1"))) match {
+      coordinator.start("a", Repo("a"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
+        case Failure(e) => e.getMessage shouldBe "Didn't find a release candidate repository for 'a' in repos List(release-candidates, sbt-plugin-release-candidates)"
+        case Success(s) => fail(s"Should have failed")
+      }
+    }
+
+    "release version 0.8.2 of an ivy-based SBT plugin when given the inputs 'sbt-bobby', '0.8.1-4-ge733d26' and 'hotfix' as the artefact, release candidate and release type" in {
+
+      val fakeRepoConnector = new DummyBintrayRepoConnector(filesuffix = "/sbt-bobby/", Some("sbt-bobby.jar"), Set("ivy.xml")) {
+        override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
+          if (repoName == "sbt-plugin-release-candidates") Success(Unit)
+          else Failure(new RuntimeException)
+        }
+      }
+
+      val coordinator = new Coordinator(
+        tempDir(),
+        (x) => Success(ArtefactMetaData("sha", "author", DateTime.now())),
+        new DummyTagAndRelease,
+        fakeRepoConnector)
+
+      coordinator.start("sbt-bobby", Repo("sbt-bobby"), ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseType.HOTFIX) match {
           case Failure(e) => fail(e)
           case _ =>
         }
@@ -240,18 +241,18 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       fakeRepoConnector.uploadedFiles.size shouldBe 2
       fakeRepoConnector.lastPublishDescriptor should not be None
 
-      val Some((_, ivyFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("ivy.xml"))
-      val Some((jarVersion, jarFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("sbt-bobby.jar"))
+      val Some((_, ivyFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("ivy.xml"))
+      val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("sbt-bobby.jar"))
 
       jarFile.getFileName.toString should be("sbt-bobby.jar")
       ivyFile.getFileName.toString should be("ivy.xml")
 
       val jarManifest = manifestFromZipFile(jarFile)
-      jarManifest.value.getValue("Implementation-Version") shouldBe "0.1.1"
-      jarVersion.version.value shouldBe "0.1.1"
+      jarManifest.value.getValue("Implementation-Version") shouldBe "0.8.2"
+      jarVersion.version.value shouldBe "0.8.2"
 
       val ivyVersionText = (XML.loadFile(ivyFile.toFile) \ "info" \ "@revision").text
-      ivyVersionText shouldBe "0.1.1"
+      ivyVersionText shouldBe "0.8.2"
     }
   }
 

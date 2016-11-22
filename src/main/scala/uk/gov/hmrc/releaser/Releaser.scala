@@ -20,12 +20,10 @@ import java.io.File
 import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
-import uk.gov.hmrc.releaser.bintray.{BintrayHttp, BintrayMetaConnector, DefaultBintrayRepoConnector}
-import uk.gov.hmrc.releaser.domain.RepoFlavours._
+import uk.gov.hmrc.releaser.bintray.{BintrayHttp, BintrayRepoConnector, DefaultBintrayRepoConnector}
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubConnector
 
-import scala.collection.immutable.SortedSet
 import scala.util.{Failure, Success, Try}
 
 object ReleaserMain {
@@ -35,32 +33,19 @@ object ReleaserMain {
   }
 }
 
-object ReleaseType extends Enumeration {
-  type ReleaseType = Value
-  val MAJOR, MINOR, HOTFIX = Value
-
-  val stringValues: SortedSet[String] = this.values.map(_.toString)
-}
-
 object Releaser extends Logger {
-
   import uk.gov.hmrc.releaser.ArgParser._
 
   def apply(args: Array[String]):Int= {
     parser.parse(args, Config()) match {
       case Some(config) =>
         val githubName = config.githubNameOverride.getOrElse(config.artefactName)
-        start(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.dryRun)
+        run(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.dryRun)
       case None => -1
     }
   }
 
-  def start(artefactName: String,
-             rcVersion: ReleaseCandidateVersion,
-             releaseType: ReleaseType.Value,
-             gitHubName: String,
-             dryRun: Boolean = false): Int = {
-
+  def run(artefactName: String, rcVersion: ReleaseCandidateVersion, releaseType: ReleaseType.Value, gitHubName: String, dryRun: Boolean = false): Int = {
     val githubCredsFile  = System.getProperty("user.home") + "/.github/.credentials"
     val bintrayCredsFile = System.getProperty("user.home") + "/.bintray/.credentials"
 
@@ -78,24 +63,17 @@ object Releaser extends Logger {
     } else {
 
       val releaserVersion = getClass.getPackage.getImplementationVersion
-
       val gitHubDetails = if (dryRun) GithubConnector.dryRun(githubCredsOpt.get, releaserVersion) else GithubConnector(githubCredsOpt.get, releaserVersion)
-      val bintrayDetails = if (dryRun) BintrayDetails.dryRun(bintrayCredsOpt.get, directories.workDir) else BintrayDetails(bintrayCredsOpt.get, directories.workDir)
-      val repositories = new Repositories(bintrayDetails.metaDataGetter)(bintrayDetails.repositoryFlavors)
+      val bintrayDetails = if (dryRun) BintrayRepoConnector.dryRun(bintrayCredsOpt.get, directories.workDir) else BintrayRepoConnector(bintrayCredsOpt.get, directories.workDir)
+      val bintrayRepoConnector = new DefaultBintrayRepoConnector(directories.workDir, new BintrayHttp(bintrayCredsOpt.get), new FileDownloader)
 
-      val result = for {
-        repo <- repositories.findReposOfArtefact(artefactName)
-        targetVersion <- VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
-        bintrayRepoConnector = new DefaultBintrayRepoConnector(directories.workDir, new BintrayHttp(bintrayCredsOpt.get), repo, new FileDownloader)
-        coordinator = new Coordinator(directories.stageDir, ArtefactMetaData.fromFile, gitHubDetails, bintrayRepoConnector)
-        result = coordinator.start(VersionMapping(repo, artefactName, Repo(gitHubName), rcVersion, targetVersion))
-      } yield {
-        log.info(s"Releaser successfully released $artefactName $targetVersion")
-        0
-      }
+      val coordinator = new Coordinator(directories.stageDir, ArtefactMetaData.fromFile, gitHubDetails, bintrayRepoConnector)
+      val result = coordinator.start(artefactName, Repo(gitHubName), rcVersion, releaseType)
 
       result match {
-        case Success(value) => value
+        case Success(targetVersion) =>
+            log.info(s"Releaser successfully released $artefactName $targetVersion")
+            0
         case Failure(e) =>
           e.printStackTrace()
           log.info(s"Releaser failed to release $artefactName $rcVersion with error '${e.getMessage}'")
@@ -113,23 +91,5 @@ case class ReleaseDirectories(tmpDirectory : () => Path = () => Files.createTemp
 
   def deleteTmpDir = Try {
     FileUtils.forceDelete(tmpDir.toFile)
-  }
-}
-
-class BintrayDetails(bintrayConnector : BintrayHttp, workDir : Path){
-  lazy val metaDataGetter = new BintrayMetaConnector(bintrayConnector).getRepoMetaData _
-  val repositoryFlavors = Seq(mavenRepository, ivyRepository)
-}
-
-object BintrayDetails extends Logger {
-  def apply(bintrayCreds: ServiceCredentials, workDir : Path): BintrayDetails = new BintrayDetails(new BintrayHttp(bintrayCreds), workDir)
-
-  def dryRun(bintrayCreds: ServiceCredentials, workDir : Path) = {
-    log.info("Bintray : running in dry-run mode")
-    val dryRunHttp = new BintrayHttp(bintrayCreds){
-      override def emptyPost(url:String): Try[Unit] = { println("BintrayHttp emptyPost DRY_RUN");Success(Unit)}
-      override def putFile(version: VersionDescriptor, file: Path, url: String): Try[Unit] = { println("BintrayHttp putFile DRY_RUN");Success(Unit) }
-    }
-    new BintrayDetails(dryRunHttp, workDir)
   }
 }

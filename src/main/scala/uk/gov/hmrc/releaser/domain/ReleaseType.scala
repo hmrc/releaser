@@ -14,21 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.releaser.bintray
+package uk.gov.hmrc.releaser.domain
 
-import uk.gov.hmrc.releaser.domain.VersionDescriptor
+import scala.collection.immutable.SortedSet
 
-import scala.util.Try
+object ReleaseType extends Enumeration {
+  type ReleaseType = Value
+  val MAJOR, MINOR, HOTFIX = Value
 
-class BintrayMetaConnector(bintrayHttp: BintrayHttp) {
-
-  def getRepoMetaData(repoName:String, artefactName: String): Try[Unit] = {
-    val url = BintrayPaths.metadata(repoName, artefactName)
-    bintrayHttp.get(url).map { _ => Unit}
-  }
-
-  def publish(version: VersionDescriptor): Try[Unit] = {
-    val url = BintrayPaths.publishUrlFor(version)
-    bintrayHttp.emptyPost(url)
-  }
+  val stringValues: SortedSet[String] = this.values.map(_.toString)
 }

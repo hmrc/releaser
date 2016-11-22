@@ -19,7 +19,8 @@ package uk.gov.hmrc.releaser
 import java.nio.file.{Files, Path}
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.releaser.bintray.{BintrayRepoConnector, DefaultBintrayRepoConnector}
+import uk.gov.hmrc.releaser.bintray.{BintrayPaths, BintrayRepoConnector, DefaultBintrayRepoConnector}
+import uk.gov.hmrc.releaser.domain.RepoFlavours._
 import uk.gov.hmrc.releaser.domain._
 import uk.gov.hmrc.releaser.github.GithubTagAndRelease
 
@@ -30,23 +31,41 @@ class Coordinator(stageDir: Path,
                   githubConnector: GithubTagAndRelease,
                   bintrayConnector: BintrayRepoConnector) extends Logger {
 
-  def start(map: VersionMapping): Try[Unit] ={
-    val artefacts = map.repo.artefactBuilder(map, stageDir)
+  val repositoryFlavors = Seq(mavenRepository, ivyRepository)
 
-    for(
-      _         <- bintrayConnector.verifyTargetDoesNotExist(map.targetArtefact);
-      files     <- bintrayConnector.findFiles(map.sourceArtefact);
-      remotes    = artefacts.transformersForSupportedFiles(files);
-      localJar   = bintrayConnector.findJar(map.sourceArtefact);
-      (commitSha, commitAuthor, commitDate)
-                <- getMetaData(localJar).map(x => ArtefactMetaData.unapply(x).get);
-      _         <- githubConnector.verifyGithubTagExists(map.gitRepo, commitSha);
-      transd    <- transformFiles(map, remotes, artefacts.filePrefix);
-      _         <- uploadFiles(map.targetArtefact, transd);
-      _         <- bintrayConnector.publish(map.targetArtefact);
-      _         <- githubConnector.createGithubTagAndRelease(new DateTime(), commitSha, commitAuthor, commitDate, map)
-    )
-     yield ()
+  def start(artefactName:String,
+            gitRepo:Repo,
+            sourceVersion:ReleaseCandidateVersion,
+            releaseType: ReleaseType.Value): Try[ReleaseVersion] = {
+
+    for {
+      targetVersion <- VersionNumberCalculator.calculateTarget(sourceVersion, releaseType)
+      repo <- findReposOfArtefact(artefactName)
+      map = VersionMapping(repo, artefactName, gitRepo, sourceVersion, targetVersion)
+      artefacts = map.repo.artefactBuilder(map, stageDir)
+      bintrayJarUrl = repo.jarDownloadFor(map.targetArtefact)
+      bintrayJarFilename = repo.jarFilenameFor(map.targetArtefact)
+      _ <- bintrayConnector.verifyTargetDoesNotExist(bintrayJarUrl, map.targetArtefact)
+      files <- bintrayConnector.findFiles(map.sourceArtefact)
+      remotes = artefacts.transformersForSupportedFiles(files)
+      localJar = bintrayConnector.findJar(bintrayJarFilename, bintrayJarUrl, map.sourceArtefact)
+      (commitSha, commitAuthor, commitDate) <- getMetaData(localJar).map(x => ArtefactMetaData.unapply(x).get)
+      _ <- githubConnector.verifyGithubTagExists(map.gitRepo, commitSha)
+      transd <- transformFiles(repo, map, remotes, artefacts.filePrefix)
+      _ <- uploadFiles(repo, map.targetArtefact, transd)
+      _ <- bintrayConnector.publish(map.targetArtefact)
+      _ <- githubConnector.createGithubTagAndRelease(new DateTime(), commitSha, commitAuthor, commitDate, map)
+    }
+     yield targetVersion
+  }
+
+  private def findReposOfArtefact(artefactName: ArtefactName): Try[RepoFlavour] = {
+    repositoryFlavors.find { repo =>
+      bintrayConnector.getRepoMetaData(repo.releaseCandidateRepo, artefactName).isSuccess
+    } match {
+      case Some(r) => Success(r)
+      case None => Failure(new Exception(s"Didn't find a release candidate repository for '$artefactName' in repos ${repositoryFlavors.map(_.releaseCandidateRepo)}"))
+    }
   }
 
   private def getMetaData(jarPath: Option[Path]): Try[ArtefactMetaData] = {
@@ -56,21 +75,27 @@ class Coordinator(stageDir: Path,
     }
   }
 
-  private def uploadFiles(target:VersionDescriptor, files: List[Path]) : Try[Unit] = {
-    val res = files.map { localFile => bintrayConnector.uploadFile(target, localFile) }
+  private def uploadFiles(repo: RepoFlavour, target:VersionDescriptor, files: List[Path]) : Try[Unit] = {
+    val res = files.map { localFile =>
+      val url = repo.fileUploadFor(target, localFile.getFileName.toString)
+      bintrayConnector.uploadFile(target, localFile, url)
+    }
+
     sequence(res).map { _ => Unit }
   }
 
-  private def transformFiles(map: VersionMapping, files: List[(String, Option[Transformer])], prefix:String): Try[List[Path]] =
+  private def transformFiles(repo: RepoFlavour, map: VersionMapping, files: List[(String, Option[Transformer])], prefix:String): Try[List[Path]] =
     sequence {
-      files.map { case(file, transO) => transformFile(map, file, transO, prefix) }
+      files.map { case(file, transO) => transformFile(repo, map, file, transO, prefix) }
     }
 
-  private def transformFile(map: VersionMapping, remotePath:String, transO:Option[Transformer], prefix:String) : Try[Path]={
-    bintrayConnector.downloadFile(map.sourceArtefact, remotePath).flatMap { localPath =>
-      val targetFileName = buildTargetFileName(map, remotePath, prefix)
+  private def transformFile(repo:RepoFlavour, map: VersionMapping, fileName:String, transO:Option[Transformer], prefix:String) : Try[Path]={
+    val artefactUrl = repo.fileDownloadFor(map.sourceArtefact, fileName)
+
+    bintrayConnector.downloadFile(artefactUrl, fileName).flatMap { localPath =>
+      val targetFileName = buildTargetFileName(map, fileName, prefix)
       val targetPath = stageDir.resolve(targetFileName)
-      log.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $remotePath writing to file $targetPath")
+      log.info(s"using ${transO.map(_.getClass.getName).getOrElse("<no-op transformer>")} to transform $fileName writing to file $targetPath")
       if(targetPath.toFile.exists()){
         log.info(s"already have $targetPath, not updating")
         Success(targetPath)

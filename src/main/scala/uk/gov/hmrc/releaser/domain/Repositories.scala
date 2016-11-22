@@ -26,9 +26,9 @@ import scala.util.{Failure, Success, Try}
 trait RepoFlavour extends BintrayPaths {
   val workDir:Path = Files.createTempDirectory("releaser")
 
-  def scalaVersion:String
-  def releaseCandidateRepo:String
-  def releaseRepo:String
+  def scalaVersion: String
+  def releaseCandidateRepo: String
+  def releaseRepo: String
   //def pomTransformer:XmlTransformer
   val artefactBuilder:(VersionMapping, Path) => TransformerProvider
 }
@@ -38,7 +38,7 @@ trait IvyRepo extends RepoFlavour with BintrayIvyPaths {
   val artefactBuilder = IvyArtefacts.apply _
 }
 
-trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
+trait MavenRepo extends RepoFlavour with BintrayMavenPaths {
   val scalaVersion = "2.11"
   val artefactBuilder = MavenArtefacts.apply _
 }
@@ -49,15 +49,3 @@ object RepoFlavours {
 }
 
 case class BintrayRepository(releaseCandidateRepo:String, releaseRepo:String)
-
-class Repositories(metaDataGetter:(String, String) => Try[Unit])(repos:Seq[RepoFlavour]){
-
-  def findReposOfArtefact(artefactName: ArtefactName): Try[RepoFlavour] = {
-    repos.find { repo =>
-      metaDataGetter(repo.releaseCandidateRepo, artefactName).isSuccess
-    } match {
-      case Some(r) => Success(r)
-      case None => Failure(new Exception(s"Didn't find a release candidate repository for '$artefactName' in repos ${repos.map(_.releaseCandidateRepo)}"))
-    }
-  }
-}
