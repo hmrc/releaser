@@ -106,8 +106,7 @@ class GithubConnectorSpecs extends WordSpec with Matchers with TryValues with Op
       when(mockHttpConnector.postUnit(meq(s"https://api.github.com/repos/hmrc/$repoName/releases"), meq(expectedReleaseBody)))
         .thenReturn(Success(()))
 
-      val map = VersionMapping(RepoFlavours.mavenRepository, artifactName, Repo(repoName), ReleaseCandidateVersion(rcVersion), ReleaseVersion(releaseVersion))
-      val result = connector.createGithubTagAndRelease(tagDate, sha, author, commitDate, map)
+      val result = connector.createGithubTagAndRelease(tagDate, sha, author, commitDate, artifactName, Repo(repoName), rcVersion, releaseVersion)
 
       result shouldBe Success(())
     }

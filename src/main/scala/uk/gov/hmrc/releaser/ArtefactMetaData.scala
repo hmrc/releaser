@@ -38,6 +38,7 @@ import java.util.zip.ZipFile
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import uk.gov.hmrc.releaser.github.CommitSha
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}

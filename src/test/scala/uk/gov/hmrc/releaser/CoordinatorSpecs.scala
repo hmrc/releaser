@@ -23,6 +23,7 @@ import java.util.zip.ZipFile
 
 import org.joda.time.DateTime
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
+import uk.gov.hmrc.releaser.github.{CommitSha, Repo}
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}

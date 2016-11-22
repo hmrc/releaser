@@ -21,7 +21,6 @@ import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.{Logger, ServiceCredentials}
-import uk.gov.hmrc.releaser._
 
 import scala.util.{Success, Try}
 
@@ -39,7 +38,6 @@ object GithubConnector extends Logger {
   val githubDateTimeFormatter = org.joda.time.format.ISODateTimeFormat.dateTime
   val githubTagDateTimeFormatter = org.joda.time.format.ISODateTimeFormat.dateTimeNoMillis
   val releaseMessageDateTimeFormat = DateTimeFormat.longDateTime()
-  val artefactBuilder = ArtefactMetaData.fromFile _
 }
 
 case class GithubCommitter(taggerName: String = System.getProperty("github.tagger.name", "hmrc-web-operations"),
@@ -68,68 +66,69 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
     githubHttp.get(buildCommitGetUrl(repo, sha))
   }
 
-  def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha, commitAuthor: String, commitDate: DateTime, map: VersionMapping): Try[Unit] = {
+  def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
+                                 commitAuthor: String, commitDate: DateTime,
+                                 artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit] =
     for (
-      tagSha <- createTagObject(tagDate, map.gitRepo, map.targetVersion, commitSha);
-      _ <- createTagRef(map.gitRepo, map.targetVersion, tagSha);
-      _ <- createRelease(commitSha, commitAuthor, commitDate, map))
+      tagSha <- createTagObject(tagDate, gitRepo, version, commitSha);
+      _ <- createTagRef(gitRepo, version, tagSha);
+      _ <- createRelease(commitSha, commitAuthor, commitDate, artefactName, gitRepo, releaseCandidateVersion, version))
       yield ()
-  }
 
-  private def createTagObject(tagDate: DateTime, repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[CommitSha] = {
-    log.debug("creating annotated tag object from " + targetVersion + " version mapping " + targetVersion)
+  private def createTagObject(tagDate: DateTime, repo:Repo, tag: String, commitSha:CommitSha): Try[CommitSha] = {
+    log.debug("creating annotated tag object from " + tag + " version mapping " + tag)
 
     val url = buildAnnotatedTagObjectPostUrl(repo)
-    val body = buildTagObjectBody("tag of " + targetVersion, targetVersion, tagDate, commitSha)
+    val body = buildTagObjectBody("tag of " + tag, tag, tagDate, commitSha)
 
     githubHttp.post[CommitSha]((r:WSResponse) => Success(r.json.as[TagRefResponse].sha))(url, body)
   }
 
-  private def createTagRef(repo:Repo, targetVersion:ReleaseVersion, commitSha:CommitSha): Try[Unit] = {
-    log.debug("creating annotated tag ref from " + targetVersion + " version mapping " + targetVersion)
+  private def createTagRef(repo:Repo, tag: String, commitSha:CommitSha): Try[Unit] = {
+    log.debug("creating annotated tag ref from " + tag + " version mapping " + tag)
 
     val url = buildAnnotatedTagRefPostUrl(repo)
-    val body = buildTagRefBody(targetVersion, commitSha)
+    val body = buildTagRefBody(tag, commitSha)
 
     githubHttp.postUnit(url, body)
   }
 
-  private def createRelease(commitSha: CommitSha, commitAuthor: String, commitDate: DateTime, v: VersionMapping): Try[Unit] = {
-    log.debug(s"creating release from $commitSha version mapping " + v)
+  private def createRelease(commitSha: CommitSha, commitAuthor: String,
+                            commitDate: DateTime, artefactName: String,
+                            gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit] = {
+    log.debug(s"creating release from $commitSha version " + version)
 
-    val url = buildReleasePostUrl(v.gitRepo)
-    val message = buildMessage(v.artefactName, v.targetVersion, releaserVersion, v.sourceVersion, commitSha, commitAuthor, commitDate)
-    val body = buildReleaseBody(message, v.targetVersion)
+    val url = buildReleasePostUrl(gitRepo)
+    val message = buildMessage(artefactName, version, releaserVersion, releaseCandidateVersion, commitSha, commitAuthor, commitDate)
+    val body = buildReleaseBody(message, version)
 
     githubHttp.postUnit(url, body)
   }
 
-  private def buildTagRefBody(targetVersion: ReleaseVersion, commitSha: CommitSha): JsValue = {
-    val tagName = "refs/tags/v" + targetVersion.value
+  private def buildTagRefBody(version: String, commitSha: CommitSha): JsValue = {
+    val tagName = "refs/tags/v" + version
     Json.toJson(TagRef(tagName, commitSha))
   }
 
-  private def buildTagObjectBody(message: String, targetVersion: ReleaseVersion, date:DateTime, commitSha: CommitSha): JsValue = {
-    val tagName = "v" + targetVersion.value
+  private def buildTagObjectBody(message: String, version: String, date:DateTime, commitSha: CommitSha): JsValue = {
+    val tagName = "v" + version
     Json.toJson(TagObject(tagName, message, commitSha, Tagger(comitterDetails.taggerName, comitterDetails.taggerEmail, githubTagDateTimeFormatter.print(date))))
   }
 
-  private def buildReleaseBody(message:String, targetVersion:ReleaseVersion):JsValue={
-    val tagName = "v" + targetVersion.value
-
-    Json.toJson(
-      GitRelease(targetVersion.value, tagName, message, draft = false, prerelease = false))
+  private def buildReleaseBody(message:String, version: String): JsValue = {
+    val tagName = "v" + version
+    Json.toJson(GitRelease(version, tagName, message, draft = false, prerelease = false))
   }
 
   private def buildMessage(
                     name: String,
-                    version: ReleaseVersion,
+                    version: String,
                     releaserVersion: String,
-                    sourceVersion: ReleaseCandidateVersion,
+                    releaseCandidateVersion: String,
                     commitSha: CommitSha, commitAuthor: String, commitDate: DateTime) =
     s"""
-      |Release            : $name ${version.value}
-      |Release candidate  : $name ${sourceVersion.value}
+      |Release            : $name $version
+      |Release candidate  : $name $releaseCandidateVersion
       |
       |Last commit sha    : $commitSha
       |Last commit author : $commitAuthor
@@ -160,6 +159,7 @@ class DryRunGithubConnector(releaserVersion: String) extends GithubTagAndRelease
 
   override def verifyGithubTagExists(repo: Repo, sha: CommitSha): Try[Unit] = Success(Unit)
 
-  override def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
-                                         commitAuthor: String, commitDate: DateTime, map: VersionMapping): Try[Unit] = Success(Unit)
+  def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
+    commitAuthor: String, commitDate: DateTime,
+    artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit] = Success(Unit)
 }

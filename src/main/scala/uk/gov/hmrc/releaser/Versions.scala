@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.releaser
 
+import uk.gov.hmrc.releaser.github.Repo
+
 import scala.util.Try
 
 trait Version {

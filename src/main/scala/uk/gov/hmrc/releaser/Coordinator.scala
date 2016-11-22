@@ -22,7 +22,7 @@ import org.joda.time.DateTime
 import uk.gov.hmrc.Logger
 import uk.gov.hmrc.releaser.RepoFlavours._
 import uk.gov.hmrc.releaser.bintray.BintrayRepoConnector
-import uk.gov.hmrc.releaser.github.GithubTagAndRelease
+import uk.gov.hmrc.releaser.github.{GithubTagAndRelease, Repo}
 
 import scala.util.{Failure, Success, Try}
 
@@ -35,13 +35,13 @@ class Coordinator(stageDir: Path,
 
   def start(artefactName:String,
             gitRepo:Repo,
-            sourceVersion:ReleaseCandidateVersion,
+            releaseCandidateVersion: ReleaseCandidateVersion,
             releaseType: ReleaseType.Value): Try[ReleaseVersion] = {
 
     for {
-      targetVersion <- VersionNumberCalculator.calculateTarget(sourceVersion, releaseType)
+      targetVersion <- VersionNumberCalculator.calculateTarget(releaseCandidateVersion, releaseType)
       repo <- findReposOfArtefact(artefactName)
-      map = VersionMapping(repo, artefactName, gitRepo, sourceVersion, targetVersion)
+      map = VersionMapping(repo, artefactName, gitRepo, releaseCandidateVersion, targetVersion)
       artefacts = map.repo.artefactBuilder(map, stageDir)
       bintrayJarUrl = repo.jarDownloadFor(map.targetArtefact)
       bintrayJarFilename = repo.jarFilenameFor(map.targetArtefact)
@@ -54,7 +54,7 @@ class Coordinator(stageDir: Path,
       transd <- transformFiles(repo, map, remotes, artefacts.filePrefix)
       _ <- uploadFiles(repo, map.targetArtefact, transd)
       _ <- bintrayConnector.publish(map.targetArtefact)
-      _ <- githubConnector.createGithubTagAndRelease(new DateTime(), commitSha, commitAuthor, commitDate, map)
+      _ <- githubConnector.createGithubTagAndRelease(new DateTime(), commitSha, commitAuthor, commitDate, artefactName, gitRepo, releaseCandidateVersion.value, targetVersion.value)
     }
      yield targetVersion
   }

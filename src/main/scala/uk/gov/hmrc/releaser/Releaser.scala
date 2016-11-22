@@ -21,7 +21,7 @@ import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
 import uk.gov.hmrc.releaser.bintray.{BintrayHttp, BintrayRepoConnector, DefaultBintrayRepoConnector}
-import uk.gov.hmrc.releaser.github.GithubConnector
+import uk.gov.hmrc.releaser.github.{GithubConnector, Repo}
 import uk.gov.hmrc.{CredentialsFinder, FileDownloader, Logger}
 
 import scala.util.{Failure, Success, Try}

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.releaser.github
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.releaser.{CommitSha, Repo, VersionMapping}
 
 import scala.util.Try
 
@@ -25,6 +24,8 @@ trait GithubTagAndRelease {
 
   def verifyGithubTagExists(repo:Repo, sha:CommitSha): Try[Unit]
 
-  def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha, commitAuthor: String, commitDate: DateTime, map: VersionMapping): Try[Unit]
+  def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
+                                commitAuthor: String, commitDate: DateTime,
+                                artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit]
 
 }

@@ -21,7 +21,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import org.joda.time.DateTime
 import uk.gov.hmrc.releaser.bintray.BintrayRepoConnector
-import uk.gov.hmrc.releaser.github.GithubTagAndRelease
+import uk.gov.hmrc.releaser.github.{CommitSha, GithubTagAndRelease, Repo}
 
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -74,7 +74,10 @@ object Builders {
   val anArtefactMetaData = new ArtefactMetaData("803749", "ck", DateTime.now())
 
   class DummyTagAndRelease extends GithubTagAndRelease {
-    override def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha, commitAuthor: String, commitDate: DateTime, map: VersionMapping): Try[Unit] = Success(Unit)
+    override def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
+                                           commitAuthor: String, commitDate: DateTime,
+                                           artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit] = Success(Unit)
+
     override def verifyGithubTagExists(repo: Repo, sha: CommitSha): Try[Unit] = Success(Unit)
   }
 
