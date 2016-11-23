@@ -17,8 +17,6 @@
 package uk.gov.hmrc.releaser.bintray
 
 import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.releaser.github.Repo
-import uk.gov.hmrc.releaser.{ReleaseCandidateVersion, ReleaseVersion, VersionDescriptor}
 
 class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
@@ -30,16 +28,16 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
     val repoName = "sbt-plugin-release-candidates"
     val artefactName = "sbt-bobby"
-    val repo = Repo("sbt-bobby")
+    val githubRepoName = "sbt-bobby"
 
     "Generate URL for files on Bintray" in {
       val expectedAssemblyJarUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby-assembly.jar"
       val expectedJarUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby.jar"
       val expectedPomUrl = "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/ivys/ivy.xml"
 
-      val releaseCandidateVersion = ReleaseCandidateVersion("0.8.1-4-ge733d26")
+      val releaseCandidateVersion = "0.8.1-4-ge733d26"
 
-      val version = VersionDescriptor(repoName, artefactName, repo, releaseCandidateVersion)
+      val version = VersionDescriptor(repoName, artefactName, githubRepoName, releaseCandidateVersion)
 
       ivyPaths.jarFilenameFor(version) shouldBe "sbt-bobby.jar"
       ivyPaths.filenameFor(version, "sbt-bobby.jar") shouldBe "sbt-bobby.jar"
@@ -56,7 +54,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       val expectedSrcUrl = "https://bintray.com/api/v1/content/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/srcs/sbt-bobby-sources.jar"
       val expectedDocUrl = "https://bintray.com/api/v1/content/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/docs/sbt-bobby-javadoc.jar"
 
-      val version = VersionDescriptor(repoName, artefactName, repo, ReleaseVersion("0.9.0"))
+      val version = VersionDescriptor(repoName, artefactName, githubRepoName, "0.9.0")
 
       ivyPaths.jarUploadFor(version) shouldBe expectedJarUrl
       ivyPaths.fileUploadFor(version, "ivy.xml") shouldBe expectedIvyUrl

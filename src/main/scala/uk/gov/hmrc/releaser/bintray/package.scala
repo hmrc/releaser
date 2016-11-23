@@ -14,27 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc
+package uk.gov.hmrc.releaser
 
-import java.io.File
-import java.nio.file.Path
+package object bintray {
 
-import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
-
-class CredentialsFinderSpecs extends WordSpec with Matchers with TryValues with OptionValues {
-
-  "CredentialsFinder" should {
-
-    "find a github token in the given file" in {
-
-      val creds = CredentialsFinder.findGithubCredsInFile(resource("github-creds.txt")).value
-      creds shouldBe ServiceCredentials("token", "thetoken")
-    }
-
-  }
-
-  private def resource(path: String) : Path = {
-    new File(this.getClass.getClassLoader.getResource(path).toURI).toPath
-  }
+  case class VersionDescriptor(repo: String,
+                               artefactName: String,
+                               gitHubName: String,
+                               version: String)
 
 }

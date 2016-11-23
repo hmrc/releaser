@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.releaser
 
+import uk.gov.hmrc.releaser.bintray.VersionDescriptor
 import uk.gov.hmrc.releaser.github.Repo
 
 import scala.util.Try
@@ -37,10 +38,6 @@ object ReleaseVersion{
 }
 case class ReleaseCandidateVersion(value:String) extends Version
 
-case class VersionDescriptor(repo:String,
-                              artefactName:String,
-                              gitHubName:Repo,
-                              version:Version)
 
 case class VersionMapping (repo:RepoFlavour,
                             artefactName:String,
@@ -48,8 +45,8 @@ case class VersionMapping (repo:RepoFlavour,
                             sourceVersion:ReleaseCandidateVersion,
                             targetVersion:ReleaseVersion) {
 
-  def targetArtefact = VersionDescriptor(repo.releaseRepo, artefactName, gitRepo, targetVersion)
-  def sourceArtefact = VersionDescriptor(repo.releaseCandidateRepo, artefactName, gitRepo, sourceVersion)
+  def targetArtefact = VersionDescriptor(repo.releaseRepo, artefactName, gitRepo.value, targetVersion.value)
+  def sourceArtefact = VersionDescriptor(repo.releaseCandidateRepo, artefactName, gitRepo.value, sourceVersion.value)
 }
 
 object VersionNumberCalculator{

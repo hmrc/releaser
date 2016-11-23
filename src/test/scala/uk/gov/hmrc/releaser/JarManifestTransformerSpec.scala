@@ -17,7 +17,7 @@
 package uk.gov.hmrc.releaser
 
 import java.io.File
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.security.MessageDigest
 import java.util
 import java.util.jar
@@ -30,7 +30,7 @@ import org.scalatest._
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
-class JarManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues{
+class JarManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues {
 
   val timeJarPath = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI).toPath
 
@@ -39,8 +39,8 @@ class JarManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAf
   val release_1_4_0 = ReleaseVersion("1.4.0")
   var tmpDir:Path = _
 
-  override def beforeEach(){
-    tmpDir = Builders.tempDir()
+  override def beforeEach() {
+    tmpDir = Files.createTempDirectory("tmp")
     transformer = new JarManifestTransformer()
   }
 

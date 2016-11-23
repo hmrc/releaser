@@ -17,7 +17,7 @@
 package uk.gov.hmrc.releaser
 
 import java.io._
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream}
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
@@ -37,7 +37,7 @@ class TgzTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach 
   var tmpDir:Path = _
 
   override def beforeEach(){
-    tmpDir = Builders.tempDir()
+    tmpDir = Files.createTempDirectory("tmp")
     transformer = new TgzTransformer()
     FileUtils.copyFileToDirectory(tgzPath.toFile, tmpDir.toFile)
   }

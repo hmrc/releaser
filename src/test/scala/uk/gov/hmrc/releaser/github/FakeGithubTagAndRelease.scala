@@ -14,27 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc
+package uk.gov.hmrc.releaser.github
 
-import java.io.File
-import java.nio.file.Path
+import org.joda.time.DateTime
+import scala.util.{Success, Try}
 
-import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
+class FakeGithubTagAndRelease extends GithubTagAndRelease {
+  override def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
+                                         commitAuthor: String, commitDate: DateTime,
+                                         artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit] = Success(Unit)
 
-class CredentialsFinderSpecs extends WordSpec with Matchers with TryValues with OptionValues {
-
-  "CredentialsFinder" should {
-
-    "find a github token in the given file" in {
-
-      val creds = CredentialsFinder.findGithubCredsInFile(resource("github-creds.txt")).value
-      creds shouldBe ServiceCredentials("token", "thetoken")
-    }
-
-  }
-
-  private def resource(path: String) : Path = {
-    new File(this.getClass.getClassLoader.getResource(path).toURI).toPath
-  }
-
+  override def verifyGithubTagExists(repo: Repo, sha: CommitSha): Try[Unit] = Success(Unit)
 }

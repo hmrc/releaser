@@ -21,7 +21,7 @@ import java.nio.file.{Files, Path}
 import org.joda.time.DateTime
 import uk.gov.hmrc.Logger
 import uk.gov.hmrc.releaser.RepoFlavours._
-import uk.gov.hmrc.releaser.bintray.BintrayRepoConnector
+import uk.gov.hmrc.releaser.bintray.{BintrayRepoConnector, VersionDescriptor}
 import uk.gov.hmrc.releaser.github.{GithubTagAndRelease, Repo}
 
 import scala.util.{Failure, Success, Try}
@@ -75,7 +75,7 @@ class Coordinator(stageDir: Path,
     }
   }
 
-  private def uploadFiles(repo: RepoFlavour, target:VersionDescriptor, files: List[Path]) : Try[Unit] = {
+  private def uploadFiles(repo: RepoFlavour, target: VersionDescriptor, files: List[Path]) : Try[Unit] = {
     val res = files.map { localFile =>
       val url = repo.fileUploadFor(target, localFile.getFileName.toString)
       bintrayConnector.uploadFile(target, localFile, url)

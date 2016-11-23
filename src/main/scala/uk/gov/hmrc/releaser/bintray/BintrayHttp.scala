@@ -24,7 +24,6 @@ import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
 import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
 import play.api.mvc.Results
 import uk.gov.hmrc.{Logger, ServiceCredentials}
-import uk.gov.hmrc.releaser.VersionDescriptor
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -78,7 +77,7 @@ class BintrayHttp(creds:ServiceCredentials) extends Logger {
     val call = apiWs(url)
       .withHeaders(
         "X-Bintray-Package" -> version.artefactName,
-        "X-Bintray-Version" -> version.version.value)
+        "X-Bintray-Version" -> version.version)
       .put(file.toFile)
 
     val result: WSResponse = Await.result(call, Duration.apply(6, TimeUnit.MINUTES))

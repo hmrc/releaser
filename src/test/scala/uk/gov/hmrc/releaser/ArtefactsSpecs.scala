@@ -19,7 +19,7 @@ package uk.gov.hmrc.releaser
 import java.nio.file.Files
 
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import uk.gov.hmrc.releaser.Builders._
+import uk.gov.hmrc.releaser.github.Repo
 
 class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
 
@@ -71,4 +71,15 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
 
     }
   }
+
+  private def mavenVersionMapping(artefactName:String = "a",
+                                  repoName:String = "a",
+                                  rcVersion:String = "1.3.0-1-g21312cc",
+                                  releaseVersion:String = "1.4.0") =
+    VersionMapping(
+      RepoFlavours.mavenRepository,
+      artefactName,
+      Repo(repoName),
+      ReleaseCandidateVersion(rcVersion),
+      ReleaseVersion(releaseVersion))
 }
