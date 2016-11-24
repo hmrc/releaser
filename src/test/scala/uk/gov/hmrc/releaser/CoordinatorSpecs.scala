@@ -247,18 +247,6 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
     }
   }
 
-  // TODO: This should be tested at the public interface
-  //  "buildTargetFileName" should {
-  //    "buildTargetFileName" in {
-  //      val coord = buildDefaultCoordinator()
-  //      val remotePath = "/time/time_2.11-1.3.0-1-g21312cc.jar"
-  //      val versionMapping: VersionMapping = mavenVersionMapping(artefactName = "time", releaseVersion = "1.0.0")
-  //      val targetFileName = coord.buildTargetFileName(versionMapping, remotePath, "time_2.11-1.3.0-1-g21312cc")
-  //
-  //      targetFileName shouldBe "time_2.11-1.0.0.jar"
-  //    }
-  //  }
-
   private def manifestFromZipFile(file: Path): Option[Attributes] = {
     val zipFile: ZipFile = new ZipFile(file.toFile)
 
