@@ -27,7 +27,7 @@ import uk.gov.hmrc.releaser.github.{GithubTagAndRelease, Repo}
 import scala.util.{Failure, Success, Try}
 
 class Coordinator(stageDir: Path,
-                  findArtefactMetaData:(Path) => Try[ArtefactMetaData],
+                  metaDataProvider: MetaDataProvider,
                   githubConnector: GithubTagAndRelease,
                   bintrayConnector: BintrayRepoConnector) extends Logger {
 
@@ -49,7 +49,7 @@ class Coordinator(stageDir: Path,
       files <- bintrayConnector.findFiles(map.sourceArtefact)
       remotes = artefacts.transformersForSupportedFiles(files)
       localJar = bintrayConnector.findJar(bintrayJarFilename, bintrayJarUrl, map.sourceArtefact)
-      (commitSha, commitAuthor, commitDate) <- getMetaData(localJar).map(x => ArtefactMetaData.unapply(x).get)
+      (commitSha, commitAuthor, commitDate) <- getMetaData(localJar, files).map(x => ArtefactMetaData.unapply(x).get)
       _ <- githubConnector.verifyGithubTagExists(map.gitRepo, commitSha)
       transd <- transformFiles(repo, map, remotes, artefacts.filePrefix)
       _ <- uploadFiles(repo, map.targetArtefact, transd)
@@ -68,9 +68,9 @@ class Coordinator(stageDir: Path,
     }
   }
 
-  private def getMetaData(jarPath: Option[Path]): Try[ArtefactMetaData] = {
+  private def getMetaData(jarPath: Option[Path], files: List[String]): Try[ArtefactMetaData] = {
     jarPath match {
-      case Some(path) => findArtefactMetaData(path)
+      case Some(path) => metaDataProvider.fromJarFile(path)
       case None => ???
     }
   }

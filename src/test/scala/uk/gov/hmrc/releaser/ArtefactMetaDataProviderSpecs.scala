@@ -23,11 +23,11 @@ import uk.gov.hmrc.releaser.github.GithubConnector
 
 import scala.util.Failure
 
-class ArtefactMetaDataSpecs extends WordSpec with Matchers with TryValues{
+class ArtefactMetaDataProviderSpecs extends WordSpec with Matchers with TryValues {
 
   "ArtefactMetaData" should {
     "build instance from file" in {
-      val md = ArtefactMetaData.fromFile(Paths.get(this.getClass.getResource("/sbt-bobby/sbt-bobby.jar").toURI))  match {
+      val md = new ArtefactMetaDataProvider().fromJarFile(Paths.get(this.getClass.getResource("/sbt-bobby/sbt-bobby.jar").toURI))  match {
         case Failure(e) => fail(e)
         case s => s
       }
