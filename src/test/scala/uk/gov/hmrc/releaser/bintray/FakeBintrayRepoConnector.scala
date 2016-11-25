@@ -22,22 +22,22 @@ import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 class FakeBintrayRepoConnector(filesuffix:String  = "",
-                                jarResoure:Option[String] = Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
-                                bintrayFiles:Set[String] = Set("/time/time_2.11-1.3.0-1-g21312cc.pom"),
-                                targetExists:Boolean = false) extends BintrayRepoConnector {
+                               jarResource:Option[String],
+                               bintrayFiles:Set[String],
+                               targetExists:Boolean = false) extends BintrayRepoConnector {
 
   val uploadedFiles = mutable.Set[(VersionDescriptor, Path, String)]()
   var lastPublishDescriptor: Option[VersionDescriptor] = None
 
   override def findJar(jarFileName: String, jarUrl: String, version: VersionDescriptor): Option[Path] =
-    jarResoure.map { x => Paths.get(this.getClass.getResource(filesuffix + x).toURI) }
+    jarResource.map { x => Paths.get(this.getClass.getResource(filesuffix + x).toURI) }
 
   override def publish(version: VersionDescriptor): Try[Unit] = {
     lastPublishDescriptor = Some(version)
     Success(Unit)
   }
 
-  override def findFiles(version: VersionDescriptor): Try[List[String]] = Success(bintrayFiles.toList ++ jarResoure)
+  override def findFiles(version: VersionDescriptor): Try[List[String]] = Success(bintrayFiles.toList ++ jarResource)
 
   override def downloadFile(url: String, fileName: String): Try[Path] = {
     Success {
