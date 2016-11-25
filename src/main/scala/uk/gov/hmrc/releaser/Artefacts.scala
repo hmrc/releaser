@@ -23,19 +23,24 @@ import uk.gov.hmrc.Logger
 import scala.collection.immutable.ListMap
 
 trait TransformerProvider extends Logger {
-  def transformersForSupportedFiles(filePaths: List[String]): List[(String, Option[Transformer])]
   def isTheJarFile(f:String):Boolean
   def filePrefix:String
 
   def regexTransformers: ListMap[String, Option[Transformer]]
 
-  protected def isRelevantFile(filePath: String): Boolean = {
+  def transformersForSupportedFiles(filePaths: List[String]): List[(String, Option[Transformer])] = {
+    filePaths
+      .filter(isRelevantFile)
+      .map { f => f -> findTransformer(f).flatten }
+  }
+
+  private def isRelevantFile(filePath: String): Boolean = {
     val isRelevant = findTransformer(filePath).isDefined
     if (!isRelevant) log.warn(s"$filePath was ignored because it is an unsupported file type")
     isRelevant
   }
 
-  protected def findTransformer(filePath: String): Option[Option[Transformer]] = {
+  private def findTransformer(filePath: String): Option[Option[Transformer]] = {
     val fileName = filePath.split("/").last
     regexTransformers
       .find(t => t._1.r.findFirstIn(fileName).isDefined)
@@ -68,16 +73,6 @@ class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvide
   }
 
   def filePrefix = ""
-
-  def transformersForSupportedFiles(filePaths: List[String]): List[(String, Option[Transformer])] = {
-    filePaths
-      .filter(f => regexTransformers.get(f).isDefined)
-      .map { f => f -> regexTransformers.get(f).flatten }
-
-    filePaths
-      .filter(isRelevantFile)
-      .map { f => f -> findTransformer(f).flatten }
-  }
 }
 
 
@@ -101,11 +96,5 @@ class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvi
 
   def isTheJarFile(f:String):Boolean={
     f.split("/").last == filePrefix+".jar"
-  }
-
-  def transformersForSupportedFiles(filePaths: List[String]): List[(String, Option[Transformer])] = {
-    filePaths
-      .filter(isRelevantFile)
-      .map { f => f -> findTransformer(f).flatten }
   }
 }
