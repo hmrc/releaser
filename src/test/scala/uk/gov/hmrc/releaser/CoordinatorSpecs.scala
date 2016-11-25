@@ -144,7 +144,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "1.4.0"
     }
 
-    "Require only a .pom and a commit manifest in order to release an artifact" in {
+    "Require only a .pom matching the artefact and version, and a commit manifest in order to release an artifact" in {
 
       val sha = "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c"
       val author = "charleskubicek"
@@ -172,12 +172,44 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-javadoc.jar")) shouldBe None
 
       val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
-      val Some((sjsJarVersion, sjsJarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("0.2.0.jar"))
+      val Some((sjsJarVersion, sjsJarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("paye-estimator_sjs0.6_2.11-0.2.0.jar"))
 
       sjsJarVersion.version shouldBe "0.2.0"
 
       val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
       pomVersionText shouldBe "0.2.0"
+    }
+
+    "Should rename and release any zip and tgz files that are present in the artefact but do not match the standard naming convention" in {
+      val sha = "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c"
+      val author = "charleskubicek"
+      val commitDate = new DateTime(2011, 6, 17, 14, 53, 35, UTC)
+
+      val metaDataProvider = mock[MetaDataProvider]
+      when(metaDataProvider.fromCommitManifest(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
+
+      val fakeRepoConnector = new FakeBintrayRepoConnector(
+        jarResoure = None,
+        bintrayFiles = Set(
+          "/paye-estimator/commit.mf",
+          "/paye-estimator/paye-estimator_2.11-0.1.0-1-g1906708.pom",
+          "/paye-estimator/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.tgz",
+          "/paye-estimator/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.zip"))
+
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
+      coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
+        case Failure(e) => fail(e)
+        case _ =>
+      }
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 3
+      fakeRepoConnector.lastPublishDescriptor should not be None
+
+      val Some((tgzVersion, _, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("paye-estimator_sjs0.6_2.11-0.2.0.tgz"))
+      val Some((zipVersion, _, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("paye-estimator_sjs0.6_2.11-0.2.0.zip"))
+
+      tgzVersion.version shouldBe "0.2.0"
+      zipVersion.version shouldBe "0.2.0"
     }
 
     "fail when given the sha in the jar manifest does not exist" in {

@@ -40,7 +40,8 @@ class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvide
     map.artefactName+"\\.jar"          -> Some(new JarManifestTransformer),
     "ivy\\.xml"                        -> Some(new IvyTransformer),
     s".+\\.jar$$"                      -> Some(new NoopTransformer),
-    s".+\\.tgz$$"                      -> Some(new NoopTransformer))
+    s".+\\.tgz$$"                      -> Some(new NoopTransformer),
+    s".+\\.zip$$"                      -> Some(new NoopTransformer))
 
   def isTheJarFile(f:String):Boolean={
     f == map.artefactName+".jar"
@@ -86,7 +87,8 @@ class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvi
     s".*-javadoc\\.jar$$" -> None,
     s".*-sources\\.jar$$" -> None,
     s".+\\.jar$$" -> Some(new NoopTransformer),
-    s".+\\.tgz$$" -> Some(new NoopTransformer))
+    s".+\\.tgz$$" -> Some(new NoopTransformer),
+    s".+\\.zip$$" -> Some(new NoopTransformer))
 
   def isTheJarFile(f:String):Boolean={
     f.split("/").last == filePrefix+".jar"

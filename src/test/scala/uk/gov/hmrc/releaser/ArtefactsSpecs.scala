@@ -30,21 +30,27 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       val artefacts = new MavenArtefacts(ver, Files.createTempDirectory("test"))
       val files = List(
         "time/time_2.11-1.3.0-1-g21312cc.jar",
+        "time/time_2.11-1.3.0-1-g21312cc.zip",
+        "time/time_2.11-1.3.0-1-g21312cc.tgz",
         "time/time_2.11-1.3.0-1-g21312cc-assembly.jar",
         "time/time_2.11-1.3.0-1-g21312cc-sources.jar",
         "time/time_2.11-1.3.0-1-g21312cc.pom",
-        "time/time_2.11-1.3.0-1-g21312cc.pom.md5"
+        "time/time_2.11-1.3.0-1-g21312cc.pom.md5",
+        "time/time_2.11-other-1.3.0-1-g21312cc.tgz"
       )
 
       val result: Map[String, Option[Transformer]] = artefacts.transformersForSupportedFiles(filePaths = files).toMap
 
       result foreach println
 
-      result.size shouldBe 4
+      result.size shouldBe 7
       result("time/time_2.11-1.3.0-1-g21312cc.jar").isInstanceOf[Some[JarManifestTransformer]] shouldBe true
+      result("time/time_2.11-1.3.0-1-g21312cc.zip").isInstanceOf[Some[NoopTransformer]] shouldBe true
+      result("time/time_2.11-1.3.0-1-g21312cc.tgz").isInstanceOf[Some[TgzTransformer]] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc-assembly.jar").isInstanceOf[Some[NoopTransformer]] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc-sources.jar") shouldBe None
       result("time/time_2.11-1.3.0-1-g21312cc.pom").isInstanceOf[Some[PomTransformer]] shouldBe true
+      result("time/time_2.11-other-1.3.0-1-g21312cc.tgz").isInstanceOf[Some[NoopTransformer]] shouldBe true
 
     }
   }
@@ -56,6 +62,8 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       val artefacts = new IvyArtefacts(ver, Files.createTempDirectory("test"))
       val files = List(
         "sbt-bobby.jar",
+        "sbt-bobby.zip",
+        "sbt-bobby.tgz",
         "sbt-bobby-assembly.jar",
         "sbt-bobby-sources.jar",
         "ivy.xml"
@@ -63,9 +71,11 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
 
       val result: Map[String, Option[Transformer]] = artefacts.transformersForSupportedFiles(filePaths = files).toMap
 
-      result.size shouldBe 4
-      result("sbt-bobby-assembly.jar").isInstanceOf[Some[NoopTransformer]] shouldBe true
+      result.size shouldBe 6
       result("sbt-bobby.jar").isInstanceOf[Some[JarManifestTransformer]] shouldBe true
+      result("sbt-bobby.zip").isInstanceOf[Some[NoopTransformer]] shouldBe true
+      result("sbt-bobby.tgz").isInstanceOf[Some[NoopTransformer]] shouldBe true
+      result("sbt-bobby-assembly.jar").isInstanceOf[Some[NoopTransformer]] shouldBe true
       result("sbt-bobby-sources.jar") shouldBe None
       result("ivy.xml").isInstanceOf[Some[IvyTransformer]] shouldBe true
 
