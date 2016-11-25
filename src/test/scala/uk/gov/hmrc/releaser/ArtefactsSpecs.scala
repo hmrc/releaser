@@ -41,10 +41,10 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       result foreach println
 
       result.size shouldBe 4
-      result("time/time_2.11-1.3.0-1-g21312cc.jar") should not be None
-      result("time/time_2.11-1.3.0-1-g21312cc-assembly.jar") shouldBe None
+      result("time/time_2.11-1.3.0-1-g21312cc.jar").isInstanceOf[Some[JarManifestTransformer]] shouldBe true
+      result("time/time_2.11-1.3.0-1-g21312cc-assembly.jar").isInstanceOf[Some[NoopTransformer]] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc-sources.jar") shouldBe None
-      result("time/time_2.11-1.3.0-1-g21312cc.pom") should not be None
+      result("time/time_2.11-1.3.0-1-g21312cc.pom").isInstanceOf[Some[PomTransformer]] shouldBe true
 
     }
   }
@@ -64,10 +64,10 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       val result: Map[String, Option[Transformer]] = artefacts.transformersForSupportedFiles(filePaths = files).toMap
 
       result.size shouldBe 4
-      result("sbt-bobby-assembly.jar") shouldBe None
-      result("sbt-bobby.jar") should not be None
+      result("sbt-bobby-assembly.jar").isInstanceOf[Some[NoopTransformer]] shouldBe true
+      result("sbt-bobby.jar").isInstanceOf[Some[JarManifestTransformer]] shouldBe true
       result("sbt-bobby-sources.jar") shouldBe None
-      result("ivy.xml") should not be None
+      result("ivy.xml").isInstanceOf[Some[IvyTransformer]] shouldBe true
 
     }
   }

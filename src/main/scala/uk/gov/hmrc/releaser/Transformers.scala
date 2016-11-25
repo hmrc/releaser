@@ -223,3 +223,11 @@ class TgzTransformer extends Transformer {
   }
 
 }
+
+class NoopTransformer() extends Transformer {
+  override def apply(localFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path] = {
+    Try {
+      Files.copy(localFile, targetFile)
+    }
+  }
+}

@@ -39,8 +39,6 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
 
       mavenPaths.jarFilenameFor(version) shouldBe "time_2.10-1.3.0-1-g21312cc.jar"
       mavenPaths.jarDownloadFor(version) shouldBe expectedJarUrl
-
-      mavenPaths.filenameFor(version, ".pom") shouldBe "time_2.10-1.3.0-1-g21312cc.pom"
       mavenPaths.fileDownloadFor(version, "time_2.10-1.3.0-1-g21312cc.pom") shouldBe expectedPomUrl
     }
 

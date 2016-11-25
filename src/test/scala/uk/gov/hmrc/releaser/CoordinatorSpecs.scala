@@ -67,6 +67,8 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
       val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("1.3.1.jar"))
 
+      assemblyVersion.version shouldBe "1.3.1"
+
       val jarManifest = manifestFromZipFile(jarFile)
       jarManifest.value.getValue("Implementation-Version") shouldBe "1.3.1"
       jarVersion.version shouldBe "1.3.1"
@@ -95,8 +97,12 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case _ =>
       }
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 4
+      fakeRepoConnector.uploadedFiles.size shouldBe 3
       fakeRepoConnector.lastPublishDescriptor should not be None
+
+      fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-sources.jar")) shouldBe None
+      fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".tgz.asc")) shouldBe None
+      fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".tgz.asc.md5")) shouldBe None
 
       val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
       val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("2.0.0.jar"))
@@ -138,36 +144,41 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "1.4.0"
     }
 
-//    "Require only a .pom and a commit manifest in order to release an artifact" in {
-//
-//      val fakeRepoConnector = Builders.buildConnector(
-//        "",
-//        None,
-//        Set("/lib/commit.mf", "/lib/lib_2.11-1.3.0-1-g21312cc.pom")
-//      )
-//
-//      def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
-//
-//      val releaser = buildDefaultReleaser(
-//        repositoryFinder = successfulRepoFinder(mavenRepository),
-//        connectorBuilder = fakeRepoConnectorBuilder,
-//        artefactMetaData = ArtefactMetaData("sha", "lib", DateTime.now()))
-//
-//      releaser.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseVersion("0.9.9")) match {
-//        case Failure(e) => fail(e)
-//        case _ =>
-//      }
-//
-//      fakeRepoConnector.uploadedFiles.size shouldBe 2
-//
-//      val Some((_, pomFile)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
-//
-//      val publishedDescriptor = fakeRepoConnector.lastPublishDescriptor
-//      publishedDescriptor should not be None
-//
-//      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
-//      pomVersionText shouldBe "0.9.9"
-//    }
+    "Require only a .pom and a commit manifest in order to release an artifact" in {
+
+      val sha = "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c"
+      val author = "charleskubicek"
+      val commitDate = new DateTime(2011, 6, 17, 14, 53, 35, UTC)
+
+      val metaDataProvider = mock[MetaDataProvider]
+      when(metaDataProvider.fromCommitManifest(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
+
+      val fakeRepoConnector = new FakeBintrayRepoConnector(
+        jarResoure = None,
+        bintrayFiles = Set(
+          "/paye-estimator/commit.mf",
+          "/paye-estimator/paye-estimator_2.11-0.1.0-1-g1906708.pom",
+          "/paye-estimator/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.jar",
+          "/paye-estimator/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708-javadoc.jar"))
+
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
+      coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
+        case Failure(e) => fail(e)
+        case _ =>
+      }
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 2
+      fakeRepoConnector.lastPublishDescriptor should not be None
+      fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-javadoc.jar")) shouldBe None
+
+      val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
+      val Some((sjsJarVersion, sjsJarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("0.2.0.jar"))
+
+      sjsJarVersion.version shouldBe "0.2.0"
+
+      val pomVersionText = (XML.loadFile(pomFile.toFile) \ "version").text
+      pomVersionText shouldBe "0.2.0"
+    }
 
     "fail when given the sha in the jar manifest does not exist" in {
       val metaDataProvider = mock[MetaDataProvider]

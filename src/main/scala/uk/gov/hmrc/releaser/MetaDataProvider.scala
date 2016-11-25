@@ -25,11 +25,12 @@ import org.joda.time.format.DateTimeFormat
 import uk.gov.hmrc.releaser.github.CommitSha
 
 import scala.collection.JavaConversions._
+import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
 trait MetaDataProvider {
   def fromJarFile(p: Path): Try[ArtefactMetaData]
-
+  def fromCommitManifest(p: Path): Try[ArtefactMetaData]
 }
 
 case class ArtefactMetaData(sha:CommitSha, commitAuthor:String, commitDate:DateTime)
@@ -47,6 +48,17 @@ class ArtefactMetaDataProvider extends MetaDataProvider {
           gitCommitDateFormat.parseDateTime(man.getMainAttributes.getValue("Git-Commit-Date"))
         )
       }.toTry(new Exception(s"Failed to retrieve manifest from $p"))
+    }
+  }
+
+  def fromCommitManifest(p: Path): Try[ArtefactMetaData] = {
+    Try {
+      val map = Source.fromFile(p.toFile)
+        .getLines().toSeq
+        .map(_.split("="))
+        .map { case Array(key, value) => key.trim -> value.trim }.toMap
+
+      ArtefactMetaData(map("sha"), map("author"),  gitCommitDateFormat.parseDateTime(map("date")))
     }
   }
 }

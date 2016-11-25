@@ -37,7 +37,6 @@ trait BintrayPaths  {
   val path = System.getProperty("bintray.path", "uk/gov/hmrc")
   val bintrayRepoRoot = s"https://bintray.com/artifact/download/hmrc"
 
-  def filenameFor(v:VersionDescriptor, suffix:String): String
   def jarFilenameFor(v: VersionDescriptor): String
   def jarDownloadFor(v: VersionDescriptor): String
   def jarUploadFor(v: VersionDescriptor): String
@@ -50,10 +49,6 @@ trait BintrayIvyPaths extends BintrayPaths {
 
   val sbtVersion = "sbt_0.13"
   def scalaVersion: String
-
-  override def filenameFor(v:VersionDescriptor, suffix:String):String={
-    s"$suffix"
-  }
 
   override def jarFilenameFor(v:VersionDescriptor):String={
     s"${v.artefactName}.jar"
@@ -93,13 +88,9 @@ trait BintrayIvyPaths extends BintrayPaths {
   }
 }
 
-trait BintrayMavenPaths extends BintrayPaths{
+trait BintrayMavenPaths extends BintrayPaths {
 
-  def scalaVersion:String
-
-  override def filenameFor( v:VersionDescriptor, suffix:String):String={
-    s"${v.artefactName}_$scalaVersion-${v.version}$suffix"
-  }
+  def scalaVersion: String
 
   def jarFilenameFor(v:VersionDescriptor):String={
     s"${v.artefactName}_$scalaVersion-${v.version}.jar"
