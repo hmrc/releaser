@@ -44,13 +44,13 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       result foreach println
 
       result.size shouldBe 7
-      result("time/time_2.11-1.3.0-1-g21312cc.jar").isInstanceOf[Some[JarManifestTransformer]] shouldBe true
-      result("time/time_2.11-1.3.0-1-g21312cc.zip").isInstanceOf[Some[NoopTransformer]] shouldBe true
-      result("time/time_2.11-1.3.0-1-g21312cc.tgz").isInstanceOf[Some[TgzTransformer]] shouldBe true
-      result("time/time_2.11-1.3.0-1-g21312cc-assembly.jar").isInstanceOf[Some[NoopTransformer]] shouldBe true
+      result("time/time_2.11-1.3.0-1-g21312cc.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
+      result("time/time_2.11-1.3.0-1-g21312cc.zip").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
+      result("time/time_2.11-1.3.0-1-g21312cc.tgz").get.isInstanceOf[TgzTransformer] shouldBe true
+      result("time/time_2.11-1.3.0-1-g21312cc-assembly.jar").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc-sources.jar") shouldBe None
-      result("time/time_2.11-1.3.0-1-g21312cc.pom").isInstanceOf[Some[PomTransformer]] shouldBe true
-      result("time/time_2.11-other-1.3.0-1-g21312cc.tgz").isInstanceOf[Some[NoopTransformer]] shouldBe true
+      result("time/time_2.11-1.3.0-1-g21312cc.pom").get.isInstanceOf[PomTransformer] shouldBe true
+      result("time/time_2.11-other-1.3.0-1-g21312cc.tgz").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
 
     }
   }
@@ -72,12 +72,12 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       val result: Map[String, Option[Transformer]] = artefacts.transformersForSupportedFiles(filePaths = files).toMap
 
       result.size shouldBe 6
-      result("sbt-bobby.jar").isInstanceOf[Some[JarManifestTransformer]] shouldBe true
-      result("sbt-bobby.zip").isInstanceOf[Some[NoopTransformer]] shouldBe true
-      result("sbt-bobby.tgz").isInstanceOf[Some[NoopTransformer]] shouldBe true
-      result("sbt-bobby-assembly.jar").isInstanceOf[Some[NoopTransformer]] shouldBe true
+      result("sbt-bobby.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
+      result("sbt-bobby.zip").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
+      result("sbt-bobby.tgz").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
+      result("sbt-bobby-assembly.jar").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
       result("sbt-bobby-sources.jar") shouldBe None
-      result("ivy.xml").isInstanceOf[Some[IvyTransformer]] shouldBe true
+      result("ivy.xml").get.isInstanceOf[IvyTransformer] shouldBe true
 
     }
   }

@@ -18,30 +18,50 @@ package uk.gov.hmrc.releaser
 
 import java.nio.file.Path
 
-import scala.collection.immutable.ListMap
-import scala.collection.mutable
+import uk.gov.hmrc.Logger
 
-trait TransformerProvider{
+import scala.collection.immutable.ListMap
+
+trait TransformerProvider extends Logger {
   def transformersForSupportedFiles(filePaths: List[String]): List[(String, Option[Transformer])]
   def isTheJarFile(f:String):Boolean
   def filePrefix:String
+
+  def regexTransformers: ListMap[String, Option[Transformer]]
+
+  protected def isRelevantFile(filePath: String): Boolean = {
+    val isRelevant = findTransformer(filePath).isDefined
+    if (!isRelevant) log.warn(s"$filePath was ignored because it is an unsupported file type")
+    isRelevant
+  }
+
+  protected def findTransformer(filePath: String): Option[Option[Transformer]] = {
+    val fileName = filePath.split("/").last
+    regexTransformers
+      .find(t => t._1.r.findFirstIn(fileName).isDefined)
+      .map(t => {
+        val transformer = t._2
+        if (transformer.isEmpty) log.warn(s"$filePath was ignored because it is a blacklisted file type")
+        transformer
+      })
+  }
 }
 
 object IvyArtefacts{
   def apply(map:VersionMapping, localDir:Path) = new IvyArtefacts(map, localDir)
 }
 
-class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvider{
+class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvider {
 
-  val regexTransformers = Map(
+  val regexTransformers = ListMap(
     map.artefactName+"-sources\\.jar"  -> None,
     map.artefactName+"-javadoc\\.jar"  -> None,
-    map.artefactName+"-assembly\\.jar" -> Some(new NoopTransformer),
+    map.artefactName+"-assembly\\.jar" -> Some(new CopyAndRenameTransformer),
     map.artefactName+"\\.jar"          -> Some(new JarManifestTransformer),
     "ivy\\.xml"                        -> Some(new IvyTransformer),
-    s".+\\.jar$$"                      -> Some(new NoopTransformer),
-    s".+\\.tgz$$"                      -> Some(new NoopTransformer),
-    s".+\\.zip$$"                      -> Some(new NoopTransformer))
+    s".+\\.jar$$"                      -> Some(new CopyAndRenameTransformer),
+    s".+\\.tgz$$"                      -> Some(new CopyAndRenameTransformer),
+    s".+\\.zip$$"                      -> Some(new CopyAndRenameTransformer))
 
   def isTheJarFile(f:String):Boolean={
     f == map.artefactName+".jar"
@@ -58,17 +78,6 @@ class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvide
       .filter(isRelevantFile)
       .map { f => f -> findTransformer(f).flatten }
   }
-
-  private def isRelevantFile(filePath: String): Boolean = {
-    findTransformer(filePath).isDefined
-  }
-
-  private def findTransformer(filePath: String): Option[Option[Transformer]] = {
-    val fileName = filePath.split("/").last
-    regexTransformers
-      .find(t => t._1.r.findFirstIn(fileName).isDefined)
-      .map(t => t._2)
-  }
 }
 
 
@@ -76,7 +85,7 @@ object MavenArtefacts{
   def apply(map:VersionMapping, localDir:Path) = new MavenArtefacts(map, localDir)
 }
 
-class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvider{
+class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvider {
 
   val filePrefix = s"${map.artefactName}_${map.repo.scalaVersion}-${map.sourceVersion.value}"
 
@@ -86,9 +95,9 @@ class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvi
     s"$filePrefix\\.tgz$$" -> Some(new TgzTransformer),
     s".*-javadoc\\.jar$$" -> None,
     s".*-sources\\.jar$$" -> None,
-    s".+\\.jar$$" -> Some(new NoopTransformer),
-    s".+\\.tgz$$" -> Some(new NoopTransformer),
-    s".+\\.zip$$" -> Some(new NoopTransformer))
+    s".+\\.jar$$" -> Some(new CopyAndRenameTransformer),
+    s".+\\.tgz$$" -> Some(new CopyAndRenameTransformer),
+    s".+\\.zip$$" -> Some(new CopyAndRenameTransformer))
 
   def isTheJarFile(f:String):Boolean={
     f.split("/").last == filePrefix+".jar"
@@ -98,16 +107,5 @@ class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvi
     filePaths
       .filter(isRelevantFile)
       .map { f => f -> findTransformer(f).flatten }
-  }
-
-  private def isRelevantFile(filePath: String): Boolean = {
-    findTransformer(filePath).isDefined
-  }
-
-  private def findTransformer(filePath: String): Option[Option[Transformer]] = {
-    val fileName = filePath.split("/").last
-    regexTransformers
-      .find(t => t._1.r.findFirstIn(fileName).isDefined)
-      .map(t => t._2)
   }
 }
