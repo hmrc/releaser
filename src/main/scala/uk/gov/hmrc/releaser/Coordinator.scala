@@ -67,8 +67,8 @@ class Coordinator(stageDir: Path,
   }
 
   private def getMetaData(repo: RepoFlavour, map: VersionMapping, files: List[String]): Try[ArtefactMetaData] = {
-    val jarUrl = repo.jarDownloadFor(map.targetArtefact)
-    val jarFileName = repo.jarFilenameFor(map.targetArtefact)
+    val jarUrl = repo.jarDownloadFor(map.sourceArtefact)
+    val jarFileName = repo.jarFilenameFor(map.sourceArtefact)
 
     bintrayConnector.findJar(jarFileName, jarUrl, map.sourceArtefact) match {
       case Some(path) => metaDataProvider.fromJarFile(path)
