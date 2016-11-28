@@ -62,9 +62,9 @@ Any JAR files present will be modified to update instances of version numbers co
 
 If the artefact does NOT contain a JAR matching the naming conventions, you must supply a commit.mf file instead. This file tells the releaser which commit to tag when making the release. An example is as follows:
 
-```` sha=c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c
-```` author=charleskubicek
-```` date=2011-06-17T14:53:35Z
+    sha=c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c
+    author=charleskubicek
+    date=2011-06-17T14:53:35Z
 
 ### Coding in the Open
 Release is an integral part of how we release code in the open, more information can be found in the [Coding in the Open Manual](http://hmrc.github.io/coding-in-the-open-manual/)
