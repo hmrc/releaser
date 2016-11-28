@@ -30,6 +30,42 @@ Releaser will release:
 - Maven based libraries and services found in https://bintray.com/hmrc/release-candidates
 - Ivy based libraries for SBT plugins found in https://bintray.com/hmrc/sbt-plugin-release-candidates
 
+####Naming conventions
+Artefacts supplied to the releaser need to follow the following naming convention:
+
+<artefact-name>_<scala-version>-<version>.<extension>
+E.g: catalogue-frontend_2.11-4.77.0-5-g8d3e2c5.jar
+
+####Supported File Types
+
+The releaser will handle the following file types found in release candidates:
+* .pom
+* .jar
+* .tgz
+
+The following files will be specifically ignored if present:
+* *-sources.jar
+* *-javadoc.jar
+
+The releaser will modify .jar and .tgz files in order to update instances of version numbers contained within. All other files will be ignored and will not be copied to the released artefact.
+
+####Additional files/non-standard artefacts
+
+The releaser also supports files that do not match the naming conventions above. The following additional filenames are supported:
+
+* .pom
+* .jar
+* .tgz
+* .zip
+
+Any JAR files present will be modified to update instances of version numbers contained withing. Any other files will be renamed if the filenames contain a release candidate version string, but otherwise no transformations will be applied.
+
+If the artefact does NOT contain a JAR matching the naming conventions, you must supply a commit.mf file instead. This file tells the releaser which commit to tag when making the release. An example is as follows:
+
+`sha=c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c
+author=charleskubicek
+date=2011-06-17T14:53:35Z`
+
 ### Coding in the Open
 Release is an integral part of how we release code in the open, more information can be found in the [Coding in the Open Manual](http://hmrc.github.io/coding-in-the-open-manual/)
 
