@@ -39,7 +39,7 @@ E.g: catalogue-frontend_2.11-4.77.0-5-g8d3e2c5.jar
 ####Supported File Types
 
 The releaser will handle the following file types found in release candidates:
-* .pom
+* .pom (mandatory)
 * .jar
 * .tgz
 
@@ -57,7 +57,7 @@ The releaser also supports files that do not match the naming conventions above.
 * .tgz
 * .zip
 
-Any JAR files present will be modified to update instances of version numbers contained withing. Any other files will be renamed if the filenames contain a release candidate version string, but otherwise no transformations will be applied.
+Any JAR files present will be modified to update instances of version numbers contained within. Any other files will be renamed if the filenames contain a release candidate version string, but otherwise no transformations will be applied.
 
 If the artefact does NOT contain a JAR matching the naming conventions, you must supply a commit.mf file instead. This file tells the releaser which commit to tag when making the release. An example is as follows:
 
