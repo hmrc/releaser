@@ -49,7 +49,7 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       result("time/time_2.11-1.3.0-1-g21312cc.zip").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc.tgz").get.isInstanceOf[TgzTransformer] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc-assembly.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
-      result("time/time_2.11-1.3.0-1-g21312cc-sources.jar") shouldBe None
+      result("time/time_2.11-1.3.0-1-g21312cc-sources.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc.pom").get.isInstanceOf[PomTransformer] shouldBe true
       result("time/time_2.11-other-1.3.0-1-g21312cc.tgz").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
       result("time/time_2.11-other-1.3.0-1-g21312cc.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
@@ -79,7 +79,7 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       result("sbt-bobby.tgz").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
       result("sbt-bobby-assembly.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
       result("sbt-bobby-other.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
-      result("sbt-bobby-sources.jar") shouldBe None
+      result("sbt-bobby-sources.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
       result("ivy.xml").get.isInstanceOf[IvyTransformer] shouldBe true
 
     }

@@ -51,8 +51,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       when(metaDataProvider.fromJarFile(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
       val fakeRepoConnector = new FakeBintrayRepoConnector(
-        jarResource = Some("/lib/lib_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set("/lib/lib_2.11-1.3.0-1-g21312cc.pom", "/lib/lib_2.11-1.3.0-1-g21312cc-assembly.jar"))
+        "/lib/",
+        jarResource = Some("lib_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set("lib_2.11-1.3.0-1-g21312cc.pom", "lib_2.11-1.3.0-1-g21312cc-assembly.jar"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.HOTFIX) match {
@@ -83,13 +84,14 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       when(metaDataProvider.fromJarFile(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
       val fakeRepoConnector = new FakeBintrayRepoConnector(
-        jarResource = Some("/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.jar"),
+        "/help-frontend/",
+        jarResource = Some("help-frontend_2.11-1.26.0-3-gd7ed03c.jar"),
         bintrayFiles = Set(
-          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.pom",
-          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz",
-          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc",
-          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc.md5",
-          "/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c-sources.jar"))
+          "help-frontend_2.11-1.26.0-3-gd7ed03c.pom",
+          "help-frontend_2.11-1.26.0-3-gd7ed03c.tgz",
+          "help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc",
+          "help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc.md5",
+          "help-frontend_2.11-1.26.0-3-gd7ed03c-sources.jar"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseType.MAJOR) match {
@@ -97,10 +99,10 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case _ =>
       }
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 3
+      fakeRepoConnector.uploadedFiles.size shouldBe 4
       fakeRepoConnector.lastPublishDescriptor should not be None
 
-      fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-sources.jar")) shouldBe None
+      fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-sources.jar")) should not be None
       fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".tgz.asc")) shouldBe None
       fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".tgz.asc.md5")) shouldBe None
 
@@ -121,8 +123,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       when(metaDataProvider.fromJarFile(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
       val fakeRepoConnector = new FakeBintrayRepoConnector(
-        jarResource = Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set("/time/time_2.11-1.3.0-1-g21312cc.pom"))
+        "/time/",
+        jarResource = Some("time_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set("time_2.11-1.3.0-1-g21312cc.pom"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.MINOR) match {
@@ -146,7 +149,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       pomVersionText shouldBe "1.4.0"
     }
 
-    "Require only a .pom matching the artefact and version, and a commit manifest in order to release an artifact" in {
+    "Require only a .pom and a commit manifest in order to release an artifact" in {
 
       val sha = "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c"
       val author = "charleskubicek"
@@ -156,13 +159,14 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       when(metaDataProvider.fromCommitManifest(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
       val fakeRepoConnector = new FakeBintrayRepoConnector(
+        "/paye-estimator/",
         jarResource = None,
         bintrayFiles = Set(
-          "/paye-estimator/commit.mf",
-          "/paye-estimator/paye-estimator_2.11-0.1.0-1-g1906708.pom",
-          "/paye-estimator/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.jar",
-          "/paye-estimator/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708-javadoc.jar"))
-
+          "commit_sjs0.6_2.11-0.1.0-1-g1906708.mf",
+          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.pom",
+          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.jar",
+          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708-javadoc.jar"))
+ 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
         case Failure(e) => fail(e)
@@ -191,12 +195,13 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       when(metaDataProvider.fromCommitManifest(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
       val fakeRepoConnector = new FakeBintrayRepoConnector(
+        "/paye-estimator/",
         jarResource = None,
         bintrayFiles = Set(
-          "/paye-estimator/commit.mf",
-          "/paye-estimator/paye-estimator_2.11-0.1.0-1-g1906708.pom",
-          "/paye-estimator/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.tgz",
-          "/paye-estimator/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.zip"))
+          "commit_sjs0.6_2.11-0.1.0-1-g1906708.mf",
+          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.pom",
+          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.tgz",
+          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.zip"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
@@ -224,8 +229,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       }
 
       val fakeRepoConnector = new FakeBintrayRepoConnector(
-        jarResource = Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set("/time/time_2.11-1.3.0-1-g21312cc.pom"))
+        "/time/",
+        jarResource = Some("time_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set("time_2.11-1.3.0-1-g21312cc.pom"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, taggerAndReleaser, fakeRepoConnector)
       coordinator.start("time", Repo("time"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
@@ -237,8 +243,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
     "fail when the artefact has already been released" in {
 
       val fakeRepoConnector = new FakeBintrayRepoConnector(
-        jarResource = Some("/time/time_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set("/time/time_2.11-1.3.0-1-g21312cc.pom"), targetExists = true)
+        "/time/",
+        jarResource = Some("time_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set("time_2.11-1.3.0-1-g21312cc.pom"), targetExists = true)
 
       val coordinator = new Coordinator(tempDir(), mock[MetaDataProvider], new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("time", Repo("time"), aReleaseCandidateVersion, ReleaseType.MINOR) match {

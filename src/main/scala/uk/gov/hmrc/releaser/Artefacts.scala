@@ -59,7 +59,6 @@ object IvyArtefacts{
 class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvider {
 
   val regexTransformers = ListMap(
-    map.artefactName+"-sources\\.jar"  -> None,
     map.artefactName+"-javadoc\\.jar"  -> None,
     "ivy\\.xml"                        -> Some(new IvyTransformer),
     s".+\\.jar$$"                      -> Some(new JarManifestTransformer),
@@ -83,10 +82,9 @@ class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvi
   val filePrefix = s"${map.artefactName}_${map.repo.scalaVersion}-${map.sourceVersion.value}"
 
   val regexTransformers = ListMap(
-    s"$filePrefix\\.pom$$" -> Some(new PomTransformer),
     s"$filePrefix\\.tgz$$" -> Some(new TgzTransformer),
     s".*-javadoc\\.jar$$" -> None,
-    s".*-sources\\.jar$$" -> None,
+    s".+\\.pom$$" -> Some(new PomTransformer),
     s".+\\.jar$$" -> Some(new JarManifestTransformer),
     s".+\\.tgz$$" -> Some(new CopyAndRenameTransformer),
     s".+\\.zip$$" -> Some(new CopyAndRenameTransformer))

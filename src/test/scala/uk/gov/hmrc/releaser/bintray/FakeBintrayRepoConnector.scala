@@ -40,8 +40,9 @@ class FakeBintrayRepoConnector(filesuffix:String  = "",
   override def findFiles(version: VersionDescriptor): Try[List[String]] = Success(bintrayFiles.toList ++ jarResource)
 
   override def downloadFile(url: String, fileName: String): Try[Path] = {
+    val resourcePath = url.split("/").last
     Success {
-      Paths.get(this.getClass.getResource(filesuffix + fileName).toURI)
+      Paths.get(this.getClass.getResource(filesuffix + resourcePath).toURI)
     }
   }
 

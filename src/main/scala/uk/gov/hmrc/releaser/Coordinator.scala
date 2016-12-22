@@ -73,10 +73,12 @@ class Coordinator(stageDir: Path,
     bintrayConnector.findJar(jarFileName, jarUrl, map.sourceArtefact) match {
       case Some(path) => metaDataProvider.fromJarFile(path)
       case None =>
-        val commitManifestUrl = repo.fileDownloadFor(map.sourceArtefact, "commit.mf")
+        val commitManifestFile = files.find(f => f.contains("commit") && f.endsWith("mf"))
+          .map(f => f.split("/").last).getOrElse("commit.mf")
+        val commitManifestUrl = repo.fileDownloadFor(map.sourceArtefact, commitManifestFile)
 
         for {
-          commitManifest <- bintrayConnector.downloadFile(commitManifestUrl, s"/${map.artefactName}/commit.mf")
+          commitManifest <- bintrayConnector.downloadFile(commitManifestUrl, commitManifestFile)
           metaData <- metaDataProvider.fromCommitManifest(commitManifest)
         }
         yield metaData
