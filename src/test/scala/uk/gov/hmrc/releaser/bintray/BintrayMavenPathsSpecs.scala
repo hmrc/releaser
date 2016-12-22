@@ -41,18 +41,5 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
       mavenPaths.jarDownloadFor(version) shouldBe expectedJarUrl
       mavenPaths.fileDownloadFor(version, "time_2.10-1.3.0-1-g21312cc.pom") shouldBe expectedPomUrl
     }
-
-    "Generate correct URL for uploading a jar file to Bintray" in {
-      val expectedUrl = "https://bintray.com/api/v1/maven/hmrc/releases/time/uk/gov/hmrc/time_2.10/1.4.0/time_2.10-1.4.0.jar"
-
-      val repoName = "releases"
-      val artefactName = "time"
-      val githubRepoName = "time"
-
-      val version = VersionDescriptor(repoName, artefactName, githubRepoName, "1.4.0")
-
-      mavenPaths.jarUploadFor(version) shouldBe expectedUrl
-
-    }
   }
 }

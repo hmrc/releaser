@@ -44,7 +44,7 @@ trait BintrayRepoConnector {
   def publish(version: VersionDescriptor): Try[Unit]
   def downloadFile(url: String, fileName: String): Try[Path]
   def uploadFile(version: VersionDescriptor, filePath: Path, url: String): Try[Unit]
-  def verifyTargetDoesNotExist(jarUrl: String, version: VersionDescriptor): Try[Unit]
+  def verifyTargetDoesNotExist(url: String, version: VersionDescriptor): Try[Unit]
   def findFiles(version: VersionDescriptor): Try[List[String]]
   def getRepoMetaData(repoName:String, artefactName: String): Try[Unit]
 }
@@ -57,8 +57,8 @@ class DefaultBintrayRepoConnector(workDir: Path, bintrayHttp: BintrayHttp, fileD
     bintrayHttp.emptyPost(url)
   }
 
-  def verifyTargetDoesNotExist(jarUrl: String, version: VersionDescriptor): Try[Unit] = {
-    val conn = new URL(jarUrl).openConnection().asInstanceOf[HttpURLConnection]
+  def verifyTargetDoesNotExist(url: String, version: VersionDescriptor): Try[Unit] = {
+    val conn = new URL(url).openConnection().asInstanceOf[HttpURLConnection]
     conn.setRequestMethod("HEAD")
     conn.connect()
 
@@ -87,7 +87,7 @@ class DefaultBintrayRepoConnector(workDir: Path, bintrayHttp: BintrayHttp, fileD
   def findFiles(version: VersionDescriptor): Try[List[String]] = {
     val url = BintrayPaths.fileListUrlFor(version)
     bintrayHttp.get(url).map { st =>
-      val fileNames: Seq[JsValue] = Json.parse(st).\\("name")
+      val fileNames: Seq[JsValue] = Json.parse(st) \\ "name"
       fileNames.map(_.as[String]).toList
     }
   }
