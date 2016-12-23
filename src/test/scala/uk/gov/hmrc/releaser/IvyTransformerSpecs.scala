@@ -25,7 +25,7 @@ import scala.xml.XML
 
 class IvyTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues {
 
-  val bobbyIvyFile = new File(this.getClass.getResource("/sbt-bobby/ivy.xml").toURI).toPath
+  val bobbyIvyFile = new File(this.getClass.getResource("/sbt-bobby/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/ivys/ivy.xml").toURI).toPath
 
   var transformer: IvyTransformer = _
 

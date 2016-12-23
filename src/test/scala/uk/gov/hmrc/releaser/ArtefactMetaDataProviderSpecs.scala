@@ -27,7 +27,7 @@ class ArtefactMetaDataProviderSpecs extends WordSpec with Matchers with TryValue
 
   "ArtefactMetaData" should {
     "build instance from file" in {
-      val md = new ArtefactMetaDataProvider().fromJarFile(Paths.get(this.getClass.getResource("/sbt-bobby/sbt-bobby.jar").toURI))  match {
+      val md = new ArtefactMetaDataProvider().fromJarFile(Paths.get(this.getClass.getResource("/sbt-bobby/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby.jar").toURI))  match {
         case Failure(e) => fail(e)
         case s => s
       }

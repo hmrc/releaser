@@ -29,12 +29,12 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       val ver = mavenVersionMapping("time", "time")
       val artefacts = new MavenArtefacts(ver, Files.createTempDirectory("test"))
       val files = List(
-        "time/time_2.11-1.3.0-1-g21312cc.jar",
+        "time/uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc/time_2.11-1.3.0-1-g21312cc.jar",
         "time/time_2.11-1.3.0-1-g21312cc.zip",
         "time/time_2.11-1.3.0-1-g21312cc.tgz",
         "time/time_2.11-1.3.0-1-g21312cc-assembly.jar",
         "time/time_2.11-1.3.0-1-g21312cc-sources.jar",
-        "time/time_2.11-1.3.0-1-g21312cc.pom",
+        "time/uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc/time_2.11-1.3.0-1-g21312cc.pom",
         "time/time_2.11-1.3.0-1-g21312cc.pom.md5",
         "time/time_2.11-other-1.3.0-1-g21312cc.tgz",
         "time/time_2.11-other-1.3.0-1-g21312cc.jar"
@@ -45,13 +45,13 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       result foreach println
 
       result.size shouldBe 8
-      result("time/time_2.11-1.3.0-1-g21312cc.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
+      result("time/uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc/time_2.11-1.3.0-1-g21312cc.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc.zip").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc.tgz").get.isInstanceOf[TgzTransformer] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc-assembly.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
       result("time/time_2.11-1.3.0-1-g21312cc-sources.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
-      result("time/time_2.11-1.3.0-1-g21312cc.pom").get.isInstanceOf[PomTransformer] shouldBe true
-      result("time/time_2.11-other-1.3.0-1-g21312cc.tgz").get.isInstanceOf[CopyAndRenameTransformer] shouldBe true
+      result("time/uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc/time_2.11-1.3.0-1-g21312cc.pom").get.isInstanceOf[PomTransformer] shouldBe true
+      result("time/time_2.11-other-1.3.0-1-g21312cc.tgz").get.isInstanceOf[TgzTransformer] shouldBe true
       result("time/time_2.11-other-1.3.0-1-g21312cc.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
     }
   }

@@ -26,7 +26,7 @@ import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInp
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
 import org.apache.commons.io.{FileUtils, IOUtils}
 import resource._
-import uk.gov.hmrc.PosixFileAttributes
+import uk.gov.hmrc.{Logger, PosixFileAttributes}
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
@@ -41,9 +41,11 @@ trait XmlTransformer extends Transformer {
 
   def apply(localPomFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path] = {
     val updatedT: Try[Node] = updateVersion(XML.loadFile(localPomFile.toFile), targetVersion)
-    updatedT.flatMap { updated => Try {
-      Files.write(targetFile, updated.mkString.getBytes)
-    }
+    updatedT.flatMap { updated =>
+      Try {
+        Files.createDirectories(targetFile.getParent)
+        Files.write(targetFile, updated.mkString.getBytes)
+      }
     }
   }
 
@@ -111,6 +113,8 @@ class JarManifestTransformer extends Transformer {
 
   def apply(localJarFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, target: Path): Try[Path] = Try {
 
+    Files.createDirectories(target.getParent)
+
     for {
       jarFile <- managed(new ZipFile(localJarFile.toFile))
       zout <- managed(new ZipOutputStream(new FileOutputStream(target.toFile)))
@@ -135,7 +139,7 @@ class JarManifestTransformer extends Transformer {
   }
 }
 
-class TgzTransformer extends Transformer {
+class TgzTransformer extends Transformer with Logger {
 
   import PosixFileAttributes._
 
@@ -183,6 +187,10 @@ class TgzTransformer extends Transformer {
   private def compressTgz(expandedFolder: Path, targetFile: Path): Try[Path] = Try {
     import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream.LONGFILE_GNU
 
+    log.debug(s"Compressing Tgz to ${targetFile.toString}")
+
+    Files.createDirectories(targetFile.getParent)
+
     val outputStream = new TarArchiveOutputStream(new GzipCompressorOutputStream(new BufferedOutputStream(new FileOutputStream(targetFile.toFile))))
     outputStream.setLongFileMode(LONGFILE_GNU)
 
@@ -227,6 +235,7 @@ class TgzTransformer extends Transformer {
 class CopyAndRenameTransformer() extends Transformer {
   override def apply(localFile: Path, artefactName: String, sourceVersion: ReleaseCandidateVersion, targetVersion: ReleaseVersion, targetFile: Path): Try[Path] = {
     Try {
+      Files.createDirectories(targetFile.getParent)
       Files.copy(localFile, targetFile)
     }
   }

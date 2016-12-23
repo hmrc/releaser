@@ -50,10 +50,11 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val metaDataProvider = mock[MetaDataProvider]
       when(metaDataProvider.fromJarFile(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
+      val root = "uk/gov/hmrc/lib_2.11/1.3.0-1-g21312cc"
       val fakeRepoConnector = new FakeBintrayRepoConnector(
         "/lib/",
-        jarResource = Some("lib_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set("lib_2.11-1.3.0-1-g21312cc.pom", "lib_2.11-1.3.0-1-g21312cc-assembly.jar"))
+        jarResource = Some(s"$root/lib_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set(s"$root/lib_2.11-1.3.0-1-g21312cc.pom", s"$root/lib_2.11-1.3.0-1-g21312cc-assembly.jar"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.HOTFIX) match {
@@ -61,14 +62,22 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case _ =>
       }
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 3
       fakeRepoConnector.lastPublishDescriptor should not be None
 
-      val Some((assemblyVersion, assemblyFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-assembly.jar"))
+      fakeRepoConnector.downloadedFiles.size shouldBe 3
+      fakeRepoConnector.downloadedFiles should contain allOf(
+        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/lib_2.11/1.3.0-1-g21312cc/lib_2.11-1.3.0-1-g21312cc.pom",
+        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/lib_2.11/1.3.0-1-g21312cc/lib_2.11-1.3.0-1-g21312cc-assembly.jar",
+        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/lib_2.11/1.3.0-1-g21312cc/lib_2.11-1.3.0-1-g21312cc.jar")
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 3
+      fakeRepoConnector.uploadedFiles.map { case (_,_,url) => url } should contain allOf(
+        "https://bintray.com/api/v1/maven/hmrc/releases/lib/uk/gov/hmrc/lib_2.11/1.3.1/lib_2.11-1.3.1.pom",
+        "https://bintray.com/api/v1/maven/hmrc/releases/lib/uk/gov/hmrc/lib_2.11/1.3.1/lib_2.11-1.3.1-assembly.jar",
+        "https://bintray.com/api/v1/maven/hmrc/releases/lib/uk/gov/hmrc/lib_2.11/1.3.1/lib_2.11-1.3.1.jar")
+
       val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
       val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("1.3.1.jar"))
-
-      assemblyVersion.version shouldBe "1.3.1"
 
       val jarManifest = manifestFromZipFile(jarFile)
       jarManifest.value.getValue("Implementation-Version") shouldBe "1.3.1"
@@ -83,15 +92,16 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val metaDataProvider = mock[MetaDataProvider]
       when(metaDataProvider.fromJarFile(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
+      val root = "uk/gov/hmrc/help-frontend_2.11/1.26.0-3-gd7ed03c"
       val fakeRepoConnector = new FakeBintrayRepoConnector(
         "/help-frontend/",
-        jarResource = Some("help-frontend_2.11-1.26.0-3-gd7ed03c.jar"),
+        jarResource = Some(s"$root/help-frontend_2.11-1.26.0-3-gd7ed03c.jar"),
         bintrayFiles = Set(
-          "help-frontend_2.11-1.26.0-3-gd7ed03c.pom",
-          "help-frontend_2.11-1.26.0-3-gd7ed03c.tgz",
-          "help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc",
-          "help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc.md5",
-          "help-frontend_2.11-1.26.0-3-gd7ed03c-sources.jar"))
+          s"$root/help-frontend_2.11-1.26.0-3-gd7ed03c.pom",
+          s"$root/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz",
+          s"$root/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc",
+          s"$root/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc.md5",
+          s"$root/help-frontend_2.11-1.26.0-3-gd7ed03c-sources.jar"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseType.MAJOR) match {
@@ -122,10 +132,11 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val metaDataProvider = mock[MetaDataProvider]
       when(metaDataProvider.fromJarFile(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
+      val root = "uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc"
       val fakeRepoConnector = new FakeBintrayRepoConnector(
         "/time/",
-        jarResource = Some("time_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set("time_2.11-1.3.0-1-g21312cc.pom"))
+        jarResource = Some(s"$root/time_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set(s"$root/time_2.11-1.3.0-1-g21312cc.pom"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.MINOR) match {
@@ -158,14 +169,15 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val metaDataProvider = mock[MetaDataProvider]
       when(metaDataProvider.fromCommitManifest(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
+      val root = "uk/gov/hmrc/paye-estimator_sjs0.6_2.11/0.1.0-1-g1906708"
       val fakeRepoConnector = new FakeBintrayRepoConnector(
         "/paye-estimator/",
         jarResource = None,
         bintrayFiles = Set(
-          "commit_sjs0.6_2.11-0.1.0-1-g1906708.mf",
-          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.pom",
-          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.jar",
-          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708-javadoc.jar"))
+          s"$root/commit_sjs0.6_2.11-0.1.0-1-g1906708.mf",
+          s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.pom",
+          s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.jar",
+          s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708-javadoc.jar"))
  
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
@@ -173,8 +185,13 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         case _ =>
       }
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 2
       fakeRepoConnector.lastPublishDescriptor should not be None
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 2
+      fakeRepoConnector.uploadedFiles.map { case (_,_,url) => url } should contain allOf(
+        "https://bintray.com/api/v1/maven/hmrc/releases/paye-estimator/uk/gov/hmrc/paye-estimator_sjs0.6_2.11/0.2.0/paye-estimator_sjs0.6_2.11-0.2.0.pom",
+        "https://bintray.com/api/v1/maven/hmrc/releases/paye-estimator/uk/gov/hmrc/paye-estimator_sjs0.6_2.11/0.2.0/paye-estimator_sjs0.6_2.11-0.2.0.jar")
+
       fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("-javadoc.jar")) shouldBe None
 
       val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
@@ -194,14 +211,15 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val metaDataProvider = mock[MetaDataProvider]
       when(metaDataProvider.fromCommitManifest(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
+      val root = "uk/gov/hmrc/paye-estimator_sjs0.6_2.11/0.1.0-1-g1906708"
       val fakeRepoConnector = new FakeBintrayRepoConnector(
         "/paye-estimator/",
         jarResource = None,
         bintrayFiles = Set(
-          "commit_sjs0.6_2.11-0.1.0-1-g1906708.mf",
-          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.pom",
-          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.tgz",
-          "paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.zip"))
+          s"$root/commit_sjs0.6_2.11-0.1.0-1-g1906708.mf",
+          s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.pom",
+          s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.tgz",
+          s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.zip"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
@@ -228,10 +246,11 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         override def verifyGithubTagExists(repo: Repo, sha: CommitSha): Try[Unit] = Failure(expectedException)
       }
 
+      val root = "uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc"
       val fakeRepoConnector = new FakeBintrayRepoConnector(
         "/time/",
-        jarResource = Some("time_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set("time_2.11-1.3.0-1-g21312cc.pom"))
+        jarResource = Some(s"$root/time_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set(s"$root/time_2.11-1.3.0-1-g21312cc.pom"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, taggerAndReleaser, fakeRepoConnector)
       coordinator.start("time", Repo("time"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
@@ -242,10 +261,11 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
     "fail when the artefact has already been released" in {
 
+      val root = "uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc"
       val fakeRepoConnector = new FakeBintrayRepoConnector(
         "/time/",
-        jarResource = Some("time_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set("time_2.11-1.3.0-1-g21312cc.pom"), targetExists = true)
+        jarResource = Some(s"$root/time_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set(s"$root/time_2.11-1.3.0-1-g21312cc.pom"), targetExists = true)
 
       val coordinator = new Coordinator(tempDir(), mock[MetaDataProvider], new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("time", Repo("time"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
@@ -272,7 +292,12 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val metaDataProvider = mock[MetaDataProvider]
       when(metaDataProvider.fromJarFile(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
-      val fakeRepoConnector = new FakeBintrayRepoConnector(filesuffix = "/sbt-bobby/", Some("sbt-bobby.jar"), Set("ivy.xml")) {
+      val root = "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26"
+      val fakeRepoConnector = new FakeBintrayRepoConnector(
+        filesuffix = "/sbt-bobby/",
+        Some(s"$root/jars/sbt-bobby.jar"),
+        Set(s"$root/ivys/ivy.xml"))
+      {
         override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
           if (repoName == "sbt-plugin-release-candidates") Success(Unit)
           else Failure(new RuntimeException)
@@ -285,8 +310,17 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           case _ =>
         }
 
-      fakeRepoConnector.uploadedFiles.size shouldBe 2
       fakeRepoConnector.lastPublishDescriptor should not be None
+
+      fakeRepoConnector.downloadedFiles.size shouldBe 2
+      fakeRepoConnector.downloadedFiles should contain allOf(
+        "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/ivys/ivy.xml",
+        "https://bintray.com/artifact/download/hmrc/sbt-plugin-release-candidates/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby.jar")
+
+      fakeRepoConnector.uploadedFiles.size shouldBe 2
+      fakeRepoConnector.uploadedFiles.map { case (_,_,url) => url } should contain allOf(
+        "https://bintray.com/api/v1/content/hmrc/sbt-plugin-releases/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.2/ivys/ivy.xml",
+        "https://bintray.com/api/v1/content/hmrc/sbt-plugin-releases/uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.2/jars/sbt-bobby.jar")
 
       val Some((_, ivyFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("ivy.xml"))
       val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("sbt-bobby.jar"))

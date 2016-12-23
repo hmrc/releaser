@@ -32,7 +32,7 @@ import scala.util.{Failure, Success, Try}
 
 class JarManifestTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues {
 
-  val timeJarPath = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.jar").toURI).toPath
+  val timeJarPath = new File(this.getClass.getResource("/time/uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc/time_2.11-1.3.0-1-g21312cc.jar").toURI).toPath
 
   var transformer:JarManifestTransformer = _
   val candidate_1_3_0_1_g21312cc = ReleaseCandidateVersion("1.3.0-1-g21312cc")

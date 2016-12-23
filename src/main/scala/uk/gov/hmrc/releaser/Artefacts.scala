@@ -23,9 +23,6 @@ import uk.gov.hmrc.Logger
 import scala.collection.immutable.ListMap
 
 trait TransformerProvider extends Logger {
-  def isTheJarFile(f:String):Boolean
-  def filePrefix:String
-
   def regexTransformers: ListMap[String, Option[Transformer]]
 
   def transformersForSupportedFiles(filePaths: List[String]): List[(String, Option[Transformer])] = {
@@ -65,11 +62,6 @@ class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvide
     s".+\\.tgz$$"                      -> Some(new CopyAndRenameTransformer),
     s".+\\.zip$$"                      -> Some(new CopyAndRenameTransformer))
 
-  def isTheJarFile(f:String):Boolean={
-    f == map.artefactName+".jar"
-  }
-
-  def filePrefix = ""
 }
 
 
@@ -79,17 +71,11 @@ object MavenArtefacts{
 
 class MavenArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvider {
 
-  val filePrefix = s"${map.artefactName}_${map.repo.scalaVersion}-${map.sourceVersion.value}"
-
   val regexTransformers = ListMap(
-    s"$filePrefix\\.tgz$$" -> Some(new TgzTransformer),
     s".*-javadoc\\.jar$$" -> None,
     s".+\\.pom$$" -> Some(new PomTransformer),
     s".+\\.jar$$" -> Some(new JarManifestTransformer),
-    s".+\\.tgz$$" -> Some(new CopyAndRenameTransformer),
+    s".+\\.tgz$$" -> Some(new TgzTransformer),
     s".+\\.zip$$" -> Some(new CopyAndRenameTransformer))
 
-  def isTheJarFile(f:String):Boolean={
-    f.split("/").last == filePrefix+".jar"
-  }
 }

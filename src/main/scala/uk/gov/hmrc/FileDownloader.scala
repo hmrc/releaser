@@ -33,6 +33,7 @@ class FileDownloader extends Logger {
 
       try {
         managed(new URL(url).openConnection().getInputStream).foreach { in =>
+          Files.createDirectories(targetFile.getParent)
           Files.copy(in, targetFile)
         }
 

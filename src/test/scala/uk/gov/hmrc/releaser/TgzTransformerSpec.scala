@@ -29,7 +29,7 @@ import scala.util.{Failure, Success}
 
 class TgzTransformerSpec extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues{
 
-  val tgzPath = new File(this.getClass.getResource("/help-frontend/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz").toURI).toPath
+  val tgzPath = new File(this.getClass.getResource("/help-frontend/uk/gov/hmrc/help-frontend_2.11/1.26.0-3-gd7ed03c/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz").toURI).toPath
 
   var transformer:TgzTransformer = _
   val candidate_1_26_0_3_gd7ed03c = ReleaseCandidateVersion("1.26.0-3-gd7ed03c")

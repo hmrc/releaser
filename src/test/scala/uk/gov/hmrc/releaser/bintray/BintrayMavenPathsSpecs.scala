@@ -38,8 +38,7 @@ class BintrayMavenPathsSpecs extends WordSpec with Matchers{
       val version = VersionDescriptor(repoName, artefactName, githubRepoName, releaseCandidateVersion)
 
       mavenPaths.jarFilenameFor(version) shouldBe "time_2.10-1.3.0-1-g21312cc.jar"
-      mavenPaths.jarDownloadFor(version) shouldBe expectedJarUrl
-      mavenPaths.fileDownloadFor(version, "time_2.10-1.3.0-1-g21312cc.pom") shouldBe expectedPomUrl
+      mavenPaths.fileDownloadFor(version, "uk/gov/hmrc/time_2.10/1.3.0-1-g21312cc/time_2.10-1.3.0-1-g21312cc.pom") shouldBe expectedPomUrl
     }
   }
 }

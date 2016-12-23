@@ -22,9 +22,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
   "BintrayIvyPathsSpecs" should {
 
-    val ivyPaths = new BintrayIvyPaths(){
-      override def scalaVersion: String = "2.10"
-    }
+    val ivyPaths = new BintrayIvyPaths() {}
 
     val repoName = "sbt-plugin-release-candidates"
     val artefactName = "sbt-bobby"
@@ -40,10 +38,8 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
       val version = VersionDescriptor(repoName, artefactName, githubRepoName, releaseCandidateVersion)
 
       ivyPaths.jarFilenameFor(version) shouldBe "sbt-bobby.jar"
-      ivyPaths.fileDownloadFor(version, "sbt-bobby-assembly.jar") shouldBe expectedAssemblyJarUrl
-
-      ivyPaths.jarDownloadFor(version) shouldBe expectedJarUrl
-      ivyPaths.fileDownloadFor(version, "ivy.xml") shouldBe expectedPomUrl
+      ivyPaths.fileDownloadFor(version, "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby-assembly.jar") shouldBe expectedAssemblyJarUrl
+      ivyPaths.fileDownloadFor(version, "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/ivys/ivy.xml") shouldBe expectedPomUrl
     }
 
     "Generate correct URL for uploading files to Bintray" in {
@@ -54,14 +50,10 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
       val version = VersionDescriptor(repoName, artefactName, githubRepoName, "0.9.0")
 
-      ivyPaths.fileUploadFor(version, "sbt-bobby.jar") shouldBe expectedJarUrl
-      ivyPaths.fileUploadFor(version, "ivy.xml") shouldBe expectedIvyUrl
-      ivyPaths.fileUploadFor(version, "sbt-bobby-sources.jar") shouldBe expectedSrcUrl
-      ivyPaths.fileUploadFor(version, "sbt-bobby-javadoc.jar") shouldBe expectedDocUrl
-
-      intercept[IllegalArgumentException] {
-       ivyPaths.fileUploadFor(version, "sbt-bobby.exe")
-      }
+      ivyPaths.fileUploadFor(version, "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/jars/sbt-bobby.jar") shouldBe expectedJarUrl
+      ivyPaths.fileUploadFor(version, "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/ivys/ivy.xml") shouldBe expectedIvyUrl
+      ivyPaths.fileUploadFor(version, "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/srcs/sbt-bobby-sources.jar") shouldBe expectedSrcUrl
+      ivyPaths.fileUploadFor(version, "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.9.0/docs/sbt-bobby-javadoc.jar") shouldBe expectedDocUrl
     }
   }
 }

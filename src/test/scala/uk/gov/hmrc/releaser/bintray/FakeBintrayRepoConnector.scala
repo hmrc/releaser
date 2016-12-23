@@ -26,6 +26,7 @@ class FakeBintrayRepoConnector(filesuffix:String  = "",
                                bintrayFiles:Set[String],
                                targetExists:Boolean = false) extends BintrayRepoConnector {
 
+  val downloadedFiles = mutable.Set[String]()
   val uploadedFiles = mutable.Set[(VersionDescriptor, Path, String)]()
   var lastPublishDescriptor: Option[VersionDescriptor] = None
 
@@ -40,9 +41,9 @@ class FakeBintrayRepoConnector(filesuffix:String  = "",
   override def findFiles(version: VersionDescriptor): Try[List[String]] = Success(bintrayFiles.toList ++ jarResource)
 
   override def downloadFile(url: String, fileName: String): Try[Path] = {
-    val resourcePath = url.split("/").last
+    downloadedFiles.add(url)
     Success {
-      Paths.get(this.getClass.getResource(filesuffix + resourcePath).toURI)
+      Paths.get(this.getClass.getResource(filesuffix + fileName).toURI)
     }
   }
 
@@ -51,7 +52,7 @@ class FakeBintrayRepoConnector(filesuffix:String  = "",
     Success(Unit)
   }
 
-  override def verifyTargetDoesNotExist(jarUrl: String, version: VersionDescriptor): Try[Unit] = targetExists match {
+  override def verifyTargetDoesNotExist(version: VersionDescriptor): Try[Unit] = targetExists match {
     case true => Failure(new IllegalArgumentException("Failed in test"))
     case false => Success(Unit)
   }

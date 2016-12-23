@@ -25,7 +25,7 @@ import scala.xml.XML
 
 class PomTransformerSpecs extends WordSpec with Matchers with BeforeAndAfterEach with OptionValues with TryValues {
 
-  val timePomFile = new File(this.getClass.getResource("/time/time_2.11-1.3.0-1-g21312cc.pom").toURI).toPath
+  val timePomFile = new File(this.getClass.getResource("/time/uk/gov/hmrc/time_2.11/1.3.0-1-g21312cc/time_2.11-1.3.0-1-g21312cc.pom").toURI).toPath
 
   var transformer: PomTransformer = _
   var tempDir:Path = _

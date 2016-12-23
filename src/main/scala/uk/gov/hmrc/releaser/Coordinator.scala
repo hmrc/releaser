@@ -42,13 +42,13 @@ class Coordinator(stageDir: Path,
       targetVersion <- VersionNumberCalculator.calculateTarget(releaseCandidateVersion, releaseType)
       repo <- findReposOfArtefact(artefactName)
       map = VersionMapping(repo, artefactName, gitRepo, releaseCandidateVersion, targetVersion)
-      _ <- bintrayConnector.verifyTargetDoesNotExist(repo.releaseExistsFor(map.targetArtefact), map.targetArtefact)
+      _ <- bintrayConnector.verifyTargetDoesNotExist(map.targetArtefact)
       artefacts = map.repo.artefactBuilder(map, stageDir)
       files <- bintrayConnector.findFiles(map.sourceArtefact)
       remotes = artefacts.transformersForSupportedFiles(files)
       (commitSha, commitAuthor, commitDate) <- getMetaData(repo, map, files).map(x => ArtefactMetaData.unapply(x).get)
       _ <- githubConnector.verifyGithubTagExists(map.gitRepo, commitSha)
-      transd <- transformFiles(repo, map, remotes, artefacts.filePrefix)
+      transd <- transformFiles(repo, map, remotes)
       _ <- uploadFiles(repo, map.targetArtefact, transd)
       _ <- bintrayConnector.publish(map.targetArtefact)
       _ <- githubConnector.createGithubTagAndRelease(new DateTime(), commitSha, commitAuthor, commitDate, artefactName, gitRepo, releaseCandidateVersion.value, targetVersion.value)
@@ -65,18 +65,28 @@ class Coordinator(stageDir: Path,
     }
   }
 
-  private def getMetaData(repo: RepoFlavour, map: VersionMapping, files: List[String]): Try[ArtefactMetaData] = {
-    val jarUrl = repo.jarDownloadFor(map.sourceArtefact)
-    val jarFileName = repo.jarFilenameFor(map.sourceArtefact)
+  private def getCommitManifestFile(repo: RepoFlavour, map: VersionMapping, files: List[String]): Try[(String, String)] = {
+    Try {
+      val commitManifestFile = files.find(f => f.contains("commit") && f.endsWith("mf")).get
+      (repo.fileDownloadFor(map.sourceArtefact, commitManifestFile), commitManifestFile)
+    }
+  }
 
-    bintrayConnector.findJar(jarFileName, jarUrl, map.sourceArtefact) match {
+  private def getMetaData(repo: RepoFlavour, map: VersionMapping, files: List[String]): Try[ArtefactMetaData] = {
+
+    val jarPath = for {
+      jarFileName <- files.find(f => f.endsWith(repo.jarFilenameFor(map.sourceArtefact)))
+      jarUrl = repo.fileDownloadFor(map.sourceArtefact, jarFileName)
+      jarPath <- bintrayConnector.findJar(jarFileName, jarUrl, map.sourceArtefact)
+    }
+    yield jarPath
+
+    jarPath match {
       case Some(path) => metaDataProvider.fromJarFile(path)
       case None =>
-        val commitManifestFile = files.find(f => f.contains("commit") && f.endsWith("mf"))
-          .map(f => f.split("/").last).getOrElse("commit.mf")
-        val commitManifestUrl = repo.fileDownloadFor(map.sourceArtefact, commitManifestFile)
 
         for {
+          (commitManifestUrl, commitManifestFile) <- getCommitManifestFile(repo, map, files)
           commitManifest <- bintrayConnector.downloadFile(commitManifestUrl, commitManifestFile)
           metaData <- metaDataProvider.fromCommitManifest(commitManifest)
         }
@@ -86,25 +96,25 @@ class Coordinator(stageDir: Path,
 
   private def uploadFiles(repo: RepoFlavour, target: VersionDescriptor, files: List[Path]) : Try[Unit] = {
     val res = files.map { localFile =>
-      val url = repo.fileUploadFor(target, localFile.getFileName.toString)
+      val url = repo.fileUploadFor(target, stageDir.relativize(localFile).toString)
       bintrayConnector.uploadFile(target, localFile, url)
     }
 
     sequence(res).map { _ => Unit }
   }
 
-  private def transformFiles(repo: RepoFlavour, map: VersionMapping, files: List[(String, Option[Transformer])], prefix:String): Try[List[Path]] =
+  private def transformFiles(repo: RepoFlavour, map: VersionMapping, files: List[(String, Option[Transformer])]): Try[List[Path]] =
     sequence {
       files
         .filter(f => f._2.isDefined )
-        .map { case(file, trans) => transformFile(repo, map, file, trans.get, prefix) }
+        .map { case(file, trans) => transformFile(repo, map, file, trans.get) }
     }
 
-  private def transformFile(repo:RepoFlavour, map: VersionMapping, fileName:String, trans: Transformer, prefix:String) : Try[Path]={
+  private def transformFile(repo:RepoFlavour, map: VersionMapping, fileName:String, trans: Transformer) : Try[Path]={
     val artefactUrl = repo.fileDownloadFor(map.sourceArtefact, fileName)
 
     bintrayConnector.downloadFile(artefactUrl, fileName).flatMap { localPath =>
-      val targetFileName = buildTargetFileName(map, fileName, prefix)
+      val targetFileName = buildTargetFileName(map, fileName)
       val targetPath = stageDir.resolve(targetFileName)
 
       if(targetPath.toFile.exists()){
@@ -117,9 +127,8 @@ class Coordinator(stageDir: Path,
     }
   }
 
-  private def buildTargetFileName(map: VersionMapping, remotePath: String, prefix: String): String = {
-    val fileName = remotePath.split("/").last
-    fileName.replace(map.sourceVersion.value, map.targetArtefact.version)
+  private def buildTargetFileName(map: VersionMapping, remotePath: String): String = {
+    remotePath.replace(map.sourceVersion.value, map.targetArtefact.version)
   }
 
   private def sequence[A](l:Iterable[Try[A]]):Try[List[A]]={

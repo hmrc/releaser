@@ -33,8 +33,7 @@ class FileDownloaderSpecs extends WordSpec with Matchers with TryValues with Bef
     Files.createFile(sourceFile)
     val url = sourceFile.toFile.toURI.toURL
 
-
-    (url, tmpDir.resolve("out.txt"))
+    (url, tmpDir.resolve("subdir/out.txt"))
   }
 
   "File Downloader" should{
@@ -49,6 +48,8 @@ class FileDownloaderSpecs extends WordSpec with Matchers with TryValues with Bef
     "not download a file if the file already exists but return the path" in {
       val downloader = new FileDownloader
       val (url, targetFile) = createSourceUrlAndTargetPath
+
+      Files.createDirectories(targetFile.getParent)
       Files.createFile(targetFile)
 
       downloader.url2File(url.toString, targetFile) shouldBe Success(targetFile)
