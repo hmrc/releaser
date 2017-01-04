@@ -45,19 +45,19 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
   "the coordinator" should {
 
-    "release version 1.3.1 of a library with an assembly, not modifying the assembly manifest, when given the inputs 'lib', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
+    "release version 1.3.1 of a library with an assembly, not modifying the assembly manifest, when given the inputs 'libr', '1.3.0-1-g21312cc' and 'hotfix' as the artefact, release candidate and release type" in {
 
       val metaDataProvider = mock[MetaDataProvider]
       when(metaDataProvider.fromJarFile(any())).thenReturn(Success(ArtefactMetaData("sha", "author", DateTime.now())))
 
-      val root = "uk/gov/hmrc/lib_2.11/1.3.0-1-g21312cc"
+      val root = "uk/gov/hmrc/libr_2.11/1.3.0-1-g21312cc"
       val fakeRepoConnector = new FakeBintrayRepoConnector(
-        "/lib/",
-        jarResource = Some(s"$root/lib_2.11-1.3.0-1-g21312cc.jar"),
-        bintrayFiles = Set(s"$root/lib_2.11-1.3.0-1-g21312cc.pom", s"$root/lib_2.11-1.3.0-1-g21312cc-assembly.jar"))
+        "/libr/",
+        jarResource = Some(s"$root/libr_2.11-1.3.0-1-g21312cc.jar"),
+        bintrayFiles = Set(s"$root/libr_2.11-1.3.0-1-g21312cc.pom", s"$root/libr_2.11-1.3.0-1-g21312cc-assembly.jar"))
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
-      coordinator.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.HOTFIX) match {
+      coordinator.start("libr", Repo("libr"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.HOTFIX) match {
         case Failure(e) =>
           log.error(s"Test failed with: ${e.getMessage} - ${e.toString}")
           fail(e)
@@ -68,15 +68,15 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       fakeRepoConnector.downloadedFiles.size shouldBe 3
       fakeRepoConnector.downloadedFiles should contain allOf(
-        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/lib_2.11/1.3.0-1-g21312cc/lib_2.11-1.3.0-1-g21312cc.pom",
-        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/lib_2.11/1.3.0-1-g21312cc/lib_2.11-1.3.0-1-g21312cc-assembly.jar",
-        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/lib_2.11/1.3.0-1-g21312cc/lib_2.11-1.3.0-1-g21312cc.jar")
+        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/libr_2.11/1.3.0-1-g21312cc/libr_2.11-1.3.0-1-g21312cc.pom",
+        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/libr_2.11/1.3.0-1-g21312cc/libr_2.11-1.3.0-1-g21312cc-assembly.jar",
+        "https://bintray.com/artifact/download/hmrc/release-candidates/uk/gov/hmrc/libr_2.11/1.3.0-1-g21312cc/libr_2.11-1.3.0-1-g21312cc.jar")
 
       fakeRepoConnector.uploadedFiles.size shouldBe 3
       fakeRepoConnector.uploadedFiles.map { case (_,_,url) => url } should contain allOf(
-        "https://bintray.com/api/v1/maven/hmrc/releases/lib/uk/gov/hmrc/lib_2.11/1.3.1/lib_2.11-1.3.1.pom",
-        "https://bintray.com/api/v1/maven/hmrc/releases/lib/uk/gov/hmrc/lib_2.11/1.3.1/lib_2.11-1.3.1-assembly.jar",
-        "https://bintray.com/api/v1/maven/hmrc/releases/lib/uk/gov/hmrc/lib_2.11/1.3.1/lib_2.11-1.3.1.jar")
+        "https://bintray.com/api/v1/maven/hmrc/releases/libr/uk/gov/hmrc/libr_2.11/1.3.1/libr_2.11-1.3.1.pom",
+        "https://bintray.com/api/v1/maven/hmrc/releases/libr/uk/gov/hmrc/libr_2.11/1.3.1/libr_2.11-1.3.1-assembly.jar",
+        "https://bintray.com/api/v1/maven/hmrc/releases/libr/uk/gov/hmrc/libr_2.11/1.3.1/libr_2.11-1.3.1.jar")
 
       val Some((pomVersion, pomFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith(".pom"))
       val Some((jarVersion, jarFile, _)) = fakeRepoConnector.uploadedFiles.find(_._2.toString.endsWith("1.3.1.jar"))
