@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import java.util.zip.ZipFile
 
 import org.mockito.Mockito.when
 import org.mockito.Matchers.any
-
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, TryValues, WordSpec}
+import uk.gov.hmrc.Logger
 import uk.gov.hmrc.releaser.bintray.FakeBintrayRepoConnector
 import uk.gov.hmrc.releaser.github.{CommitSha, FakeGithubTagAndRelease, Repo}
 
