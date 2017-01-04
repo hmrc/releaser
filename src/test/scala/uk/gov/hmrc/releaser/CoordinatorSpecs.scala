@@ -35,7 +35,7 @@ import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 import scala.xml.XML
 
-class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with TryValues with MockitoSugar {
+class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with TryValues with MockitoSugar with Logger {
 
   private def tempDir() = Files.createTempDirectory("tmp")
 
@@ -58,7 +58,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("lib", Repo("lib"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.HOTFIX) match {
-        case Failure(e) => fail(e)
+        case Failure(e) =>
+          log.warn(e.getMessage)
+          fail(e)
         case _ =>
       }
 
@@ -105,7 +107,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseType.MAJOR) match {
-        case Failure(e) => fail(e)
+        case Failure(e) =>
+          log.warn(e.getMessage)
+          fail(e)
         case _ =>
       }
 
@@ -140,7 +144,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.MINOR) match {
-        case Failure(e) => fail(e)
+        case Failure(e) =>
+          log.warn(e.getMessage)
+          fail(e)
         case _ =>
       }
 
@@ -181,7 +187,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
  
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
-        case Failure(e) => fail(e)
+        case Failure(e) =>
+          log.warn(e.getMessage)
+          fail(e)
         case _ =>
       }
 
@@ -223,7 +231,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
-        case Failure(e) => fail(e)
+        case Failure(e) =>
+          log.warn(e.getMessage)
+          fail(e)
         case _ =>
       }
 
@@ -306,7 +316,9 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
 
       val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
       coordinator.start("sbt-bobby", Repo("sbt-bobby"), ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseType.HOTFIX) match {
-          case Failure(e) => fail(e)
+          case Failure(e) =>
+            log.warn(e.getMessage)
+            fail(e)
           case _ =>
         }
 
