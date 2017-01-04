@@ -22,6 +22,8 @@ sealed class ConsoleLog {
   def debug(st: String) = println("[DEBUG] " + st)
 
   def warn(st: String) = println("[WARN] " + st)
+
+  def error(st: String) = println("[ERROR] " + st)
 }
 
 trait Logger {
