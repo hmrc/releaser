@@ -27,16 +27,17 @@ import uk.gov.hmrc.{CredentialsFinder, FileDownloader, Logger}
 import scala.util.{Failure, Success, Try}
 
 object ReleaserMain {
-  def main(args: Array[String]):Unit= {
+  def main(args: Array[String]): Unit = {
     val result = Releaser(args)
     System.exit(result)
   }
 }
 
 object Releaser extends Logger {
+
   import ArgParser._
 
-  def apply(args: Array[String]):Int= {
+  def apply(args: Array[String]): Int = {
     parser.parse(args, Config()) match {
       case Some(config) =>
         val githubName = config.githubNameOverride.getOrElse(config.artefactName)
@@ -46,51 +47,61 @@ object Releaser extends Logger {
   }
 
   def run(artefactName: String, rcVersion: ReleaseCandidateVersion, releaseType: ReleaseType.Value, gitHubName: String, dryRun: Boolean = false): Int = {
-    val githubCredsFile  = System.getProperty("user.home") + "/.github/.credentials"
+    val githubCredsFile = System.getProperty("user.home") + "/.github/.credentials"
     val bintrayCredsFile = System.getProperty("user.home") + "/.bintray/.credentials"
 
-    val githubCredsOpt  = CredentialsFinder.findGithubCredsInFile(new File(githubCredsFile).toPath)
+    val githubCredsOpt = CredentialsFinder.findGithubCredsInFile(new File(githubCredsFile).toPath)
     val bintrayCredsOpt = CredentialsFinder.findBintrayCredsInFile(new File(bintrayCredsFile).toPath)
 
-    val directories = ReleaseDirectories()
+    doReleaseWithCleanup { directories =>
+      if (githubCredsOpt.isEmpty) {
+        log.info(s"Didn't find github credentials in $githubCredsFile")
+        -1
+      } else if (bintrayCredsOpt.isEmpty) {
+        log.info(s"Didn't find Bintray credentials in $bintrayCredsFile")
+        -1
+      } else {
 
-    if(githubCredsOpt.isEmpty){
-      log.info(s"Didn't find github credentials in $githubCredsFile")
-      -1
-    } else if(bintrayCredsOpt.isEmpty){
-      log.info(s"Didn't find Bintray credentials in $bintrayCredsFile")
-      -1
-    } else {
+        val releaserVersion = getClass.getPackage.getImplementationVersion
+        val metaDataProvider = new ArtefactMetaDataProvider()
+        val gitHubDetails = if (dryRun) GithubConnector.dryRun(githubCredsOpt.get, releaserVersion) else GithubConnector(githubCredsOpt.get, releaserVersion)
+        val bintrayDetails = if (dryRun) BintrayRepoConnector.dryRun(bintrayCredsOpt.get, directories.workDir) else BintrayRepoConnector(bintrayCredsOpt.get, directories.workDir)
+        val bintrayRepoConnector = new DefaultBintrayRepoConnector(directories.workDir, new BintrayHttp(bintrayCredsOpt.get), new FileDownloader)
 
-      val releaserVersion = getClass.getPackage.getImplementationVersion
-      val metaDataProvider = new ArtefactMetaDataProvider()
-      val gitHubDetails = if (dryRun) GithubConnector.dryRun(githubCredsOpt.get, releaserVersion) else GithubConnector(githubCredsOpt.get, releaserVersion)
-      val bintrayDetails = if (dryRun) BintrayRepoConnector.dryRun(bintrayCredsOpt.get, directories.workDir) else BintrayRepoConnector(bintrayCredsOpt.get, directories.workDir)
-      val bintrayRepoConnector = new DefaultBintrayRepoConnector(directories.workDir, new BintrayHttp(bintrayCredsOpt.get), new FileDownloader)
+        val coordinator = new Coordinator(directories.stageDir, metaDataProvider, gitHubDetails, bintrayRepoConnector)
+        val result = coordinator.start(artefactName, Repo(gitHubName), rcVersion, releaseType)
 
-      val coordinator = new Coordinator(directories.stageDir, metaDataProvider, gitHubDetails, bintrayRepoConnector)
-      val result = coordinator.start(artefactName, Repo(gitHubName), rcVersion, releaseType)
-
-      result match {
-        case Success(targetVersion) =>
+        result match {
+          case Success(targetVersion) =>
             log.info(s"Releaser successfully released $artefactName $targetVersion")
             0
-        case Failure(e) =>
-          e.printStackTrace()
-          log.info(s"Releaser failed to release $artefactName $rcVersion with error '${e.getMessage}'")
-          1
+          case Failure(e) =>
+            e.printStackTrace()
+            log.info(s"Releaser failed to release $artefactName $rcVersion with error '${e.getMessage}'")
+            1
+        }
       }
     }
   }
+
+  def doReleaseWithCleanup[T](f: ReleaseDirectories => T): T = {
+    val directories = ReleaseDirectories()
+    try {
+      f(directories)
+    } finally {
+      directories.delete()
+    }
+
+  }
 }
 
-case class ReleaseDirectories(tmpDirectory : () => Path = () => Files.createTempDirectory("releaser")){
+case class ReleaseDirectories(tmpDirectory: () => Path = () => Files.createTempDirectory("releaser")) {
   private lazy val tmpDir = tmpDirectory()
 
   lazy val workDir = Files.createDirectories(tmpDir.resolve("work"))
   lazy val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
 
-  def deleteTmpDir = Try {
+  def delete() = Try {
     FileUtils.forceDelete(tmpDir.toFile)
   }
 }
