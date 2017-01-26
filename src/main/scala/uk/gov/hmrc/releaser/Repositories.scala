@@ -21,12 +21,11 @@ import java.nio.file.{Files, Path}
 import uk.gov.hmrc.releaser.bintray.{BintrayIvyPaths, BintrayMavenPaths, BintrayPaths}
 
 trait RepoFlavour extends BintrayPaths {
-  val workDir:Path = Files.createTempDirectory("releaser")
 
   def scalaVersion: String
   def releaseCandidateRepo: String
   def releaseRepo: String
-  //def pomTransformer:XmlTransformer
+
   val artefactBuilder:(VersionMapping, Path) => TransformerProvider
 }
 

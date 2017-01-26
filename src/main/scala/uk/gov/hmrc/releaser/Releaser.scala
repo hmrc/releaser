@@ -89,19 +89,19 @@ object Releaser extends Logger {
     try {
       f(directories)
     } finally {
-      directories.delete()
+      log.info("cleaning releaser work directory")
+      directories.delete().recover{case  t => log.warn(s"failed to delete releaser work directory ${t.getMessage}")}
     }
 
   }
 }
 
-case class ReleaseDirectories(tmpDirectory: () => Path = () => Files.createTempDirectory("releaser")) {
-  private lazy val tmpDir = tmpDirectory()
+case class ReleaseDirectories(tmpDirectory: Path = Files.createTempDirectory("releaser")) {
 
-  lazy val workDir = Files.createDirectories(tmpDir.resolve("work"))
-  lazy val stageDir = Files.createDirectories(tmpDir.resolve("stage"))
+  lazy val workDir = Files.createDirectories(tmpDirectory.resolve("work"))
+  lazy val stageDir = Files.createDirectories(tmpDirectory.resolve("stage"))
 
   def delete() = Try {
-    FileUtils.forceDelete(tmpDir.toFile)
+    FileUtils.forceDelete(tmpDirectory.toFile)
   }
 }
