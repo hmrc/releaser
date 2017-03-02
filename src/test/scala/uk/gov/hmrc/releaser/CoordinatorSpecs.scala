@@ -306,7 +306,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       val fakeRepoConnector = new FakeBintrayRepoConnector(
         filesuffix = "/sbt-bobby/",
         Some(s"$root/jars/sbt-bobby.jar"),
-        Set(s"$root/ivys/ivy.xml"))
+        Set(s"$root/ivys/ivy.xml", s"$root/ivys/ivy.xml.md5"))
       {
         override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = {
           if (repoName == "sbt-plugin-release-candidates") Success(Unit)

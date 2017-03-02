@@ -68,7 +68,8 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
         "sbt-bobby-assembly.jar",
         "sbt-bobby-other.jar",
         "sbt-bobby-sources.jar",
-        "ivy.xml"
+        "ivy.xml",
+        "ivy.xml.md5"
       )
 
       val result: Map[String, Option[Transformer]] = artefacts.transformersForSupportedFiles(filePaths = files).toMap
@@ -81,7 +82,7 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
       result("sbt-bobby-other.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
       result("sbt-bobby-sources.jar").get.isInstanceOf[JarManifestTransformer] shouldBe true
       result("ivy.xml").get.isInstanceOf[IvyTransformer] shouldBe true
-
+      result.contains("ivy.xml.md5") shouldBe false
     }
   }
 

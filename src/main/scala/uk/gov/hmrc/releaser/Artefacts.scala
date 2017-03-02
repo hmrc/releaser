@@ -57,7 +57,7 @@ class IvyArtefacts(map:VersionMapping, localDir:Path) extends TransformerProvide
 
   val regexTransformers = ListMap(
     map.artefactName+"-javadoc\\.jar"  -> None,
-    "ivy\\.xml"                        -> Some(new IvyTransformer),
+    s"ivy\\.xml$$"                     -> Some(new IvyTransformer),
     s".+\\.jar$$"                      -> Some(new JarManifestTransformer),
     s".+\\.tgz$$"                      -> Some(new CopyAndRenameTransformer),
     s".+\\.zip$$"                      -> Some(new CopyAndRenameTransformer))
