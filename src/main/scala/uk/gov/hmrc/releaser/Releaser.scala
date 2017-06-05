@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ object Releaser {
     parser.parse(args, Config()) match {
       case Some(config) => {
         val githubName = config.githubNameOverride.getOrElse(config.artefactName)
-        start(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.dryRun)
+        start(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.scalaVersion, config.dryRun)
       }
       case None => -1
     }
@@ -86,6 +86,7 @@ object Releaser {
              rcVersion: ReleaseCandidateVersion,
              releaseType: ReleaseType.Value,
              gitHubName:String,
+             scalaVersion: String,
              dryRun:Boolean = false
              ):Int={
     val tmpDir = Files.createTempDirectory("releaser")
@@ -106,9 +107,9 @@ object Releaser {
 
       val releaser = if (dryRun) {
         log.info("starting in dry-run mode")
-        buildDryRunReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get)
+        buildDryRunReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get, scalaVersion)
       } else {
-        buildReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get)
+        buildReleaser(tmpDir, githubCredsOpt.get, bintrayCredsOpt.get, scalaVersion)
       }
 
       val targetVersion = VersionNumberCalculator.calculateTarget(rcVersion, releaseType)
@@ -130,7 +131,8 @@ object Releaser {
   def buildDryRunReleaser(
                      tmpDir:Path,
                      githubCreds: ServiceCredentials,
-                     bintrayCreds: ServiceCredentials): Releaser = {
+                     bintrayCreds: ServiceCredentials,
+                     scalaVersion: String): Releaser = {
 
     val githubConnector = new GithubHttp(githubCreds)
     val EmptyBintrayConnector = new BintrayHttp(bintrayCreds){
@@ -157,7 +159,7 @@ object Releaser {
     val artefactBuilder = ArtefactMetaData.fromFile _
 
     val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, gitHubTagAndRelease)
-    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
+    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository(scalaVersion), ivyRepository)).findReposOfArtefact _
     new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
 
@@ -173,11 +175,13 @@ object Releaser {
       yield ()
   }
 
+
   //TODO not tested
   def buildReleaser(
                      tmpDir:Path,
                      githubCreds: ServiceCredentials,
-                     bintrayCreds: ServiceCredentials): Releaser = {
+                     bintrayCreds: ServiceCredentials,
+                     scalaVersion: String): Releaser = {
 
     val githubConnector = new GithubHttp(githubCreds)
     val bintrayConnector = new BintrayHttp(bintrayCreds)
@@ -197,8 +201,11 @@ object Releaser {
 
     val artefactBuilder = ArtefactMetaData.fromFile _
 
+
+
+
     val coordinator = new Coordinator(stageDir, artefactBuilder, verifyGithubCommit, gitHubTagAndRelease)
-    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository, ivyRepository)).findReposOfArtefact _
+    val repoFinder = new Repositories(metaDataGetter)(Seq(mavenRepository(scalaVersion), ivyRepository)).findReposOfArtefact _
     new Releaser(stageDir, repoFinder, repoConnectorBuilder, coordinator)
   }
 }

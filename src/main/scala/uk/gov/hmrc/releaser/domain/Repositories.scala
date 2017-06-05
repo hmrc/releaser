@@ -22,7 +22,7 @@ import uk.gov.hmrc.releaser.{MavenArtefacts, TransformerProvider, IvyArtefacts}
 
 import scala.util.{Failure, Success, Try}
 
-trait RepoFlavour extends PathBuilder{
+trait RepoFlavour extends PathBuilder {
   val workDir:Path = Files.createTempDirectory("releaser")
 
   def scalaVersion:String
@@ -37,13 +37,15 @@ trait IvyRepo extends RepoFlavour with BintrayIvyPaths{
   val artefactBuilder = IvyArtefacts.apply _
 }
 
-trait MavenRepo extends RepoFlavour with BintrayMavenPaths{
-  val scalaVersion = "2.11"
+trait MavenRepo extends RepoFlavour with BintrayMavenPaths {
+//  def scalaVersion = "2.11"
   val artefactBuilder = MavenArtefacts.apply _
 }
 
 object RepoFlavours {
-  val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
+  def mavenRepository(scalaVer: String): RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo {
+    override def scalaVersion: String = scalaVer
+  }
   val ivyRepository: RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
 }
 

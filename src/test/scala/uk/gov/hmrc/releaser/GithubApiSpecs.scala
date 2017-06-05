@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ class GithubApiSpecs extends WordSpec with Matchers with TryValues with OptionVa
       val poster: (Url, JsValue) => Try[Unit] = (u, _) => { postUrl = Some(u); Success() }
 
       val md = anArtefactMetaData
-      val vm = VersionMapping(RepoFlavours.mavenRepository, "bintray-artefact", repo, aReleaseCandidateVersion, aReleaseVersion)
+      val vm = VersionMapping(RepoFlavours.mavenRepository("2.11"), "bintray-artefact", repo, aReleaseCandidateVersion, aReleaseVersion)
 
       GithubApi.createRelease(poster)("0.1.0")(md, vm)
 

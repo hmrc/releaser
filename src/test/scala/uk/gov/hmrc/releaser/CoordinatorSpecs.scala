@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(mavenRepository),
+        repositoryFinder = successfulRepoFinder(mavenRepository("2.11")),
         connectorBuilder = fakeRepoConnectorBuilder,
         artefactMetaData = ArtefactMetaData("sha", "lib", DateTime.now()))
 
@@ -93,7 +93,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(mavenRepository),
+        repositoryFinder = successfulRepoFinder(mavenRepository("2.11")),
         connectorBuilder = fakeRepoConnectorBuilder,
         artefactMetaData = ArtefactMetaData("sha", "help-frontend", DateTime.now()))
 
@@ -131,7 +131,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(mavenRepository),
+        repositoryFinder = successfulRepoFinder(mavenRepository("2.11")),
         connectorBuilder = fakeRepoConnectorBuilder,
         artefactMetaData = ArtefactMetaData("sha", "time", DateTime.now()))
 
@@ -184,7 +184,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
       def fakeRepoConnectorBuilder(p: PathBuilder):RepoConnector = fakeRepoConnector
 
       val releaser = buildDefaultReleaser(
-        repositoryFinder = successfulRepoFinder(mavenRepository),
+        repositoryFinder = successfulRepoFinder(mavenRepository("2.11")),
         connectorBuilder = fakeRepoConnectorBuilder)
 
       releaser.start("a", Repo("a"), aReleaseCandidateVersion, aReleaseVersion) match {

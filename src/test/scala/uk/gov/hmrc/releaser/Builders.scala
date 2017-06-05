@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,10 @@ object Builders {
                            artefactName:String = "a",
                            repoName:String = "a",
                            rcVersion:String = aReleaseCandidateVersion.value,
-                           releaseVersion:String = aReleaseVersion.value) ={
+                           releaseVersion:String = aReleaseVersion.value,
+                           scalaVersion:String = "2.11") = {
     VersionMapping(
-      RepoFlavours.mavenRepository,
+      RepoFlavours.mavenRepository(scalaVersion),
       artefactName,
       Repo(repoName),
       ReleaseCandidateVersion(rcVersion),
@@ -82,7 +83,7 @@ object Builders {
   }
 
   val successfulRepoFinder:((String) => Try[RepoFlavour])={
-    (a) => Success(mavenRepository)
+    (a) => Success(mavenRepository("2.11"))
   }
 
   val successfulConnectorBuilder:(RepoFlavour) => RepoConnector = (r) => Builders.buildConnector(
