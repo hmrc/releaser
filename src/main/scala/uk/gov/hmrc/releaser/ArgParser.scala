@@ -25,6 +25,7 @@ object ArgParser{
                      githubNameOverride:Option[String] = None,
                      tag:Boolean = true,
                      verbose:Boolean = false,
+                     scalaVersion: String = "2.11",
                      dryRun:Boolean = false)
 
   val currentVersion = getClass.getPackage.getImplementationVersion
@@ -47,6 +48,8 @@ object ArgParser{
       c.copy(githubNameOverride = Option(x)) } text "provide a different github repository to the bintray package"
     opt[Boolean]('v', "verbose") action { (x, c) =>
       c.copy(verbose = x) } text "verbose mode (not implemented)"
+    opt[String]("scalaversion").abbr("sv").optional() action { (x, c) =>
+      c.copy(scalaVersion = x) } text "provide the scala version to be used by the releaser (eg: 2.12)"
     opt[Unit]('d', "dryRun") action { (_, c) =>
       c.copy(dryRun = true) } text "dry run"
   }

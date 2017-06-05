@@ -29,9 +29,10 @@ import scala.util.{Failure, Success, Try}
 class Coordinator(stageDir: Path,
                   metaDataProvider: MetaDataProvider,
                   githubConnector: GithubTagAndRelease,
-                  bintrayConnector: BintrayRepoConnector) extends Logger {
+                  bintrayConnector: BintrayRepoConnector,
+                  scalaVersion: String) extends Logger {
 
-  val repositoryFlavors = Seq(mavenRepository, ivyRepository)
+  val repositoryFlavors = Seq(mavenRepository(scalaVersion), ivyRepository)
 
   def start(artefactName:String,
             gitRepo:Repo,

@@ -41,12 +41,12 @@ object Releaser extends Logger {
     parser.parse(args, Config()) match {
       case Some(config) =>
         val githubName = config.githubNameOverride.getOrElse(config.artefactName)
-        run(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.dryRun)
+        run(config.artefactName, ReleaseCandidateVersion(config.rcVersion), config.releaseType, githubName, config.scalaVersion, config.dryRun)
       case None => -1
     }
   }
 
-  def run(artefactName: String, rcVersion: ReleaseCandidateVersion, releaseType: ReleaseType.Value, gitHubName: String, dryRun: Boolean = false): Int = {
+  def run(artefactName: String, rcVersion: ReleaseCandidateVersion, releaseType: ReleaseType.Value, gitHubName: String, scalaVersion: String, dryRun: Boolean = false): Int = {
     val githubCredsFile = System.getProperty("user.home") + "/.github/.credentials"
     val bintrayCredsFile = System.getProperty("user.home") + "/.bintray/.credentials"
 
@@ -68,7 +68,7 @@ object Releaser extends Logger {
         val bintrayDetails = if (dryRun) BintrayRepoConnector.dryRun(bintrayCredsOpt.get, directories.workDir) else BintrayRepoConnector(bintrayCredsOpt.get, directories.workDir)
         val bintrayRepoConnector = new DefaultBintrayRepoConnector(directories.workDir, new BintrayHttp(bintrayCredsOpt.get), new FileDownloader)
 
-        val coordinator = new Coordinator(directories.stageDir, metaDataProvider, gitHubDetails, bintrayRepoConnector)
+        val coordinator = new Coordinator(directories.stageDir, metaDataProvider, gitHubDetails, bintrayRepoConnector, scalaVersion)
         val result = coordinator.start(artefactName, Repo(gitHubName), rcVersion, releaseType)
 
         result match {

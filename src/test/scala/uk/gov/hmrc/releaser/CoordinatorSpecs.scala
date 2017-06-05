@@ -56,7 +56,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         jarResource = Some(s"$root/libr_2.11-1.3.0-1-g21312cc.jar"),
         bintrayFiles = Set(s"$root/libr_2.11-1.3.0-1-g21312cc.pom", s"$root/libr_2.11-1.3.0-1-g21312cc-assembly.jar"))
 
-      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector, "2.11")
       coordinator.start("libr", Repo("libr"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.HOTFIX) match {
         case Failure(e) =>
           log.error(s"Test failed with: ${e.getMessage} - ${e.toString}")
@@ -105,7 +105,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           s"$root/help-frontend_2.11-1.26.0-3-gd7ed03c.tgz.asc.md5",
           s"$root/help-frontend_2.11-1.26.0-3-gd7ed03c-sources.jar"))
 
-      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector, "2.11")
       coordinator.start("help-frontend", Repo("help-frontend"), ReleaseCandidateVersion("1.26.0-3-gd7ed03c"), ReleaseType.MAJOR) match {
         case Failure(e) =>
           log.error(s"Test failed with: ${e.getMessage} - ${e.toString}")
@@ -142,7 +142,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         jarResource = Some(s"$root/time_2.11-1.3.0-1-g21312cc.jar"),
         bintrayFiles = Set(s"$root/time_2.11-1.3.0-1-g21312cc.pom"))
 
-      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector, "2.11")
       coordinator.start("time", Repo("time"), ReleaseCandidateVersion("1.3.0-1-g21312cc"), ReleaseType.MINOR) match {
         case Failure(e) =>
           log.error(s"Test failed with: ${e.getMessage} - ${e.toString}")
@@ -185,7 +185,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.jar",
           s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708-javadoc.jar"))
  
-      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector, "2.11")
       coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
         case Failure(e) =>
           log.error(s"Test failed with: ${e.getMessage} - ${e.toString}")
@@ -229,7 +229,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
           s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.tgz",
           s"$root/paye-estimator_sjs0.6_2.11-0.1.0-1-g1906708.zip"))
 
-      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector, "2.11")
       coordinator.start("paye-estimator", Repo("paye-estimator"), ReleaseCandidateVersion("0.1.0-1-g1906708"), ReleaseType.MINOR) match {
         case Failure(e) =>
           log.error(s"Test failed with: ${e.getMessage} - ${e.toString}")
@@ -262,7 +262,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         jarResource = Some(s"$root/time_2.11-1.3.0-1-g21312cc.jar"),
         bintrayFiles = Set(s"$root/time_2.11-1.3.0-1-g21312cc.pom"))
 
-      val coordinator = new Coordinator(tempDir(), metaDataProvider, taggerAndReleaser, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, taggerAndReleaser, fakeRepoConnector, "2.11")
       coordinator.start("time", Repo("time"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
         case Failure(e) => e shouldBe expectedException
         case Success(s) => fail(s"Should have failed with $expectedException")
@@ -277,7 +277,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         jarResource = Some(s"$root/time_2.11-1.3.0-1-g21312cc.jar"),
         bintrayFiles = Set(s"$root/time_2.11-1.3.0-1-g21312cc.pom"), targetExists = true)
 
-      val coordinator = new Coordinator(tempDir(), mock[MetaDataProvider], new FakeGithubTagAndRelease, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), mock[MetaDataProvider], new FakeGithubTagAndRelease, fakeRepoConnector, "2.11")
       coordinator.start("time", Repo("time"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
         case Failure(e) => e shouldBe an [IllegalArgumentException]
         case Success(s) => fail(s"Should have failed with an IllegalArgumentException")
@@ -290,7 +290,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         override def getRepoMetaData(repoName: String, artefactName: String): Try[Unit] = Failure(new RuntimeException)
       }
 
-      val coordinator = new Coordinator(tempDir(), mock[MetaDataProvider], new FakeGithubTagAndRelease, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), mock[MetaDataProvider], new FakeGithubTagAndRelease, fakeRepoConnector, "2.11")
       coordinator.start("a", Repo("a"), aReleaseCandidateVersion, ReleaseType.MINOR) match {
         case Failure(e) => e.getMessage shouldBe "Didn't find a release candidate repository for 'a' in repos List(release-candidates, sbt-plugin-release-candidates)"
         case Success(s) => fail(s"Should have failed")
@@ -314,7 +314,7 @@ class CoordinatorSpecs extends WordSpec with Matchers with OptionValues with Try
         }
       }
 
-      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector)
+      val coordinator = new Coordinator(tempDir(), metaDataProvider, new FakeGithubTagAndRelease, fakeRepoConnector, "2.11")
       coordinator.start("sbt-bobby", Repo("sbt-bobby"), ReleaseCandidateVersion("0.8.1-4-ge733d26"), ReleaseType.HOTFIX) match {
           case Failure(e) =>
             log.error(s"Test failed with: ${e.getMessage} - ${e.toString}")

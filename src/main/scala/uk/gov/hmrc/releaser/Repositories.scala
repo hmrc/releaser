@@ -35,12 +35,14 @@ trait IvyRepo extends RepoFlavour with BintrayIvyPaths {
 }
 
 trait MavenRepo extends RepoFlavour with BintrayMavenPaths {
-  val scalaVersion = "2.11"
+//  val scalaVersion = "2.11"
   val artefactBuilder = MavenArtefacts.apply _
 }
 
 object RepoFlavours {
-  val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
+  def mavenRepository(scalaVer:String): RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo {
+    override def scalaVersion: String = scalaVer
+  }
   val ivyRepository: RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
 }
 
