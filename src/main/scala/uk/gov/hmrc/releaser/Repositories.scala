@@ -22,7 +22,7 @@ import uk.gov.hmrc.releaser.bintray.{BintrayIvyPaths, BintrayMavenPaths, Bintray
 
 trait RepoFlavour extends BintrayPaths {
 
-  def scalaVersion: String
+//  def scalaVersion: String
   def releaseCandidateRepo: String
   def releaseRepo: String
 
@@ -30,7 +30,7 @@ trait RepoFlavour extends BintrayPaths {
 }
 
 trait IvyRepo extends RepoFlavour with BintrayIvyPaths {
-  val scalaVersion = "2.10"
+//  val scalaVersion = "2.10"
   val artefactBuilder = IvyArtefacts.apply _
 }
 
@@ -40,9 +40,7 @@ trait MavenRepo extends RepoFlavour with BintrayMavenPaths {
 }
 
 object RepoFlavours {
-  def mavenRepository(scalaVer:String): RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo {
-    override def scalaVersion: String = scalaVer
-  }
+  val mavenRepository: RepoFlavour = new BintrayRepository("release-candidates", "releases") with MavenRepo
   val ivyRepository: RepoFlavour = new BintrayRepository("sbt-plugin-release-candidates", "sbt-plugin-releases") with IvyRepo
 }
 

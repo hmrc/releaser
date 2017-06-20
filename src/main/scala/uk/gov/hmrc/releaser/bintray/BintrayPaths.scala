@@ -39,7 +39,7 @@ trait BintrayPaths  {
   val packageExistsRoot = s"https://bintray.com/hmrc/"
 
   def releaseExistsFor(v: VersionDescriptor): String
-  def jarFilenameFor(v: VersionDescriptor): String
+  def jarFilenameEndingFor(v: VersionDescriptor): String
 
   def fileDownloadFor(v: VersionDescriptor, fileName:String): String
   def fileUploadFor(v: VersionDescriptor, fileName:String): String
@@ -50,7 +50,7 @@ trait BintrayIvyPaths extends BintrayPaths {
     s"$packageExistsRoot/${v.repo}/${`package`}/${v.version}"
   }
 
-  override def jarFilenameFor(v:VersionDescriptor):String={
+  override def jarFilenameEndingFor(v:VersionDescriptor):String={
     s"${v.artefactName}.jar"
   }
 
@@ -64,14 +64,13 @@ trait BintrayIvyPaths extends BintrayPaths {
 }
 
 trait BintrayMavenPaths extends BintrayPaths {
-  def scalaVersion: String
 
   def releaseExistsFor(v:VersionDescriptor) : String = {
     s"$packageExistsRoot/${v.repo}/$path/${v.version}"
   }
 
-  def jarFilenameFor(v:VersionDescriptor) : String = {
-    s"${v.artefactName}_$scalaVersion-${v.version}.jar"
+  def jarFilenameEndingFor(v:VersionDescriptor) : String = {
+    s"-${v.version}.jar"
   }
 
   def fileDownloadFor(v: VersionDescriptor, fileName:String)={

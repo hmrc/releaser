@@ -29,10 +29,9 @@ import scala.util.{Failure, Success, Try}
 class Coordinator(stageDir: Path,
                   metaDataProvider: MetaDataProvider,
                   githubConnector: GithubTagAndRelease,
-                  bintrayConnector: BintrayRepoConnector,
-                  scalaVersion: String) extends Logger {
+                  bintrayConnector: BintrayRepoConnector) extends Logger {
 
-  val repositoryFlavors = Seq(mavenRepository(scalaVersion), ivyRepository)
+  val repositoryFlavors: Seq[RepoFlavour] = Seq(mavenRepository, ivyRepository)
 
   def start(artefactName:String,
             gitRepo:Repo,
@@ -75,8 +74,9 @@ class Coordinator(stageDir: Path,
 
   private def getMetaData(repo: RepoFlavour, map: VersionMapping, files: List[String]): Try[ArtefactMetaData] = {
 
+//    To get the metadata, you only need one of the jars irrespective of having multiple scala versions
     val jarPath = for {
-      jarFileName <- files.find(f => f.endsWith(repo.jarFilenameFor(map.sourceArtefact)))
+      jarFileName <- files.find(f => f.endsWith(repo.jarFilenameEndingFor(map.sourceArtefact)))
       jarUrl = repo.fileDownloadFor(map.sourceArtefact, jarFileName)
       jarPath <- bintrayConnector.findJar(jarFileName, jarUrl, map.sourceArtefact)
     }

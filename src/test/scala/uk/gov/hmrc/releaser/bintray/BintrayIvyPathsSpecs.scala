@@ -37,7 +37,7 @@ class BintrayIvyPathsSpecs extends WordSpec with Matchers{
 
       val version = VersionDescriptor(repoName, artefactName, githubRepoName, releaseCandidateVersion)
 
-      ivyPaths.jarFilenameFor(version) shouldBe "sbt-bobby.jar"
+//      ivyPaths.jarFilenameFor(version) shouldBe "sbt-bobby.jar"
       ivyPaths.fileDownloadFor(version, "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/jars/sbt-bobby-assembly.jar") shouldBe expectedAssemblyJarUrl
       ivyPaths.fileDownloadFor(version, "uk.gov.hmrc/sbt-bobby/scala_2.10/sbt_0.13/0.8.1-4-ge733d26/ivys/ivy.xml") shouldBe expectedPomUrl
     }

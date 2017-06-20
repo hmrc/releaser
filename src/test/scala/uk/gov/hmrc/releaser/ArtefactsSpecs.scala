@@ -91,7 +91,7 @@ class ArtefactsSpecs extends WordSpec with Matchers with OptionValues{
                                   rcVersion:String = "1.3.0-1-g21312cc",
                                   releaseVersion:String = "1.4.0") =
     VersionMapping(
-      RepoFlavours.mavenRepository("2.11"),
+      RepoFlavours.mavenRepository,
       artefactName,
       Repo(repoName),
       ReleaseCandidateVersion(rcVersion),

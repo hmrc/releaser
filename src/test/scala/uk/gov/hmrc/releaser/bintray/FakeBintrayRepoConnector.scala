@@ -42,9 +42,14 @@ class FakeBintrayRepoConnector(filesuffix:String  = "",
 
   override def downloadFile(url: String, fileName: String): Try[Path] = {
     downloadedFiles.add(url)
-    Success {
-      Paths.get(this.getClass.getResource(filesuffix + fileName).toURI)
+    val success = Success {
+      val s = filesuffix + fileName
+      val resource = this.getClass.getResource(s)
+      val i = resource.toURI
+      val path = Paths.get(i)
+      path
     }
+    success
   }
 
   override def uploadFile(version: VersionDescriptor, filePath: Path, url: String): Try[Unit] = {
