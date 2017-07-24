@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.releaser.github
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsValue, Json}
@@ -27,6 +29,9 @@ import scala.util.{Success, Try}
 object GithubConnector extends Logger {
   type GitPost = (String, JsValue) => Try[Unit]
   type GitPostAndGet = (String, JsValue) => Try[CommitSha]
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
 
   def apply(githubCreds: ServiceCredentials, releaserVersion : String) = new GithubConnector(new GithubHttp(githubCreds), releaserVersion)
 
@@ -45,8 +50,27 @@ case class GithubCommitter(taggerName: String = System.getProperty("github.tagge
   log.info(s"Github organisation details : taggerName : '$taggerName', taggerEmail : '$taggerEmail'")
 }
 
+trait GitMessage {
+
+  def buildMessage(
+                            name: String,
+                            version: String,
+                            releaserVersion: String,
+                            releaseCandidateVersion: String,
+                            commitSha: CommitSha, commitAuthor: String, commitDate: DateTime) =
+    s"""
+       |Release            : $name $version
+       |Release candidate  : $name $releaseCandidateVersion
+       |
+      |Last commit sha    : $commitSha
+       |Last commit author : $commitAuthor
+       |Last commit time   : ${DateTimeFormat.longDateTime().print(commitDate)}
+       |
+      |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion""".stripMargin
+}
+
 class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitterDetails : GithubCommitter = GithubCommitter())
-  extends GithubTagAndRelease with Logger {
+  extends GithubTagAndRelease with GitMessage with Logger {
 
   import GithubConnector._
 
@@ -61,6 +85,8 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
   implicit val tagRefFormats = Json.format[TagRef]
   implicit val tagRefResponseFormats = Json.format[TagRefResponse]
   implicit val gitReleaseFormats = Json.format[GitRelease]
+
+  private val gitHubOrganisation = System.getProperty("github.organisation", "hmrc")
 
   def verifyGithubTagExists(repo:Repo, sha:CommitSha): Try[Unit] = {
     githubHttp.get(buildCommitGetUrl(repo, sha))
@@ -120,36 +146,20 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
     Json.toJson(GitRelease(version, tagName, message, draft = false, prerelease = false))
   }
 
-  private def buildMessage(
-                    name: String,
-                    version: String,
-                    releaserVersion: String,
-                    releaseCandidateVersion: String,
-                    commitSha: CommitSha, commitAuthor: String, commitDate: DateTime) =
-    s"""
-      |Release            : $name $version
-      |Release candidate  : $name $releaseCandidateVersion
-      |
-      |Last commit sha    : $commitSha
-      |Last commit author : $commitAuthor
-      |Last commit time   : ${DateTimeFormat.longDateTime().print(commitDate)}
-      |
-      |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion""".stripMargin
-
   private def buildCommitGetUrl(repo:Repo, sha:CommitSha)={
-    s"https://api.github.com/repos/hmrc/${repo.value}/git/commits/$sha"
+    s"https://api.github.com/repos/$gitHubOrganisation/${repo.value}/git/commits/$sha"
   }
 
   private def buildAnnotatedTagRefPostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/${repo.value}/git/refs"
+    s"https://api.github.com/repos/$gitHubOrganisation/${repo.value}/git/refs"
   }
 
   private def buildAnnotatedTagObjectPostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/${repo.value}/git/tags"
+    s"https://api.github.com/repos/$gitHubOrganisation/${repo.value}/git/tags"
   }
 
   private def buildReleasePostUrl(repo:Repo)={
-    s"https://api.github.com/repos/hmrc/${repo.value}/releases"
+    s"https://api.github.com/repos/$gitHubOrganisation/${repo.value}/releases"
   }
 }
 

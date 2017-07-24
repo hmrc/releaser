@@ -5,12 +5,12 @@ val appName = "releaser"
 scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.play" %% "play-ws" % "2.3.8",
+  "com.typesafe.play" %% "play-ws" % "2.5.15",
   "com.jsuereth" %% "scala-arm" % "1.4",
   "commons-io" % "commons-io" % "2.4",
   "com.github.scopt" %% "scopt" % "3.3.0",
   "org.apache.commons" % "commons-compress" % "1.10",
-  "org.scalatest" %% "scalatest" % "3.0.0" % "test",
+  "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "org.pegdown" % "pegdown" % "1.6.0" % "test",
   "org.mockito" % "mockito-all" % "1.9.5" % "test"
 )

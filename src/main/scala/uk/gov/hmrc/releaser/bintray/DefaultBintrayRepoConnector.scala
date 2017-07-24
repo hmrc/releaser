@@ -19,12 +19,18 @@ package uk.gov.hmrc.releaser.bintray
 import java.net.{HttpURLConnection, URL}
 import java.nio.file.Path
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.{FileDownloader, Logger, ServiceCredentials}
 
 import scala.util.{Failure, Success, Try}
 
 object BintrayRepoConnector extends Logger {
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+
   def apply(bintrayCreds: ServiceCredentials, workDir : Path): BintrayRepoConnector =
     new DefaultBintrayRepoConnector(workDir, new BintrayHttp(bintrayCreds), new FileDownloader())
 
