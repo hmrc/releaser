@@ -5,7 +5,7 @@ val appName = "releaser"
 scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.play" %% "play-ws" % "2.3.10",
+  "com.typesafe.play" %% "play-ws" % "2.5.15",
   "com.jsuereth" %% "scala-arm" % "1.4",
   "commons-io" % "commons-io" % "2.4",
   "com.github.scopt" %% "scopt" % "3.3.0",

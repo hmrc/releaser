@@ -16,30 +16,33 @@
 
 package uk.gov.hmrc.releaser.bintray
 
-import java.net.URL
-import java.nio.file.Path
-import java.util.concurrent.TimeUnit
-
-import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
-import play.api.mvc.Results
+import akka.stream.Materializer
 import uk.gov.hmrc.{Logger, ServiceCredentials}
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success, Try}
+class BintrayHttp(creds:ServiceCredentials)(implicit val materializer: Materializer) extends Logger {
 
-class BintrayHttp(creds:ServiceCredentials) extends Logger {
+  import java.net.URL
+  import java.nio.file.Path
+  import java.util.concurrent.TimeUnit
 
-  private def getTimeoutPropertyOptional(key: String) = Option(System.getProperty(key)).map(_.toLong * 1000)
+  import play.api.libs.ws.ahc.{AhcWSClient, AhcWSClientConfig}
+  import play.api.libs.ws.{WSAuthScheme, WSClientConfig, WSResponse}
+  import play.api.mvc.Results
 
-  def wsClientConfig = new DefaultWSClientConfig(
-    connectionTimeout = getTimeoutPropertyOptional("wsclient.timeout.connection"),
+  import scala.concurrent.Await
+  import scala.concurrent.duration.Duration
+  import scala.util.{Failure, Success, Try}
+
+  private def getTimeoutPropertyOptional(key: String) = {
+    import scala.concurrent.duration._
+    Option(System.getProperty(key)).map(_.toLong * 1000).get.milliseconds
+  }
+
+  def wsClientConfig = WSClientConfig(connectionTimeout = getTimeoutPropertyOptional("wsclient.timeout.connection"),
     idleTimeout = getTimeoutPropertyOptional("wsclient.timeout.idle"),
-    requestTimeout = getTimeoutPropertyOptional("wsclient.timeout.request")
-  )
+    requestTimeout = getTimeoutPropertyOptional("wsclient.timeout.request"))
 
-  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(wsClientConfig).build())
+  val ws = AhcWSClient(AhcWSClientConfig(wsClientConfig))
 
   def apiWs(url:String) = ws.url(url)
     .withAuth(

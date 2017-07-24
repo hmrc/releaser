@@ -16,22 +16,24 @@
 
 package uk.gov.hmrc.releaser.github
 
-import java.util.concurrent.TimeUnit
-
-import play.api.libs.json.JsValue
-import play.api.libs.ws._
-import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
+import akka.stream.Materializer
 import uk.gov.hmrc.{Logger, ServiceCredentials}
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success, Try}
+class GithubHttp(cred: ServiceCredentials)(implicit val materializer: Materializer) extends Logger {
 
-class GithubHttp(cred: ServiceCredentials) extends Logger {
+  import java.util.concurrent.TimeUnit
 
-  val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(new DefaultWSClientConfig).build())
+  import play.api.libs.json.JsValue
+  import play.api.libs.ws._
+  import play.api.libs.ws.ahc.AhcWSClient
 
-  def buildCall(method:String, url:String, body:Option[JsValue] = None):WSRequestHolder={
+  import scala.concurrent.Await
+  import scala.concurrent.duration.Duration
+  import scala.util.{Failure, Success, Try}
+
+  val ws = AhcWSClient()
+
+  def buildCall(method:String, url:String, body:Option[JsValue] = None):WSRequest={
     log.debug(s"github client_id ${cred.user.takeRight(5)}")
     log.debug(s"github client_secret ${cred.pass.takeRight(5)}")
 
@@ -46,7 +48,7 @@ class GithubHttp(cred: ServiceCredentials) extends Logger {
     }.getOrElse(req)
   }
 
-  def callAndWait(req:WSRequestHolder): WSResponse = {
+  def callAndWait(req:WSRequest): WSResponse = {
     log.info(s"${req.method} with ${req.url}")
     val result: WSResponse = Await.result(req.execute(), Duration.apply(1, TimeUnit.MINUTES))
     log.info(s"${req.method} with ${req.url} result ${result.status} - ${result.statusText}")

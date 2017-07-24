@@ -66,7 +66,7 @@ object Releaser extends Logger {
         val metaDataProvider = new ArtefactMetaDataProvider()
         val gitHubDetails = if (dryRun) GithubConnector.dryRun(githubCredsOpt.get, releaserVersion) else GithubConnector(githubCredsOpt.get, releaserVersion)
         val bintrayDetails = if (dryRun) BintrayRepoConnector.dryRun(bintrayCredsOpt.get, directories.workDir) else BintrayRepoConnector(bintrayCredsOpt.get, directories.workDir)
-        val bintrayRepoConnector = new DefaultBintrayRepoConnector(directories.workDir, new BintrayHttp(bintrayCredsOpt.get), new FileDownloader)
+        val bintrayRepoConnector = BintrayRepoConnector(bintrayCredsOpt.get, directories.workDir)
 
         val coordinator = new Coordinator(directories.stageDir, metaDataProvider, gitHubDetails, bintrayRepoConnector)
         val result = coordinator.start(artefactName, Repo(gitHubName), rcVersion, releaseType)
