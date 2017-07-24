@@ -19,11 +19,19 @@ There are release and release candidate repositories in Bintray HMRC for standar
 - `--github-name-override`: provide a different github repository to the bintray package. The default is to assume the github repository has the same name as the Bintry repository and this flag allows the user to provide a differnt github.com repository name.
 
 #### Configuration Parameters
-You can specify custom timeouts to be passed to the play.ws libraries that this project uses with the following System properties (-Dproperty.name=value)
+* Custom timeouts to be passed to the play.ws libraries that this project uses with the following System properties (-Dproperty.name=value)
 
 wsclient.timeout.connection - Connection timeout (seconds)
 wsclient.timeout.idle - Idle timeout (seconds)
 wsclient.timeout.request - Request timeout (seconds)
+
+* GitHub tagging variables
+
+ Variable | Default 
+ -------- | ------- 
+ github.organisation | hmrc
+ github.tagger.name | hmrc-web-operations      
+ github.tagger.email | hmrc-web-operations@digital.hmrc.gov.uk
 
 ### Supported Artifacts
 Releaser will release:
@@ -66,6 +74,7 @@ If the artefact does NOT contain a JAR matching the naming conventions, you must
     date=2011-06-17T14:53:35Z
 
 All artefacts must contain a .POM file, this is mandatory and cannot be omitted.
+  
 
 ### Coding in the Open
 Release is an integral part of how we release code in the open, more information can be found in the [Coding in the Open Manual](http://hmrc.github.io/coding-in-the-open-manual/)
