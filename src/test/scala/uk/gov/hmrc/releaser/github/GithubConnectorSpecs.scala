@@ -84,7 +84,10 @@ class GithubConnectorSpecs extends WordSpec with Matchers with TryValues with Op
           |Last commit author : $author
           |Last commit time   : ${GithubConnector.releaseMessageDateTimeFormat.print(commitDate)}
           |
-          |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion""".stripMargin))
+          |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion
+          |
+          |some custom release notes
+          |""".stripMargin))
 
       val expectedReleaseBody =
         Json.parse(s"""
@@ -106,7 +109,7 @@ class GithubConnectorSpecs extends WordSpec with Matchers with TryValues with Op
       when(mockHttpConnector.postUnit(meq(s"https://api.github.com/repos/hmrc/$repoName/releases"), meq(expectedReleaseBody)))
         .thenReturn(Success(()))
 
-      val result = connector.createGithubTagAndRelease(tagDate, sha, author, commitDate, artifactName, Repo(repoName), rcVersion, releaseVersion)
+      val result = connector.createGithubTagAndRelease(tagDate, sha, author, commitDate, artifactName, Repo(repoName), rcVersion, releaseVersion, "some custom release notes")
 
       result shouldBe Success(())
     }

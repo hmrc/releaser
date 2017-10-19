@@ -36,7 +36,8 @@ class Coordinator(stageDir: Path,
   def start(artefactName:String,
             gitRepo:Repo,
             releaseCandidateVersion: ReleaseCandidateVersion,
-            releaseType: ReleaseType.Value): Try[ReleaseVersion] = {
+            releaseType: ReleaseType.Value,
+            releaseNotes: String): Try[ReleaseVersion] = {
 
     for {
       targetVersion <- VersionNumberCalculator.calculateTarget(releaseCandidateVersion, releaseType)
@@ -51,7 +52,7 @@ class Coordinator(stageDir: Path,
       transd <- transformFiles(repo, map, remotes)
       _ <- uploadFiles(repo, map.targetArtefact, transd)
       _ <- bintrayConnector.publish(map.targetArtefact)
-      _ <- githubConnector.createGithubTagAndRelease(new DateTime(), commitSha, commitAuthor, commitDate, artefactName, gitRepo, releaseCandidateVersion.value, targetVersion.value)
+      _ <- githubConnector.createGithubTagAndRelease(new DateTime(), commitSha, commitAuthor, commitDate, artefactName, gitRepo, releaseCandidateVersion.value, targetVersion.value, releaseNotes)
     }
      yield targetVersion
   }
