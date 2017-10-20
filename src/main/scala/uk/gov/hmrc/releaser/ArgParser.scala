@@ -26,7 +26,7 @@ object ArgParser{
                      tag:Boolean = true,
                      verbose:Boolean = false,
                      dryRun:Boolean = false,
-                     releaseNotes: String = "")
+                     releaseNotes: Option[String] = None)
 
   val currentVersion = getClass.getPackage.getImplementationVersion
 
@@ -43,7 +43,7 @@ object ArgParser{
        if (ReleaseType.stringValues.contains(x)) success else failure(releaseTypeErrorMessage(x))
     } text "the release type. Permitted values are: " + ReleaseType.stringValues.mkString(" ")
     opt[String]("release-notes") action { (x, c) =>
-      c.copy(releaseNotes = x) } text "release notes"
+      c.copy(releaseNotes = Some(x)) } text "release notes"
     opt[Boolean]("tag") action { (x, c) =>
       c.copy(tag = x) } text "tag in github"
     opt[String]("github-name-override") action { (x, c) =>

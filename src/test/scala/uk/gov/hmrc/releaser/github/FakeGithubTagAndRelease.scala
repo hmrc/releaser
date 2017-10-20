@@ -22,7 +22,7 @@ import scala.util.{Success, Try}
 class FakeGithubTagAndRelease extends GithubTagAndRelease {
   override def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
                                          commitAuthor: String, commitDate: DateTime,
-                                         artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String, releaseNotes: String): Try[Unit] = Success(Unit)
+                                         artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String, releaseNotes: Option[String]): Try[Unit] = Success(Unit)
 
   override def verifyGithubTagExists(repo: Repo, sha: CommitSha): Try[Unit] = Success(Unit)
 }

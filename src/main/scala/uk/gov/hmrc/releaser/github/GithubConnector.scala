@@ -69,7 +69,7 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
   def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
                                  commitAuthor: String, commitDate: DateTime,
                                  artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String,
-                                 releaseNotes: String): Try[Unit] =
+                                 releaseNotes: Option[String]): Try[Unit] =
     for (
       tagSha <- createTagObject(tagDate, gitRepo, version, commitSha);
       _ <- createTagRef(gitRepo, version, tagSha);
@@ -97,7 +97,7 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
   private def createRelease(commitSha: CommitSha, commitAuthor: String,
                             commitDate: DateTime, artefactName: String,
                             gitRepo: Repo, releaseCandidateVersion: String, version: String,
-                            releaseNotes: String): Try[Unit] = {
+                            releaseNotes: Option[String]): Try[Unit] = {
     log.debug(s"creating release from $commitSha version " + version)
 
     val url = buildReleasePostUrl(gitRepo)
@@ -122,13 +122,19 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
     Json.toJson(GitRelease(version, tagName, message, draft = false, prerelease = false))
   }
 
+  private def customReleaseNotes(releaseNotesOpt: Option[String]) =
+    releaseNotesOpt.map(releaseNotes =>
+      s"""|
+          |$releaseNotes""".stripMargin
+    ).getOrElse("")
+
   private def buildMessage(
                     name: String,
                     version: String,
                     releaserVersion: String,
                     releaseCandidateVersion: String,
                     commitSha: CommitSha, commitAuthor: String, commitDate: DateTime,
-                    releaseNotes: String) =
+                    releaseNotes: Option[String]) =
     s"""
       |Release            : $name $version
       |Release candidate  : $name $releaseCandidateVersion
@@ -138,9 +144,7 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
       |Last commit time   : ${DateTimeFormat.longDateTime().print(commitDate)}
       |
       |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion
-      |
-      |$releaseNotes
-      |""".stripMargin
+      |${customReleaseNotes(releaseNotes)}""".stripMargin
 
   private def buildCommitGetUrl(repo:Repo, sha:CommitSha)={
     s"https://api.github.com/repos/hmrc/${repo.value}/git/commits/$sha"
@@ -167,5 +171,5 @@ class DryRunGithubConnector(releaserVersion: String) extends GithubTagAndRelease
 
   def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
     commitAuthor: String, commitDate: DateTime,
-    artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String, releaseNotes: String): Try[Unit] = Success(Unit)
+    artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String, releaseNotes: Option[String]): Try[Unit] = Success(Unit)
 }

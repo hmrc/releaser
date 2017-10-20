@@ -32,6 +32,6 @@ trait GithubTagAndRelease {
                                 gitRepo: Repo,
                                 releaseCandidateVersion: String,
                                 version: String,
-                                releaseNotes: String): Try[Unit]
+                                releaseNotes: Option[String]): Try[Unit]
 
 }

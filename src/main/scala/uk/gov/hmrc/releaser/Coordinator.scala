@@ -37,7 +37,7 @@ class Coordinator(stageDir: Path,
             gitRepo:Repo,
             releaseCandidateVersion: ReleaseCandidateVersion,
             releaseType: ReleaseType.Value,
-            releaseNotes: String): Try[ReleaseVersion] = {
+            releaseNotes: Option[String]): Try[ReleaseVersion] = {
 
     for {
       targetVersion <- VersionNumberCalculator.calculateTarget(releaseCandidateVersion, releaseType)

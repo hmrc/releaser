@@ -46,7 +46,7 @@ object Releaser extends Logger {
     }
   }
 
-  def run(artefactName: String, rcVersion: ReleaseCandidateVersion, releaseType: ReleaseType.Value, gitHubName: String, releaseNotes: String, dryRun: Boolean = false): Int = {
+  def run(artefactName: String, rcVersion: ReleaseCandidateVersion, releaseType: ReleaseType.Value, gitHubName: String, releaseNotes: Option[String], dryRun: Boolean = false): Int = {
     val githubCredsFile = System.getProperty("user.home") + "/.github/.credentials"
     val bintrayCredsFile = System.getProperty("user.home") + "/.bintray/.credentials"
 
