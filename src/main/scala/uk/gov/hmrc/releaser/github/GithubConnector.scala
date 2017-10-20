@@ -68,11 +68,12 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
 
   def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
                                  commitAuthor: String, commitDate: DateTime,
-                                 artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit] =
+                                 artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String,
+                                 releaseNotes: Option[String]): Try[Unit] =
     for (
       tagSha <- createTagObject(tagDate, gitRepo, version, commitSha);
       _ <- createTagRef(gitRepo, version, tagSha);
-      _ <- createRelease(commitSha, commitAuthor, commitDate, artefactName, gitRepo, releaseCandidateVersion, version))
+      _ <- createRelease(commitSha, commitAuthor, commitDate, artefactName, gitRepo, releaseCandidateVersion, version, releaseNotes))
       yield ()
 
   private def createTagObject(tagDate: DateTime, repo:Repo, tag: String, commitSha:CommitSha): Try[CommitSha] = {
@@ -95,11 +96,12 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
 
   private def createRelease(commitSha: CommitSha, commitAuthor: String,
                             commitDate: DateTime, artefactName: String,
-                            gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit] = {
+                            gitRepo: Repo, releaseCandidateVersion: String, version: String,
+                            releaseNotes: Option[String]): Try[Unit] = {
     log.debug(s"creating release from $commitSha version " + version)
 
     val url = buildReleasePostUrl(gitRepo)
-    val message = buildMessage(artefactName, version, releaserVersion, releaseCandidateVersion, commitSha, commitAuthor, commitDate)
+    val message = buildMessage(artefactName, version, releaserVersion, releaseCandidateVersion, commitSha, commitAuthor, commitDate, releaseNotes)
     val body = buildReleaseBody(message, version)
 
     githubHttp.postUnit(url, body)
@@ -120,12 +122,19 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
     Json.toJson(GitRelease(version, tagName, message, draft = false, prerelease = false))
   }
 
+  private def customReleaseNotes(releaseNotesOpt: Option[String]) =
+    releaseNotesOpt.map(releaseNotes =>
+      s"""|
+          |$releaseNotes""".stripMargin
+    ).getOrElse("")
+
   private def buildMessage(
                     name: String,
                     version: String,
                     releaserVersion: String,
                     releaseCandidateVersion: String,
-                    commitSha: CommitSha, commitAuthor: String, commitDate: DateTime) =
+                    commitSha: CommitSha, commitAuthor: String, commitDate: DateTime,
+                    releaseNotes: Option[String]) =
     s"""
       |Release            : $name $version
       |Release candidate  : $name $releaseCandidateVersion
@@ -134,7 +143,8 @@ class GithubConnector(githubHttp : GithubHttp, releaserVersion : String, comitte
       |Last commit author : $commitAuthor
       |Last commit time   : ${DateTimeFormat.longDateTime().print(commitDate)}
       |
-      |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion""".stripMargin
+      |Release and tag created by [Releaser](https://github.com/hmrc/releaser) $releaserVersion
+      |${customReleaseNotes(releaseNotes)}""".stripMargin
 
   private def buildCommitGetUrl(repo:Repo, sha:CommitSha)={
     s"https://api.github.com/repos/hmrc/${repo.value}/git/commits/$sha"
@@ -161,5 +171,5 @@ class DryRunGithubConnector(releaserVersion: String) extends GithubTagAndRelease
 
   def createGithubTagAndRelease(tagDate: DateTime, commitSha: CommitSha,
     commitAuthor: String, commitDate: DateTime,
-    artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String): Try[Unit] = Success(Unit)
+    artefactName: String, gitRepo: Repo, releaseCandidateVersion: String, version: String, releaseNotes: Option[String]): Try[Unit] = Success(Unit)
 }
