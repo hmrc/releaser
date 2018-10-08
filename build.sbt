@@ -1,8 +1,12 @@
-enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
+enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning, SbtArtifactory)
 
 val appName = "releaser"
 
 scalaVersion := "2.11.8"
+
+majorVersion := 1
+
+makePublicallyAvailableOnBintray := true
 
 libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-ws" % "2.3.8",
