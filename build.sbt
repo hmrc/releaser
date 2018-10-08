@@ -17,8 +17,6 @@ libraryDependencies ++= Seq(
 
 resolvers += Resolver.typesafeRepo("releases")
 
-BuildDescriptionSettings()
-
 AssemblySettings()
 
 addArtifact(artifact in (Compile, assembly), assembly)
