@@ -20,23 +20,31 @@ import java.net.URL
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient}
-import play.api.libs.ws.{DefaultWSClientConfig, WSAuthScheme, WSResponse}
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import play.api.libs.ws.ning.{NingAsyncHttpClientConfigBuilder, NingWSClient, NingWSClientConfig}
+import play.api.libs.ws.{WSAuthScheme, WSClientConfig, WSResponse}
 import play.api.mvc.Results
 import uk.gov.hmrc.{Logger, ServiceCredentials}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
 
 class BintrayHttp(creds:ServiceCredentials) extends Logger {
 
-  private def getTimeoutPropertyOptional(key: String) = Option(System.getProperty(key)).map(_.toLong * 1000)
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
 
-  def wsClientConfig = new DefaultWSClientConfig(
-    connectionTimeout = getTimeoutPropertyOptional("wsclient.timeout.connection"),
-    idleTimeout = getTimeoutPropertyOptional("wsclient.timeout.idle"),
-    requestTimeout = getTimeoutPropertyOptional("wsclient.timeout.request")
+  private def getTimeoutPropertyOptional(key: String) = Option(System.getProperty(key)).map(_.toLong milliseconds)
+
+  def wsClientConfig = NingWSClientConfig(
+    wsClientConfig = WSClientConfig(
+    connectionTimeout = getTimeoutPropertyOptional("wsclient.timeout.connection").getOrElse(2 seconds),
+    idleTimeout = getTimeoutPropertyOptional("wsclient.timeout.idle").getOrElse(2 seconds),
+    requestTimeout = getTimeoutPropertyOptional("wsclient.timeout.request").getOrElse(2 seconds)
+    )
   )
 
   val ws = new NingWSClient(new NingAsyncHttpClientConfigBuilder(wsClientConfig).build())
