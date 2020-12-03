@@ -1,6 +1,6 @@
 # Releaser
 
-[![Build Status](https://travis-ci.org/hmrc/releaser.svg?branch=master)](https://travis-ci.org/hmrc/releaser) [ ![Download](https://api.bintray.com/packages/hmrc/releases/releaser/images/download.svg) ](https://bintray.com/hmrc/releases/releaser/_latestVersion)
+
 
 Releases artefacts from release candidates with one command. For use as part of a continuous delivery pipeline in which users can create a release from a development commit and create a tag in Github with one command. This automates numerous manual steps required to release an artefact with the existing [release](https://github.com/hmrc/release) scripts.
 
